@@ -9,7 +9,7 @@ import frappe
 from frappe import _
 from frappe.utils import cint
 
-from isoft_grid_tools.excel import build_workbook, safe_filename
+from isoft_customization.excel import build_workbook, safe_filename
 
 # `idx` is not a docfield but every child row has one
 IDX_FIELD = {"fieldname": "idx", "label": "No.", "fieldtype": "Int", "precision": 0}

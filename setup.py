@@ -3,13 +3,13 @@ from setuptools import setup, find_packages
 with open("requirements.txt") as f:
 	install_requires = f.read().strip().split("\n")
 
-# get version from __version__ variable in isoft_grid_tools/__init__.py
-from isoft_grid_tools import __version__ as version
+# get version from __version__ variable in isoft_customization/__init__.py
+from isoft_customization import __version__ as version
 
 setup(
-	name="isoft_grid_tools",
+	name="isoft_customization",
 	version=version,
-	description="Formatted Excel export for child table grids",
+	description="ISOFT customizations for Frappe / ERPNext",
 	author="Isoft",
 	author_email="abbasschokor225@gmail.com",
 	packages=find_packages(),

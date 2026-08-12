@@ -1,6 +1,13 @@
-# Isoft Grid Tools
+# ISOFT Customization
 
-Adds an **Excel** button to every child-table grid in the Frappe desk.
+Cross-cutting desk customizations for Frappe / ERPNext that don't belong to any
+one business app.
+
+## Features
+
+### Excel export for child tables
+
+Adds an **Excel** button to every child-table grid footer.
 
 Clicking it opens a column picker — mandatory fields (and the columns visible in
 the grid) are ticked by default, any other field can be added — and downloads a
@@ -15,12 +22,19 @@ properly formatted `.xlsx`:
 Unlike the built-in **Download** button (a bulk-edit CSV template with six rows
 of instructions above the data), this produces a sheet meant to be read.
 
+Rows are read from the open form, so unsaved edits are included in the export.
+
+Files: [`public/js/grid_excel.js`](isoft_customization/public/js/grid_excel.js),
+[`excel.py`](isoft_customization/excel.py),
+[`api.py`](isoft_customization/api.py).
+
 ## Install
 
 ```bash
-bench get-app isoft_grid_tools /path/to/isoft_grid_tools
-bench --site your.site install-app isoft_grid_tools
-bench build --app isoft_grid_tools
+bench get-app isoft_customization /path/to/isoft_customization
+bench --site your.site install-app isoft_customization
+bench build --app isoft_customization
+bench restart
 ```
 
 #### License

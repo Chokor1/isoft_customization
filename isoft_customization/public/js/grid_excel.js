@@ -12,14 +12,14 @@
 // cannot be reached by name. We patch its prototype off the first live instance,
 // which ControlTable hands us.
 
-frappe.provide("isoft_grid_tools");
+frappe.provide("isoft_customization");
 
 // fields that make no sense in a spreadsheet even though they hold a value
 const SKIPPED_FIELDTYPES = ["Password", "Signature", "Geolocation", "JSON"];
 // how many columns to tick when a table has neither mandatory nor list-view fields
 const FALLBACK_COLUMN_COUNT = 8;
 
-Object.assign(isoft_grid_tools, {
+Object.assign(isoft_customization, {
 	patch_grid_prototype(grid) {
 		const proto = Object.getPrototypeOf(grid);
 		if (!proto || proto.__isoft_excel_patched) return;
@@ -31,9 +31,9 @@ Object.assign(isoft_grid_tools, {
 		proto.setup_toolbar = function () {
 			const out = original.apply(this, arguments);
 			try {
-				isoft_grid_tools.render_button(this);
+				isoft_customization.render_button(this);
 			} catch (e) {
-				console.error("[isoft_grid_tools] could not add Excel button", e);
+				console.error("[isoft_customization] could not add Excel button", e);
 			}
 			return out;
 		};
@@ -50,7 +50,7 @@ Object.assign(isoft_grid_tools, {
 	render_button(grid) {
 		if (!grid.wrapper || !grid.df || !grid.df.options) return;
 
-		const $footer = isoft_grid_tools.get_footer(grid);
+		const $footer = isoft_customization.get_footer(grid);
 		const $area = $footer.find(".text-right").first();
 		if (!$area.length) return;
 
@@ -63,12 +63,12 @@ Object.assign(isoft_grid_tools, {
 			);
 			$area.prepend($btn);
 			$btn.on("click", () => {
-				isoft_grid_tools.show_dialog(grid);
+				isoft_customization.show_dialog(grid);
 				return false;
 			});
 		}
 
-		const has_rows = isoft_grid_tools.get_rows(grid).length > 0;
+		const has_rows = isoft_customization.get_rows(grid).length > 0;
 		$btn.toggleClass("hidden", !has_rows);
 
 		// core hides the whole footer on read-only grids that fit on one page,
@@ -120,7 +120,7 @@ Object.assign(isoft_grid_tools, {
 
 	show_dialog(grid) {
 		const doctype = grid.df.options;
-		const fields = isoft_grid_tools.get_exportable_fields(doctype);
+		const fields = isoft_customization.get_exportable_fields(doctype);
 
 		if (!fields.length) {
 			frappe.msgprint({
@@ -131,9 +131,9 @@ Object.assign(isoft_grid_tools, {
 			return;
 		}
 
-		const rows = isoft_grid_tools.get_rows(grid);
+		const rows = isoft_customization.get_rows(grid);
 		const title = __(grid.df.label || frappe.model.unscrub(grid.df.fieldname));
-		const defaults = isoft_grid_tools.get_default_fieldnames(fields);
+		const defaults = isoft_customization.get_default_fieldnames(fields);
 
 		const options = [
 			{
@@ -155,7 +155,7 @@ Object.assign(isoft_grid_tools, {
 			}))
 		);
 
-		const selected_rows = isoft_grid_tools.get_selected_docnames(grid);
+		const selected_rows = isoft_customization.get_selected_docnames(grid);
 
 		const dialog_fields = [
 			{
@@ -209,7 +209,7 @@ Object.assign(isoft_grid_tools, {
 					export_rows = rows.filter((row) => selected_rows.includes(row.name));
 				}
 
-				isoft_grid_tools.download(grid, {
+				isoft_customization.download(grid, {
 					doctype: doctype,
 					title: title,
 					fieldnames: fieldnames,
@@ -221,7 +221,7 @@ Object.assign(isoft_grid_tools, {
 		});
 
 		dialog.show();
-		isoft_grid_tools.setup_dialog(dialog);
+		isoft_customization.setup_dialog(dialog);
 	},
 
 	get_selected_docnames(grid) {
@@ -265,7 +265,7 @@ Object.assign(isoft_grid_tools, {
 			$search.on(
 				"input",
 				frappe.utils.debounce(
-					() => isoft_grid_tools.filter_options(dialog, $search.val()),
+					() => isoft_customization.filter_options(dialog, $search.val()),
 					150
 				)
 			);
@@ -295,7 +295,7 @@ Object.assign(isoft_grid_tools, {
 		});
 
 		open_url_post(frappe.request.url, {
-			cmd: "isoft_grid_tools.api.export_grid",
+			cmd: "isoft_customization.api.export_grid",
 			doctype: opts.doctype,
 			parent_doctype: (grid.frm && grid.frm.doctype) || "",
 			parent_name: (grid.frm && grid.frm.docname) || "",
@@ -319,7 +319,7 @@ Object.assign(isoft_grid_tools, {
 		const original = proto.make;
 		proto.make = function () {
 			const out = original.apply(this, arguments);
-			if (this.grid) isoft_grid_tools.patch_grid_prototype(this.grid);
+			if (this.grid) isoft_customization.patch_grid_prototype(this.grid);
 			return out;
 		};
 

@@ -4,15 +4,15 @@ include *.json
 include *.md
 include *.py
 include *.txt
-recursive-include isoft_grid_tools *.css
-recursive-include isoft_grid_tools *.csv
-recursive-include isoft_grid_tools *.html
-recursive-include isoft_grid_tools *.ico
-recursive-include isoft_grid_tools *.js
-recursive-include isoft_grid_tools *.json
-recursive-include isoft_grid_tools *.md
-recursive-include isoft_grid_tools *.png
-recursive-include isoft_grid_tools *.py
-recursive-include isoft_grid_tools *.svg
-recursive-include isoft_grid_tools *.txt
-recursive-exclude isoft_grid_tools *.pyc
+recursive-include isoft_customization *.css
+recursive-include isoft_customization *.csv
+recursive-include isoft_customization *.html
+recursive-include isoft_customization *.ico
+recursive-include isoft_customization *.js
+recursive-include isoft_customization *.json
+recursive-include isoft_customization *.md
+recursive-include isoft_customization *.png
+recursive-include isoft_customization *.py
+recursive-include isoft_customization *.svg
+recursive-include isoft_customization *.txt
+recursive-exclude isoft_customization *.pyc
