@@ -39,10 +39,18 @@ Object.assign(isoft_grid_tools, {
 		};
 	},
 
+	// grid.wrapper is a collection of the template's top-level nodes and
+	// .grid-footer is one of them, not a descendant - so .find() alone misses it
+	// (core's own this.wrapper.find('.grid-footer') is a no-op for this reason)
+	get_footer(grid) {
+		if (!grid.wrapper) return $();
+		return grid.wrapper.filter(".grid-footer").add(grid.wrapper.find(".grid-footer")).first();
+	},
+
 	render_button(grid) {
 		if (!grid.wrapper || !grid.df || !grid.df.options) return;
 
-		const $footer = grid.wrapper.find(".grid-footer").first();
+		const $footer = isoft_grid_tools.get_footer(grid);
 		const $area = $footer.find(".text-right").first();
 		if (!$area.length) return;
 
@@ -239,6 +247,16 @@ Object.assign(isoft_grid_tools, {
 					.append(' <span class="text-danger">*</span>');
 			}
 		});
+
+		// doctypes like Sales Invoice Item have 80+ fields; let the list scroll
+		// on its own so the options below it stay reachable
+		if (control.$checkbox_area) {
+			control.$checkbox_area.css({
+				"max-height": "45vh",
+				"overflow-y": "auto",
+				"padding-right": "5px",
+			});
+		}
 
 		// the control's own `change` hook only fires on blur, which is too late
 		// to feel like a search box
