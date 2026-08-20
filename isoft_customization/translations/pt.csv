@@ -1,0 +1,372 @@
+A submitted VAT Assessment ({0}) already covers {1} {2} for {3}.,Já existe um Apuramento do IVA submetido ({0}) para {1} de {2} na empresa {3}.
+About {0} minute remaining,Cerca de {0} minuto restante
+About {0} minutes remaining,Cerca de {0} minutos restantes
+About {0} seconds remaining,Cerca de {0} segundos restantes
+Account '{0}' is not assigned to {1} '{2}'.,Conta '{0}' não está atribuída a {1} '{2}'.
+Account Breakdown,Detalhe por Conta
+"Account for recoverable VAT, e.g. 3457. The transfer into this account is done the following month after AGT-portal verification.","Conta de IVA a recuperar, p. ex. 3457. A transferência para esta conta é feita no mês seguinte, após verificação no portal da AGT."
+"Account for VAT payable to the state, e.g. 3456. Used when the assessment results in a payable (credit) position.","Conta de IVA a pagar ao Estado, p. ex. 3456. Utilizada quando o apuramento resulta numa posição a pagar (credora)."
+"Account holding deductible (input) VAT, e.g. 3452. Its debit balance is transferred to the VAT Assessment account.","Conta que regista o IVA dedutível, p. ex. 3452. O seu saldo devedor é transferido para a conta de Apuramento do IVA."
+"Account holding output VAT, e.g. 3453. Its credit balance is transferred to the VAT Assessment account.","Conta que regista o IVA liquidado, p. ex. 3453. O seu saldo credor é transferido para a conta de Apuramento do IVA."
+"Account holding VAT withheld at source by customers, e.g. 34572. Its debit balance is transferred to the VAT Assessment account, so it is always left at zero — whether the assessment is payable or recoverable. Leave empty if the company has no withheld VAT.","Conta que regista o IVA cativado na fonte pelos clientes, p. ex. 34572. O seu saldo devedor é transferido para a conta de Apuramento do IVA, ficando sempre a zero — quer o apuramento resulte a pagar ou a recuperar. Deixe vazio se a empresa não tiver IVA cativo."
+Account Summary,Resumo por Conta
+Add Abbr to Account Name,Adicionar abrev. ao nome da conta
+Adjustment in Favour of the Company,Regulação a Favor da Empresa
+Adjustment in Favour of the State,Regulação a Favor do Estado
+Adjustments in Favour of the Company,Regulações a Favor da Empresa
+Adjustments in Favour of the State,Regulações a Favor do Estado
+Admin,Administrador
+Allow,Permitir
+Allow add New Items on New Line,Permitir Adicionar Novos Artigos numa Nova Linha
+Allow Change Posting Date,Permitir alterar a data de lançamento
+Allow Create Sales Order,Permitir Criar Encomenda
+Allow Credit Sale,Permitir Credito de Venda
+Allow Customer Purchase Order,Permitir o Pedido de Compra do Cliente
+Allow Partial Payment,Permitir o Pagamento Parcial
+Allow Print Draft Invoices,Permitir Imprimir Rascunhos de Faturas
+Allow Print Last Invoice,Permitir Imprimir Última Fatura
+Allow Return,Permitir Devolução
+Allow Submissions in background job,Permitir Submissões em trabalho de segundo plano
+Allow user to edit Additional Discount,Permitir ao utilizador editar o desconto adicional
+Allow User to Edit Item Discount,Permitir que o Utilizador Edite o Desconto do item
+Allow user to edit Item Name,Permitir que o utilizador edite o nome do item
+Allow user to edit Price List Rate,Permitir ao utilizador editar a lista de preços
+Allow user to edit Rate,Permitir que o utilizador edite o preço
+Allow User To Pull Items From Quotation,Permitir que o Utilizador Retire Itens da proforma
+Allow Write Off Change,Permitir Cancelar Troco
+Allow Zero Rated Items,Permitir Itens com qtd. Zero
+Allowed Items,Itens permitidos
+API Token,Token da API
+Apply Customer Discount,Aplicar Desconto ao Cliente
+Authorization Code,Código de autorização
+Auto Create Referral For New Customers,Criação automática de referência para novos clientes
+Auto Delete Draft Invoice,Apagar automaticamente o rascunho da fatura
+Auto Fetch Coupon Gifts,Pesquisar Cupões de Presente Automaticamente
+Auto Name,Nome Automático
+Auto Set Batch,Definir batch Automaticamente
+Auto Set Delivery Charges,Definir Taxas de Entrega Automaticamente
+Average,Média
+Back to Home,De volta para casa
+Background Jobs,Trabalhos em segundo plano
+Birthday,Data de nascimento
+Birthdays,Aniversários
+Blocked,Bloqueado
+Bottom,Inferior
+Busy,Ocupado
+Cannot remove account '{0}' because it has been used in General Ledger entries for this {1} '{2}'.,Não é possível remover a conta '{0}' porque foi utilizada em lançamentos do Razão Geral para este {1} '{2}'.
+Cash Mode of Payment,Modo de pagamento em dinheiro
+Clear,Limpar
+"Clearing account where the period VAT is assessed, e.g. 3455.","Conta de apuramento onde o IVA do período é apurado, p. ex. 3455."
+Closing [Opening + Total],Fecho [Saldo inicial + Total]
+Closing Configuration Profile,Perfil de Configuração de Fecho
+Closing Method,Método de Fecho
+Column {0},Coluna {0}
+Computed Balances,Saldos Apurados
+Connections,Ligações
+Consumer,Consumidor
+Count,Contagem
+Create Draft,Criar Rascunho
+Created Journal Entries,Lançamentos Contabilísticos Criados
+Created On,Criado Em
+Creating draft Journal Entries...,A criar Lançamentos Contabilísticos em rascunho...
+Credit balance of the Output VAT account for the period.,Saldo credor da conta de IVA Liquidado no período.
+Credit Invoice Naming Series,Série de Nomenclatura da Fatura de Crédito
+Data,Dados
+Date Range,Intervalo de datas
+Debit balance of the Deductible VAT account for the period.,Saldo devedor da conta de IVA Dedutível no período.
+Debit balance of the Withheld VAT Recoverable account for the period — VAT withheld at source by customers. Reduces the amount payable and is always cleared to zero by the assessment.,Saldo devedor da conta de IVA a Recuperar de Cativo no período — IVA cativado na fonte pelos clientes. Reduz o valor a pagar e é sempre saldado a zero pelo apuramento.
+Deductible VAT,IVA Dedutível
+Deductible VAT Account,Conta de IVA Dedutível
+Default Cativo Account,Conta Cativo Padrão
+Default In-Transit Warehouse,Armazém em trânsito padrão
+Default Payment Discount Account,Conta de desconto de pagamento padrão
+Default Provisional Account,Conta Provisória Padrão
+Default Tax Withholding Account,Conta de retenção de imposto padrão
+Default Vat Exempt Account,Conta padrão isenta de IVA
+Define one or more VAT adjustment accounts. Mark each as 'Favor do Estado' (increases payable) or 'Favor da Empresa' (decreases payable).,Defina uma ou mais contas de regulação de IVA. Marque cada uma como 'Favor do Estado' (aumenta o valor a pagar) ou 'Favor da Empresa' (reduz o valor a pagar).
+Deleted,Eliminados
+Dependencies,Dependências
+Destination Account,Conta Destino
+Direction,Sentido
+Discount %,% Desconto
+Display Additional Notes,Exibir notas adicionais
+Display Available Qty,Ver Qtd. Disponível
+Display Brand,Exibir Marca
+Display Item Code,Ver Código do Item
+Display UOM,Exibir UDM
+Display Warehouses Qty,Ver Qtd. em Armazéns
+Documents,Documentos
+Don't Send Emails,Não envie emails
+Done.,Concluído.
+Email Campaign,Campanha por e-mail
+Employee Grievance,Queixa do Funcionário
+Employee Naming By,Designação de Funcionário por
+Employee records are created using the selected option,Os registos de Funcionários são criados utilizando a opção selecionada
+Enable Provisional Accounting For Non Stock Items,Habilitar contabilidade provisória para itens não estocados
+Enable Raw Printing,Ativar impressão bruta
+Endpoints,Pontos de extremidade
+Enter Value,Insira o Valor,Title of prompt dialog
+Expires On,Expira em
+Export Errored Rows,Exportar linhas com erro
+Failure,Falha
+Favor do Estado increases the VAT payable position; Favor da Empresa decreases it.,Favor do Estado aumenta a posição de IVA a pagar; Favor da Empresa reduz.
+Feedback Reminder Notification Template,Modelo de Notificação de Lembrete de Feedback
+First day of the selected month.,Primeiro dia do mês seleccionado.
+first_page_print_record_count,contagem de registos de impressão da primeira página
+first_page_quotation_rows_count,Contagem de linhas de citação da primeira página
+Fixed Asset Defaults,Incumprimento de Ativos Fixos
+"For more information, {0}.","Para mais informações, {0}."
+For POS Closing Shift Payment Reconciliation,Para Reconciliação de Pagamento de Fecho de Turno POS
+From Opportunity,De oportunidade
+From Payment Date,Data de pagamento de
+Generated by VAT Assessment {0} - {1},Gerado pelo Apuramento do IVA {0} - {1}
+Go Back,Volte
+Go to {0} List,Ir para a {0} lista
+Grievance Type,Tipo de Queixa
+Group by Party,Agrupar por Parte
+Group Name,Nome do grupo
+Headers,Cabeçalhos
+Hello,Olá
+Hide Close Shift,Ocultar Fechar turno
+Hide Outstanding Reconciliation,Ocultar reconciliações pendentes
+Hide Variants Items,Ocultar Itens Variantes
+HQ Address,Endereço da sede
+Import File,Importar arquivo
+Import File Errors and Warnings,Erros e avisos de importação de arquivos
+Import from Google Sheets,Importar do Planilhas Google
+Import Log Preview,Visualização do registro de importação
+Import Preview,Visualização de importação
+Import Progress,Progresso da importação
+Import Type,Tipo de Importação
+Import Warnings,Avisos de importação
+"Importing {0} of {1}, {2}","Importando {0} de {1}, {2}"
+Income Tax Slab,Tabela de Impostos sobre o Rendimento
+Income Tax Slab Other Charges,Tabela de Impostos sobre o Rendimento - outros encargos
+Insert New Records,Inserir novos registros
+Interview Feedback Reminder,Lembrete do Feedback da Entrevista
+Interview Reminder,Lembrete de Entrevista
+Interview Reminder Notification Template,Modelo de Notificação de Lembrete de Entrevista
+Invalid,Inválido
+Invalid JSON,JSON inválido
+Invoice Limit,Limite de fatura
+Is Offer,É uma Oferta
+Is Offer Replace For item Row ID,É uma Substituição de Oferta para o Linha do ID do Item
+Is Registered Customer,É cliente registrado
+Is Short Year,É um ano curto
+It is best not to use more than four numbers,É aconselhavel não usar mais que quatro numeros
+Item Code,Código do item
+Item Group,Grupo do Item
+Item Name,Nome do item
+JE #,Nº Lanç.
+Journal Entries,Lançamentos Contabilísticos
+Journal Entries already exist for this assessment. Use Submit or Refresh Status instead.,Já existem Lançamentos Contabilísticos para este apuramento. Utilize Submeter ou Actualizar Estado.
+"Journal Entries created for this assessment, with their live status.","Lançamentos contabilísticos criados para este apuramento, com o respectivo estado actual."
+Journal Entry Naming Series,Série de Nomenclatura do Lançamento Diário
+Keyboard Shortcuts,Atalhos do teclado
+Last day of the selected month.,Último dia do mês seleccionado.
+Leave,Licença
+Leave Approval Notification,Notificação de Aprovação de Férias
+Leave Policy Assignment,Atribuição da Política de Licenças
+Leave Status Notification,Notificação do Estado das Férias
+Leaves,Licenças
+Ledger,Livro
+Left,Saiu
+Legal,Jurídico
+Length,Comprimento
+Less than 12 months,Menos de 12 meses
+Lines sharing the same number belong to one Journal Entry.,As linhas com o mesmo número pertencem ao mesmo Lançamento Contabilístico.
+Links,Links
+Loading import file...,Carregando arquivo de importação ...
+Logout,Encerrar Sessão
+MAIN IBAN BANK 1,IBAN PRINCIPAL BANCO 1
+MAIN IBAN BANK 2,IBAN PRINCIPAL BANCO 2
+Make a call,Faça uma ligação
+Mandatory fields required in {0},Os campos obrigatórios exigidos em {0}
+Mark Attendance,Registar Assiduidade
+Material Consumption for Manufacture,Consumo de Material para Fabrico
+Material Receipt,Recepção de Material
+Max Discount Percentage Allowed ,Percentagem de Desconto Maximo Permitido
+Maximum Payment Amount,Valor máximo de pagamento
+Minimum Payment Amount,Valor mínimo de pagamento
+Missing,Em Falta
+Missing Fields,Campos ausentes
+Mobile,Móvel
+Mode of Payment,Modo de pagamento
+Naming Series,Nomes de Série
+Net VAT Position,Posição Líquida do IVA
+Net VAT: {0} ({1}),IVA Líquido: {0} ({1})
+New Name,Novo Nome
+Next,Seguinte,Go to next slide
+Nil,Nulo
+No failed logs,Nenhum registro com falha
+Not Published,Não Publicado
+Not Specified,Não especificado
+Nothing to assess for the selected period.,Não há nada a apurar no período seleccionado.
+Nothing to post for this assessment.,Não há nada a lançar neste apuramento.
+Offer Applied,Oferta Aplicada
+Online,Online
+other_page_print_record_count,Contagem de registos de impressão de outras páginas
+other_page_quotation_rows_count,Contagem de linhas de citação de outras páginas, 
+Output VAT,IVA Liquidado
+"Output VAT - Deductible VAT + Adjustments in Favour of the State - Adjustments in Favour of the Company. Positive = Payable, Negative = Recoverable.","IVA Liquidado - IVA Dedutível + Regulações a Favor do Estado - Regulações a Favor da Empresa. Positivo = A Pagar, Negativo = A Recuperar."
+"Output VAT - Deductible VAT - Withheld VAT Recoverable + Adjustments in Favour of the State - Adjustments in Favour of the Company. Positive = Payable, Negative = Recoverable.","IVA Liquidado - IVA Dedutível - IVA a Recuperar de Cativo + Regulações a Favor do Estado - Regulações a Favor da Empresa. Positivo = A Pagar, Negativo = A Recuperar."
+Output VAT Account,Conta de IVA Liquidado
+Overdue,Vencido
+Overview,Visão geral
+Parent Account,Conta Principal
+Partial Success,Sucesso parcial
+Party Specific Item,Item específico
+Payment Entry Naming Series,Série de Nomenclatura do Lançamento de Pagamento
+Payment Limit,Limite de Pagamento
+Planned Entries,Lançamentos Previstos
+Planned Journal Entries (Preview),Lançamentos Contabilísticos Previstos (Pré-visualização)
+Please configure the following in VAT Assessment Settings: {0},Configure o seguinte nas Definições de Apuramento do IVA: {0}
+Please enter a valid Year.,Introduza um Ano válido.
+Please select a valid Month.,Seleccione um Mês válido.
+Points,Pontos
+POS Awesome Advance Settings,Configurações Avançadas do POS Awesome
+POS Awesome Settings,Configurações do POS
+POS Offers,POS Ofertas
+POS Offers Detail,POS Detalhes de Ofertas
+POS Shift,POS Turno
+Position,Posição
+Posting Date Must Be in Month After the Assessed Month,A Data de Lançamento Deve Estar no Mês Seguinte ao Mês Apurado
+Posting Date must fall within the month after the assessed month ({0} to {1}).,A Data de Lançamento deve estar no mês seguinte ao mês apurado ({0} a {1}).
+Preview of the journal entries that WILL be created. Nothing is posted until you click Create Draft.,Pré-visualização dos lançamentos que SERÃO criados. Nada é lançado até clicar em Criar Rascunho.
+Previous,Anterior,Go to previous slide
+Printed,Imprimido
+Pro Closing Voucher Profiles,Perfis de Configuração de Fecho Pro
+Progress,Progresso
+Projects Manager,Gerente de Projetos
+Publish,Publicar
+Purchase Total,Total da compra
+random,aleatório
+Recoverable,A Recuperar
+Recoverable position: the balance is left in the VAT Assessment account. Transfer it to VAT Recoverable next month after verifying in the AGT portal.,"Posição a recuperar: o saldo permanece na conta de Apuramento do IVA. Transfira-o para IVA a Recuperar no mês seguinte, após verificação no portal da AGT."
+Reference Document Name,Nome do documento de referência
+Referral Company,Empresa de referência
+Referrer,Referrer
+Refresh Google Sheet,Atualizar planilha do Google
+Refresh Status,Actualizar Estado
+Refreshing status...,A actualizar o estado...
+Reload,recarregar
+Reminders,Lembretes
+Repair and Maintenance Account,Conta de reparação e manutenção
+Response,Resposta
+Restrict Backdated Leave Application,Restringir o pedido de férias retroactivas
+Retirement Age (In Years),Idade de reforma (em anos)
+Retry,Repetir
+Row #,Linha #
+Row ID,ID da Linha
+Row Number,Número da linha
+Row {0},Linha {0}
+Salary Register,Registo de Salários
+Sales,Vendas
+Sales Total,Total de vendas
+Sales vs Purchase Analysis,Análise de Vendas vs Compras
+Scale Barcode Start With,Código de barras da escala começa por
+Scope,Escopo
+Search by Serial Number,Procurar por Numero de Serie
+Search Results,Procurar Resultados
+Section,Seção
+Select Document Type,Selecione Tipo de Documento
+Select Fields,Selecione os campos
+Send Interview Reminder,Enviar Lembrete de Entrevista
+Send invoice to submit after printing,Enviar Factura para Submeter depois de Imprimir
+Send Leave Notification,Enviar notificação de férias
+Send to Subcontractor,Enviar para Subcontratante
+Session Defaults,Padrões de Sessão
+Set as Default,Definir como padrão
+Set Password,Wachtwoord instellen
+Set Quantity,Definir Quantidade
+Set the frequency for holiday reminders,Definir a frequência dos lembretes de férias
+Shift Request,Pedido de Turno
+Shift Type,Tipo de Turno
+Show Amount in Account Currency,Mostrar valor na Moeda da Conta
+Show Failed Logs,Mostrar logs com falha
+Show In Print Format,Mostrar em Formato de impressão
+Show Net Values in Party Account,Mostrar valores líquidos na conta da Parte
+Show Remark,Mostrar Comentário
+Show Template Items,Mostrar Itens de Modelo
+Side,Natureza
+Signature,Assinatura
+Source Accounts,Contas Origem
+Standard Working Hours,Horário de Trabalho Normal
+Start Import,Iniciar importação
+STATEMENT OF ACCOUNTS,Extracto de Conta
+Stock Reconciliation,Reconciliação de Stock
+Stop,pare
+Submit After Import,Enviar após importação
+Submit the VAT Assessment before creating Journal Entries.,Submeta o Apuramento do IVA antes de criar os Lançamentos Contabilísticos.
+Submit the VAT Assessment before submitting Journal Entries.,Submeta o Apuramento do IVA antes de submeter os Lançamentos Contabilísticos.
+Submit the VAT closing Journal Entries to the ledger?,Submeter os Lançamentos Contabilísticos de fecho do IVA para o razão?
+Submitting Journal Entries...,A submeter Lançamentos Contabilísticos...
+"Successfully imported {0} record out of {1}. Click on Export Errored Rows, fix the errors and import again.","Importado com sucesso {0} registro de {1}. Clique em Exportar Errored Rows, corrija os erros e importe novamente."
+Successfully imported {0} record.,Registro {0} importado com sucesso.
+"Successfully imported {0} records out of {1}. Click on Export Errored Rows, fix the errors and import again.","Importou com êxito {0} registros de {1}. Clique em Exportar Errored Rows, corrija os erros e importe novamente."
+Successfully imported {0} records.,Registros {0} importados com sucesso.
+"Successfully updated {0} record out of {1}. Click on Export Errored Rows, fix the errors and import again.","Atualizado com sucesso {0} registro de {1}. Clique em Exportar Errored Rows, corrija os erros e importe novamente."
+Successfully updated {0} record.,Registro {0} atualizado com sucesso.
+"Successfully updated {0} records out of {1}. Click on Export Errored Rows, fix the errors and import again.","Atualizado com êxito {0} registros de {1}. Clique em Exportar Errored Rows, corrija os erros e importe novamente."
+Successfully updated {0} records.,Registros {0} atualizados com sucesso.
+Tax ID is already used for {0} '{1}'.,O NIF/NIPC já é utilizado para {0} '{1}'.
+Template Options,Opções de modelo
+Template Warnings,Avisos do modelo
+Text,Caixa de Texto
+The Condition '{0}' is invalid,A condição &#39;{0}&#39; é inválido
+The VAT assessment is done monthly. The period is the whole selected month.,O apuramento do IVA é mensal. O período corresponde à totalidade do mês seleccionado.
+This filter will be applied to Journal Entry.,Este filtro será aplicado ao Lançamento Contabilístico.
+Timeline,Timeline
+Timestamp,Timestamp
+To Payment Date,Para data de pagamento
+Today,Hoje
+Top,Topo
+Topic,Tema
+Total VAT adjustments in favour of the company (decrease payable).,Total das regulações de IVA a favor da empresa (reduzem o valor a pagar).
+Total VAT adjustments in favour of the State (increase payable).,Total das regulações de IVA a favor do Estado (aumentam o valor a pagar).
+Transfer Adjustment {0},Transferência da Regulação {0}
+Transfer Deductible VAT,Transferência do IVA Dedutível
+Transfer Output VAT,Transferência do IVA Liquidado
+Transfer Withheld VAT,Transferência do IVA a Recuperar de Cativo
+Unrealized Profit / Loss Account,Conta de Lucros/Perdas Não Realizados
+Update Existing Records,Atualizar registros existentes
+Update Item Detail On Action,Atualizar Detalhes do Artigo na Ação
+Update Type,Tipo de atualização
+"Updating {0} of {1}, {2}","Atualizando {0} de {1}, {2}"
+Use Browser Local Storage,Use o armazenamento local do navegador
+Use Cashback,Usar Cashback
+Use Customer Credit,Utilizar Crédito do Cliente
+Use Delivery Charges,Utilizar Taxas de Entrega
+Use QTY Input,Usar Entrada QTD
+Use Shift Sales Person,Usar vendedor de turno
+User,Utilizadores
+Username,Nome do utilizador
+Validate Attendance,Validar Assiduidade
+Validate Customer Credit,Validar Crédito do Cliente
+value,valor
+Value Change,Valor Variação
+VAT Accounts,Contas de IVA
+VAT Adjustment Account,Conta de Regulação de IVA
+VAT Adjustment Accounts,Contas de Regulação de IVA
+VAT Adjustments (Regulações),Regulações de IVA
+VAT Assessment,Apuramento do IVA
+VAT Assessment Account,Conta de Apuramento do IVA
+VAT Assessment Account Summary,Resumo de Contas do Apuramento do IVA
+VAT Assessment Adjustment Account,Conta de Regulação do Apuramento do IVA
+VAT Assessment Journal Entry,Lançamento Contabilístico do Apuramento do IVA
+VAT Assessment Planned Entry,Lançamento Previsto do Apuramento do IVA
+VAT Assessment Settings,Definições de Apuramento do IVA
+VAT Payable,IVA a Pagar
+VAT Payable Account,Conta de IVA a Pagar
+VAT Recoverable Account,Conta de IVA a Recuperar
+Verification Code,Código de verificação
+Verify the figures in the AGT partner portal before relying on this assessment.,Confirme os valores no portal da AGT antes de considerar este apuramento definitivo.
+View Journal Entries,Ver Lançamentos Contabilísticos
+View Website,Veja site
+"When enabled, a VAT Assessment's Posting Date must fall within the month after the month it assesses. Off by default to allow any posting date.","Quando activo, a Data de Lançamento de um Apuramento do IVA deve estar no mês seguinte ao mês apurado. Desactivado por omissão, permitindo qualquer data."
+Withheld VAT Recoverable,IVA a Recuperar de Cativo
+Withheld VAT Recoverable Account,Conta de IVA a Recuperar de Cativo
+Withholding Tax,Imposto retido na fonte
+Yesterday,Ontem
+You,Você,Name of the current user. For example: You edited this 5 hours ago.
+{0} Fields,{0} campos

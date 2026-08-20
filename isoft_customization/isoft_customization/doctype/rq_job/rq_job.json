@@ -1,0 +1,140 @@
+{
+  "actions": [],
+  "autoname": "field:job_id",
+  "creation": "2025-05-13 09:56:05.658916",
+  "doctype": "DocType",
+  "editable_grid": 1,
+  "engine": "InnoDB",
+  "in_create": 1,
+  "field_order": [
+    "job_info_section",
+    "job_id",
+    "job_name",
+    "qeue",
+    "timeout",
+    "column_break_5",
+    "arguments",
+    "job_status_section",
+    "status",
+    "time_taken",
+    "column_break_11",
+    "started_at",
+    "ended_at",
+    "exception_section",
+    "exc_info"
+  ],
+  "fields": [
+    {
+      "fieldname": "qeue",
+      "fieldtype": "Select",
+      "in_list_view": 1,
+      "in_standard_filter": 1,
+      "label": "Qeue",
+      "options": "default\nshort\nlong"
+    },
+    {
+      "fieldname": "status",
+      "fieldtype": "Select",
+      "in_list_view": 1,
+      "in_standard_filter": 1,
+      "label": "Status",
+      "options": "queued\nstarted\nfinished\nfailed\ndeferred\nscheduled\ncanceled"
+    },
+    {
+      "fieldname": "job_id",
+      "fieldtype": "Data",
+      "label": "Job ID",
+      "unique": 1
+    },
+    {
+      "fieldname": "exc_info",
+      "fieldtype": "Code",
+      "label": "Exception"
+    },
+    {
+      "fieldname": "job_name",
+      "fieldtype": "Data",
+      "label": "Job Name"
+    },
+    {
+      "fieldname": "arguments",
+      "fieldtype": "Code",
+      "label": "Arguments"
+    },
+    {
+      "fieldname": "timeout",
+      "fieldtype": "Duration",
+      "label": "Timeout"
+    },
+    {
+      "fieldname": "time_taken",
+      "fieldtype": "Duration",
+      "label": "Time Taken"
+    },
+    {
+      "fieldname": "started_at",
+      "fieldtype": "Datetime",
+      "label": "Started At"
+    },
+    {
+      "fieldname": "ended_at",
+      "fieldtype": "Datetime",
+      "label": "Ended At"
+    },
+    {
+      "fieldname": "job_info_section",
+      "fieldtype": "Section Break",
+      "label": "Job Info"
+    },
+    {
+      "fieldname": "column_break_5",
+      "fieldtype": "Column Break"
+    },
+    {
+      "fieldname": "column_break_11",
+      "fieldtype": "Column Break"
+    },
+    {
+      "fieldname": "exception_section",
+      "fieldtype": "Section Break"
+    },
+    {
+      "fieldname": "job_status_section",
+      "fieldtype": "Section Break",
+      "label": "Job Status Section"
+    }
+  ],
+  "in_create": 1,
+  "index_web_pages_for_search": 1,
+  "is_virtual": 1,
+  "links": [],
+  "modified": "2025-05-13 10:04:52.407842",
+  "modified_by": "Administrator",
+  "module": "ISOFT Customization",
+  "name": "RQ Job",
+  "owner": "Administrator",
+  "permissions": [
+    {
+      "email": 1,
+      "export": 1,
+      "print": 1,
+      "read": 1,
+      "report": 1,
+      "role": "System Manager",
+      "share": 1
+    },
+    {
+      "delete": 1,
+      "email": 1,
+      "export": 1,
+      "print": 1,
+      "read": 1,
+      "report": 1,
+      "role": "Administrator",
+      "share": 1
+    }
+  ],
+  "sort_field": "creation",
+  "sort_order": "DESC",
+  "title_field": "job_id"
+}

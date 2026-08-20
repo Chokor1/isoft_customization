@@ -1,0 +1,357 @@
+{
+ "actions": [],
+ "creation": "2026-02-05 10:00:00",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "enabled",
+  "company",
+  "column_break_3",
+  "notification_name",
+  "trigger_section",
+  "reference_doctype",
+  "condition_section",
+  "condition",
+  "condition_help",
+  "customer_filters_section",
+  "customer_collection",
+  "collection_name",
+  "column_break_12",
+  "customers_section",
+  "customers",
+  "ledger_settings_section",
+  "include_ledger",
+  "include_zero_balance_ledger",
+  "allow_contact_email",
+  "ledger_from_date_mode",
+  "ledger_from_date",
+  "ledger_group_by",
+  "column_break_24",
+  "include_ageing",
+  "ageing_based_on",
+  "print_settings_section",
+  "print_format",
+  "column_break_30",
+  "orientation",
+  "letter_head",
+  "email_settings_section",
+  "sender",
+  "cc_to",
+  "cc_document_owner",
+  "cc_account_manager",
+  "bcc_to",
+  "column_break_36",
+  "send_system_notification",
+  "message_section",
+  "subject",
+  "body",
+  "email_signature",
+  "help_text"
+ ],
+ "fields": [
+  {
+   "default": "1",
+   "fieldname": "enabled",
+   "fieldtype": "Check",
+   "label": "Enabled"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Company",
+   "options": "Company",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_3",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "notification_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Notification Name",
+   "reqd": 1
+  },
+  {
+   "fieldname": "trigger_section",
+   "fieldtype": "Section Break",
+   "label": "Document Settings"
+  },
+  {
+   "default": "Payment Entry",
+   "fieldname": "reference_doctype",
+   "fieldtype": "Select",
+   "label": "Document Type",
+   "options": "Payment Entry\nSales Invoice",
+   "reqd": 1
+  },
+  {
+   "fieldname": "condition_section",
+   "fieldtype": "Section Break",
+   "label": "Conditions"
+  },
+  {
+   "description": "Optional: The notification will be sent if this expression is true",
+   "fieldname": "condition",
+   "fieldtype": "Code",
+   "ignore_xss_filter": 1,
+   "label": "Condition"
+  },
+  {
+   "fieldname": "condition_help",
+   "fieldtype": "HTML",
+   "options": "<p><strong>Condition Examples:</strong></p>\n<pre>doc.status==\"Paid\"<br>doc.posting_date==nowdate()<br>doc.grand_total &gt; 40000</pre>\n"
+  },
+  {
+   "fieldname": "customer_filters_section",
+   "fieldtype": "Section Break",
+   "label": "Customer Filters"
+  },
+  {
+   "fieldname": "customer_collection",
+   "fieldtype": "Select",
+   "label": "Select Customers By",
+   "options": "\nCustomer Group\nTerritory\nSales Partner\nSales Person\nSpecific Customers"
+  },
+  {
+   "depends_on": "eval:doc.customer_collection && doc.customer_collection !== 'Specific Customers'",
+   "fieldname": "collection_name",
+   "fieldtype": "Dynamic Link",
+   "label": "Collection Name",
+   "options": "customer_collection"
+  },
+  {
+   "fieldname": "column_break_12",
+   "fieldtype": "Column Break"
+  },
+  {
+   "depends_on": "eval:doc.customer_collection == 'Specific Customers'",
+   "fieldname": "customers_section",
+   "fieldtype": "Section Break",
+   "label": "Customers"
+  },
+  {
+   "depends_on": "eval:doc.customer_collection == 'Specific Customers'",
+   "fieldname": "customers",
+   "fieldtype": "Table",
+   "label": "Customers",
+   "options": "Post Payment Invoice Customer"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "ledger_settings_section",
+   "fieldtype": "Section Break",
+   "label": "Ledger Settings"
+  },
+  {
+   "default": "1",
+   "fieldname": "include_ledger",
+   "fieldtype": "Check",
+   "label": "Include Customer Ledger"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval:doc.include_ledger",
+   "fieldname": "include_zero_balance_ledger",
+   "fieldtype": "Check",
+   "label": "Include Zero Balance Ledger"
+  },
+  {
+   "default": "0",
+   "description": "If customer email is missing, use linked Contact (billing contact) email",
+   "fieldname": "allow_contact_email",
+   "fieldtype": "Check",
+   "label": "Allow Linked Contact Email"
+  },
+  {
+   "default": "Start of Current Month",
+   "depends_on": "eval:doc.include_ledger",
+   "fieldname": "ledger_from_date_mode",
+   "fieldtype": "Select",
+   "label": "Ledger From Date",
+   "options": "Custom Date\nStart of Current Month\nStart of Current Year\nCurrent Date"
+  },
+  {
+   "depends_on": "eval:doc.include_ledger && doc.ledger_from_date_mode == 'Custom Date'",
+   "fieldname": "ledger_from_date",
+   "fieldtype": "Date",
+   "label": "Custom From Date"
+  },
+  {
+   "default": "Group by Voucher (Consolidated)",
+   "depends_on": "eval:doc.include_ledger",
+   "fieldname": "ledger_group_by",
+   "fieldtype": "Select",
+   "label": "Ledger Group By",
+   "options": "\nGroup by Voucher\nGroup by Voucher (Consolidated)"
+  },
+  {
+   "fieldname": "column_break_24",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval:doc.include_ledger",
+   "fieldname": "include_ageing",
+   "fieldtype": "Check",
+   "label": "Include Ageing Summary"
+  },
+  {
+   "default": "Due Date",
+   "depends_on": "eval:doc.include_ageing",
+   "fieldname": "ageing_based_on",
+   "fieldtype": "Select",
+   "label": "Ageing Based On",
+   "options": "Due Date\nPosting Date"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "print_settings_section",
+   "fieldtype": "Section Break",
+   "label": "Print Settings"
+  },
+  {
+   "fieldname": "print_format",
+   "fieldtype": "Link",
+   "label": "Print Format",
+   "options": "Print Format",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_30",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "Portrait",
+   "fieldname": "orientation",
+   "fieldtype": "Select",
+   "label": "Orientation",
+   "options": "Portrait\nLandscape"
+  },
+  {
+   "fieldname": "letter_head",
+   "fieldtype": "Link",
+   "label": "Letter Head",
+   "options": "Letter Head"
+  },
+  {
+   "fieldname": "email_settings_section",
+   "fieldtype": "Section Break",
+   "label": "Email Settings"
+  },
+  {
+   "fieldname": "sender",
+   "fieldtype": "Link",
+   "label": "Sender",
+   "options": "Email Account"
+  },
+  {
+   "description": "Additional CC recipients (comma separated)",
+   "fieldname": "cc_to",
+   "fieldtype": "Small Text",
+   "label": "CC To"
+  },
+  {
+   "default": "0",
+   "description": "Include the transaction owner email in CC",
+   "fieldname": "cc_document_owner",
+   "fieldtype": "Check",
+   "label": "CC Document Owner"
+  },
+  {
+   "default": "",
+   "description": "Include the customer's Account Manager email in CC or BCC",
+   "fieldname": "cc_account_manager",
+   "fieldtype": "Select",
+   "label": "Account Manager In",
+   "options": "\nCC\nBCC"
+  },
+  {
+   "description": "BCC recipients (comma separated)",
+   "fieldname": "bcc_to",
+   "fieldtype": "Small Text",
+   "label": "BCC To"
+  },
+  {
+   "fieldname": "column_break_36",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "description": "Show notification in the notifications dropdown",
+   "fieldname": "send_system_notification",
+   "fieldtype": "Check",
+   "label": "Send System Notification"
+  },
+  {
+   "fieldname": "message_section",
+   "fieldtype": "Section Break",
+   "label": "Email Message"
+  },
+  {
+   "description": "Use Jinja tags for dynamic values: {{ doc.name }}, {{ customer.name }}",
+   "fieldname": "subject",
+   "fieldtype": "Data",
+   "label": "Subject",
+   "reqd": 1
+  },
+  {
+   "description": "Use Jinja tags for dynamic values",
+   "fieldname": "body",
+   "fieldtype": "Text Editor",
+   "label": "Body",
+   "reqd": 1
+  },
+  {
+   "description": "Optional HTML signature appended to the email body. Jinja tags allowed.",
+   "fieldname": "email_signature",
+   "fieldtype": "Text Editor",
+   "label": "Email Signature"
+  },
+  {
+   "fieldname": "help_text",
+   "fieldtype": "HTML",
+   "label": "Help Text",
+   "options": "<br><h4>Note</h4><ul><li>You can use <a href=\"https://jinja.palletsprojects.com/en/2.11.x/\" target=\"_blank\">Jinja tags</a> in <b>Subject</b> and <b>Body</b> fields for dynamic values.</li><li>Available objects: <b>doc</b> (trigger document), <b>notification</b> (this notification), <b>customer</b> (customer object), <b>reference_doc</b> (trigger document), <b>payment_entry</b> (payment entry if used), <b>sales_invoice</b> (sales invoice if used), <b>invoices</b> (list of invoices attached)</li></ul><h4>Examples</h4><ul><li><b>Subject</b>:<br><pre>Payment Receipt for {{ customer.customer_name }}</pre></li><li><b>Body</b>:<br><pre>Dear {{ customer.customer_name }},<br><br>Thank you for your payment. Please find attached your invoice(s) and account statement.<br><br>Payment Reference: {{ payment_entry.name }}<br>Amount: {{ payment_entry.paid_amount }}</pre></li></ul>"
+  }
+ ],
+ "links": [],
+ "modified": "2026-04-17 10:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Isoft Customization",
+ "name": "Invoice Payment Notification",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Accounts Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Accounts User",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "title_field": "notification_name",
+ "track_changes": 1
+}

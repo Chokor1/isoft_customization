@@ -10,4 +10,43 @@ app_email = "abbasschokor225@gmail.com"
 app_license = "MIT"
 
 # adds the "Excel" button to every child table grid in the desk
-app_include_js = "/assets/isoft_customization/js/grid_excel.js"
+app_include_js = [
+	"/assets/isoft_customization/js/grid_excel.js",
+	# Adds the "Include Barcode" filter to five ERPNext stock reports. Must load
+	# before any report script, which app_include_js does.
+	"/assets/isoft_customization/js/report_barcode_filter.js",
+	# Full-width Desk by default: seeds localStorage.container_fullwidth when it
+	# is absent, which is what flipping the two literals in toolbar.js did.
+	"/assets/isoft_customization/js/fullwidth_default.js",
+]
+
+# bulk "Stop" action in the Material Request list view
+doctype_list_js = {"Material Request": "public/js/material_request_list.js"}
+
+
+# Payment notifications, moved here from ERPNext core. The DocType and both triggers
+# were sitting in erpnext/accounts; nothing about them is ERPNext. Frappe merges
+# doc_events across apps, so these stack with ERPNext's own on_submit handlers
+# rather than replacing them.
+doc_events = {
+	"Sales Invoice": {
+		"on_submit": "isoft_customization.isoft_customization.doctype.invoice_payment_notification.invoice_payment_notification.trigger_notification_on_sales_invoice_submit",
+	},
+	"Payment Entry": {
+		"on_submit": "isoft_customization.isoft_customization.doctype.invoice_payment_notification.invoice_payment_notification.trigger_notification_on_payment_submit",
+	},
+}
+
+
+# Create > Quotation on Sales Order, moved out of ERPNext's own sales_order.js.
+# Frappe merges doctype_js across apps, so this stacks with ERPNext's rather than
+# replacing it.
+doctype_js = {
+	"Sales Order": "public/js/sales_order.js",
+}
+
+
+# Seed the Portuguese overrides as Translation records. The CSV in translations/ is
+# the source of truth; this only guarantees it beats erpnext's catalogue, which
+# sorts after this app in sites/apps.txt. See translations_override.py.
+after_migrate = "isoft_customization.translations_override.sync_translations"

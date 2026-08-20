@@ -1,0 +1,55 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-07-18 16:06:46.452283",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "progress",
+  "enabled",
+  "flagembedding__url"
+ ],
+ "fields": [
+  {
+   "default": "0",
+   "fieldname": "enabled",
+   "fieldtype": "Check",
+   "label": "Enabled"
+  },
+  {
+   "depends_on": "eval:doc.enabled",
+   "fieldname": "flagembedding__url",
+   "fieldtype": "Data",
+   "label": "FlagEmbedding  URL",
+   "mandatory_depends_on": "eval:doc.enabled"
+  },
+  {
+   "fieldname": "progress",
+   "fieldtype": "HTML",
+   "label": "progress"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "issingle": 1,
+ "links": [],
+ "modified": "2025-08-08 08:29:37.660884",
+ "modified_by": "Administrator",
+ "module": "Isoft Customization",
+ "name": "Weaviate Settings",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC"
+}

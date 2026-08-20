@@ -1,0 +1,219 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "naming_series:",
+ "creation": "2025-10-21 14:37:42.336196",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "is_submittable": 1,
+ "field_order": [
+  "naming_series",
+  "customer",
+  "company",
+  "column_break_1",
+  "receivable_account",
+  "posting_date",
+  "section_break_5",
+  "positive_invoice",
+  "positive_invoice_outstanding",
+  "column_break_7",
+  "negative_invoice",
+  "negative_invoice_outstanding",
+  "section_break_10",
+  "positive_items",
+  "column_break_11",
+  "negative_items",
+  "section_break_14",
+  "journal_entry",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Series",
+   "options": "ACC-ITMR-.YYYY.-",
+   "reqd": 1
+  },
+  {
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Customer",
+   "options": "Customer",
+   "reqd": 1
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "receivable_account",
+   "fieldtype": "Link",
+   "label": "Receivable Account",
+   "options": "Account",
+   "reqd": 1
+  },
+  {
+   "fieldname": "posting_date",
+   "fieldtype": "Date",
+   "label": "Posting Date",
+   "reqd": 1,
+   "default": "Today"
+  },
+  {
+   "fieldname": "section_break_5",
+   "fieldtype": "Section Break",
+   "label": "Invoice Selection for Item Replacement",
+   "depends_on": "eval:doc.customer"
+  },
+  {
+   "fieldname": "positive_invoice",
+   "fieldtype": "Link",
+   "label": "Original Invoice (With Old Items)",
+   "description": "Invoice with outstanding amount > 0 containing items to be replaced",
+   "options": "Sales Invoice",
+   "reqd": 1,
+   "depends_on": "eval:doc.customer"
+  },
+  {
+   "fieldname": "positive_invoice_outstanding",
+   "fieldtype": "Currency",
+   "label": "Outstanding Amount",
+   "read_only": 1,
+   "depends_on": "eval:doc.customer"
+  },
+  {
+   "fieldname": "column_break_7",
+   "fieldtype": "Column Break",
+   "depends_on": "eval:doc.customer"
+  },
+  {
+   "fieldname": "negative_invoice",
+   "fieldtype": "Link",
+   "label": "Return/Credit Note (With Replacement Items)",
+   "description": "Credit note with outstanding amount < 0 containing replacement items",
+   "options": "Sales Invoice",
+   "reqd": 1,
+   "depends_on": "eval:doc.customer"
+  },
+  {
+   "fieldname": "negative_invoice_outstanding",
+   "fieldtype": "Currency",
+   "label": "Outstanding Amount",
+   "read_only": 1,
+   "depends_on": "eval:doc.customer"
+  },
+  {
+   "fieldname": "section_break_10",
+   "fieldtype": "Section Break",
+   "label": "Item Replacement Details",
+   "collapsible": 0,
+   "depends_on": "eval:doc.customer"
+  },
+  {
+   "fieldname": "positive_items",
+   "fieldtype": "Table",
+   "label": "Original Items (To Be Replaced)",
+   "options": "Item Resumption Positive Item",
+   "depends_on": "eval:doc.customer"
+  },
+  {
+   "fieldname": "column_break_11",
+   "fieldtype": "Column Break",
+   "depends_on": "eval:doc.customer"
+  },
+  {
+   "fieldname": "negative_items",
+   "fieldtype": "Table",
+   "label": "Replacement Items (New Items)",
+   "options": "Item Resumption Negative Item",
+   "depends_on": "eval:doc.customer"
+  },
+  {
+   "fieldname": "section_break_14",
+   "fieldtype": "Section Break",
+   "label": "Reconciliation Details"
+  },
+  {
+   "fieldname": "journal_entry",
+   "fieldtype": "Link",
+   "label": "Reconciliation Journal Entry",
+   "description": "Auto-created journal entry for item replacement reconciliation",
+   "options": "Journal Entry",
+   "read_only": 1
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Item Resumption",
+   "print_hide": 1,
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-10-21 15:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "ISOFT Customization",
+ "name": "Item Resumption",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1,
+   "amend": 1,
+   "cancel": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Accounts Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1,
+   "amend": 1,
+   "cancel": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Accounts User",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

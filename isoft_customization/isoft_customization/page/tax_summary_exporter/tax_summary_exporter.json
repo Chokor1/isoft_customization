@@ -1,0 +1,23 @@
+{
+ "content": null,
+ "creation": "2025-08-08 11:21:19.147774",
+ "docstatus": 0,
+ "doctype": "Page",
+ "idx": 0,
+ "modified": "2025-08-08 11:21:19.147774",
+ "modified_by": "Administrator",
+ "module": "ISOFT Customization",
+ "name": "tax-summary-exporter",
+ "owner": "Administrator",
+ "page_name": "tax-summary-exporter",
+ "roles": [
+  {
+   "role": "Accounts Manager"
+  }
+ ],
+ "script": null,
+ "standard": "Yes",
+ "style": null,
+ "system_page": 0,
+ "title": "Tax Summary Exporter"
+}
