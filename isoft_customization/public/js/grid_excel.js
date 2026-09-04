@@ -68,12 +68,215 @@ Object.assign(isoft_customization, {
 			});
 		}
 
+		isoft_customization.take_over_bulk_edit(grid, $footer);
+
 		const has_rows = isoft_customization.get_rows(grid).length > 0;
 		$btn.toggleClass("hidden", !has_rows);
 
 		// core hides the whole footer on read-only grids that fit on one page,
 		// which is exactly where exporting is most useful - put it back
 		if (has_rows) $footer.toggle(true);
+	},
+
+	// ---------------------------------------------------------------------
+	// Bulk edit: the core Download / Upload pair, in Excel instead of CSV
+	// ---------------------------------------------------------------------
+
+	// Core binds these in Grid.make(), we run on every setup_toolbar - which is
+	// after make - so unbind first and rebind ours each time. Cheap, and it does
+	// not depend on which of the two ran first.
+	take_over_bulk_edit(grid, $footer) {
+		if (!grid.frm || !grid.df) return;
+
+		const docfield = grid.frm.get_docfield && grid.frm.get_docfield(grid.df.fieldname);
+		if (!docfield || !docfield.allow_bulk_edit) return;
+
+		const $download = $footer.find(".grid-download");
+		const $upload = $footer.find(".grid-upload");
+		if (!$download.length || !$upload.length) return;
+
+		$download
+			.off("click")
+			.attr("title", __("Download an Excel file of these rows to edit"))
+			.on("click", () => {
+				isoft_customization.download_template(grid);
+				return false;
+			});
+
+		$upload
+			.off("click")
+			.attr("title", __("Replace these rows with an edited Excel file"))
+			.on("click", () => {
+				isoft_customization.upload_template(grid);
+				return false;
+			});
+	},
+
+	download_template(grid) {
+		const rows = isoft_customization.get_rows(grid);
+		const title = __(grid.df.label || frappe.model.unscrub(grid.df.fieldname));
+
+		const fields = [
+			{
+				fieldtype: "Select",
+				fieldname: "scope",
+				label: __("Columns"),
+				default: "visible",
+				options: [
+					{ value: "visible", label: __("The columns you normally fill") },
+					{ value: "all", label: __("Every editable column") },
+				],
+			},
+		];
+
+		if (rows.length) {
+			fields.push({
+				fieldtype: "Check",
+				fieldname: "include_rows",
+				label: __("Start from the rows already in the table"),
+				description: isoft_customization.row_count(rows.length),
+				default: 1,
+			});
+		}
+
+		fields.push({
+			fieldtype: "HTML",
+			fieldname: "note",
+			options: `<p class="text-muted small">${__(
+				"Edit the sheet, then use Upload to put it back. The hidden row above the headers is what identifies the columns - leave it alone."
+			)}</p>`,
+		});
+
+		const dialog = new frappe.ui.Dialog({
+			title: __("Download {0} for editing", [title]),
+			fields: fields,
+			primary_action_label: __("Download"),
+			primary_action(values) {
+				open_url_post(frappe.request.url, {
+					cmd: "isoft_customization.api.export_grid_template",
+					doctype: grid.df.options,
+					parent_doctype: (grid.frm && grid.frm.doctype) || "",
+					parent_name: (grid.frm && grid.frm.docname) || "",
+					title: title,
+					scope: values.scope || "visible",
+					data: JSON.stringify(values.include_rows ? rows : []),
+				});
+				dialog.hide();
+			},
+		});
+
+		dialog.show();
+	},
+
+	upload_template(grid) {
+		// core sets this before its own uploader; realtime progress on a file we
+		// never store just leaves a stuck progress bar
+		frappe.flags.no_socketio = true;
+
+		const uploader = new frappe.ui.FileUploader({
+			as_dataurl: true,
+			allow_multiple: false,
+			disable_file_browser: true,
+			upload_notes: __("Excel (.xlsx, .xls) or CSV"),
+			restrictions: { allowed_file_types: [".xlsx", ".xlsm", ".xls", ".csv"] },
+			on_success(file) {
+				if (uploader && uploader.dialog) uploader.dialog.hide();
+
+				frappe
+					.call({
+						method: "isoft_customization.api.import_grid_rows",
+						args: {
+							doctype: grid.df.options,
+							filedata: file.dataurl,
+							filename: file.name,
+							parent_doctype: (grid.frm && grid.frm.doctype) || "",
+							parent_name: (grid.frm && grid.frm.docname) || "",
+						},
+						freeze: true,
+						freeze_message: __("Reading {0}...", [file.name]),
+					})
+					.then((r) => isoft_customization.confirm_import(grid, r.message, file.name));
+			},
+		});
+	},
+
+	// "1 rows" reads like a bug report
+	row_count(n) {
+		return n === 1 ? __("1 row") : __("{0} rows", [n]);
+	},
+
+	// frappe.bold is python-side only; the desk has no equivalent
+	bold(value) {
+		return "<b>" + frappe.utils.escape_html(String(value)) + "</b>";
+	},
+
+	confirm_import(grid, result, filename) {
+		if (!result) return;
+
+		const incoming = result.rows || [];
+		const existing = isoft_customization.get_rows(grid).length;
+		const title = __(grid.df.label || frappe.model.unscrub(grid.df.fieldname));
+
+		if (!incoming.length) {
+			frappe.msgprint({
+				title: __("Nothing to import"),
+				message: __("No data rows were found in {0}.", [isoft_customization.bold(filename)]),
+				indicator: "orange",
+			});
+			return;
+		}
+
+		let message = `<p>${__("{0} read from {1}.", [
+			isoft_customization.bold(isoft_customization.row_count(incoming.length)),
+			isoft_customization.bold(filename),
+		])}</p>`;
+
+		if (existing) {
+			message += `<p class="text-danger">${__("The {0} currently in {1} will be replaced.", [
+				isoft_customization.bold(isoft_customization.row_count(existing)),
+				title,
+			])}</p>`;
+		}
+
+		if ((result.skipped_columns || []).length) {
+			message += `<p class="text-muted small">${__("Columns ignored: {0}", [
+				result.skipped_columns.join(", "),
+			])}</p>`;
+		}
+
+		if ((result.warnings || []).length) {
+			message += `<p class="text-muted small">${result.warnings.join("<br>")}</p>`;
+		}
+
+		message += `<p class="text-muted small">${__(
+			"Nothing is saved yet - check the table and save the document as usual."
+		)}</p>`;
+
+		frappe.confirm(message, () => isoft_customization.apply_rows(grid, incoming));
+	},
+
+	apply_rows(grid, incoming) {
+		const fieldname = grid.df.fieldname;
+		const frm = grid.frm;
+
+		frm.clear_table(fieldname);
+		incoming.forEach((row) => {
+			const child = frm.add_child(fieldname);
+			Object.keys(row).forEach((key) => {
+				child[key] = row[key];
+			});
+		});
+
+		frm.refresh_field(fieldname);
+		frm.dirty();
+
+		frappe.show_alert({
+			message: __("{0} loaded into {1}", [
+				isoft_customization.row_count(incoming.length),
+				__(grid.df.label || frappe.model.unscrub(fieldname)),
+			]),
+			indicator: "green",
+		});
 	},
 
 	get_rows(grid) {

@@ -38,11 +38,13 @@ doc_events = {
 }
 
 
-# Create > Quotation on Sales Order, moved out of ERPNext's own sales_order.js.
-# Frappe merges doctype_js across apps, so this stacks with ERPNext's rather than
-# replacing it.
+# Create > Quotation on Sales Order, moved out of ERPNext's own sales_order.js, and
+# Get Items From > Quotation on the Quotation form.
+# Frappe merges doctype_js across apps, so these stack with ERPNext's rather than
+# replacing them.
 doctype_js = {
 	"Sales Order": "public/js/sales_order.js",
+	"Quotation": "public/js/quotation.js",
 }
 
 

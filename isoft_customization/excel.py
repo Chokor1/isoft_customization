@@ -13,6 +13,7 @@ import re
 from io import BytesIO
 
 import openpyxl
+from openpyxl.comments import Comment
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
 
@@ -162,6 +163,31 @@ def display_width(value, df):
 	return max(len(line) for line in text.split("\n"))
 
 
+def style_data_cell(cell, df, date_fmt, time_fmt):
+	"""Border, font, number format and alignment for one data cell."""
+	fieldtype = df.get("fieldtype")
+
+	cell.border = CELL_BORDER
+	cell.font = Font(name="Calibri", size=10, color=COLOR_TEXT)
+
+	if fieldtype in NUMERIC_TYPES:
+		cell.number_format = number_format(df)
+		cell.alignment = Alignment(horizontal="right", vertical="top")
+	elif fieldtype == "Date":
+		cell.number_format = date_fmt
+		cell.alignment = Alignment(horizontal="center", vertical="top")
+	elif fieldtype == "Datetime":
+		cell.number_format = date_fmt + " " + time_fmt
+		cell.alignment = Alignment(horizontal="center", vertical="top")
+	elif fieldtype == "Time":
+		cell.number_format = time_fmt
+		cell.alignment = Alignment(horizontal="center", vertical="top")
+	elif fieldtype == "Check":
+		cell.alignment = Alignment(horizontal="center", vertical="top")
+	else:
+		cell.alignment = Alignment(horizontal="left", vertical="top", wrap_text=True)
+
+
 def build_workbook(columns, rows, title, subtitle=None, add_totals=False, sheet_name=None):
 	"""Return a BytesIO xlsx.
 
@@ -216,31 +242,12 @@ def build_workbook(columns, rows, title, subtitle=None, add_totals=False, sheet_
 		banded = r % 2 == 1
 
 		for i, df in enumerate(columns, start=1):
-			fieldtype = df.get("fieldtype")
 			value = cell_value(row.get(df.get("fieldname")), df)
 			cell = ws.cell(row=excel_row, column=i, value=value)
-			cell.border = CELL_BORDER
-			cell.font = Font(name="Calibri", size=10, color=COLOR_TEXT)
+			style_data_cell(cell, df, date_fmt, time_fmt)
 
 			if banded:
 				cell.fill = band_fill
-
-			if fieldtype in NUMERIC_TYPES:
-				cell.number_format = number_format(df)
-				cell.alignment = Alignment(horizontal="right", vertical="top")
-			elif fieldtype == "Date":
-				cell.number_format = date_fmt
-				cell.alignment = Alignment(horizontal="center", vertical="top")
-			elif fieldtype == "Datetime":
-				cell.number_format = date_fmt + " " + time_fmt
-				cell.alignment = Alignment(horizontal="center", vertical="top")
-			elif fieldtype == "Time":
-				cell.number_format = time_fmt
-				cell.alignment = Alignment(horizontal="center", vertical="top")
-			elif fieldtype == "Check":
-				cell.alignment = Alignment(horizontal="center", vertical="top")
-			else:
-				cell.alignment = Alignment(horizontal="left", vertical="top", wrap_text=True)
 
 			widths[i - 1] = max(widths[i - 1], display_width(value, df))
 
@@ -290,3 +297,221 @@ def safe_sheet_name(name):
 def safe_filename(name):
 	name = re.sub(r"[^\w\-. ]+", "_", frappe.as_unicode(name or "export")).strip()
 	return (name or "export")[:120]
+
+
+# ---------------------------------------------------------------------------
+# Bulk edit template: the xlsx that replaces the core CSV round trip
+# ---------------------------------------------------------------------------
+
+# row 3 carries the fieldnames and is hidden; the parser reads it back
+TEMPLATE_FIELDNAME_ROW = 3
+TEMPLATE_HEADER_ROW = 4
+# spare rows kept formatted (and validated) so users can just keep typing
+TEMPLATE_BLANK_ROWS = 50
+
+COLOR_REQD_BG = "8D4B4B"
+COLOR_NOTE = "6C7680"
+
+
+def build_template_workbook(columns, rows, title, note=None, sheet_name=None):
+	"""Return a BytesIO xlsx that can be edited and uploaded straight back.
+
+	Layout: title, note, a hidden fieldname row, the labels header, then data.
+	The hidden row is what makes the round trip safe - labels are translated and
+	get renamed, fieldnames do not.
+
+	:param columns: docfield-ish dicts with `fieldname`, `label`, `fieldtype`,
+		optionally `reqd`, `options`, `description`
+	:param rows: list of dicts keyed by fieldname, the rows currently in the grid
+	"""
+	wb = openpyxl.Workbook()
+	ws = wb.active
+	ws.title = safe_sheet_name(sheet_name or title)
+
+	last_col = len(columns)
+
+	# ---- title block --------------------------------------------------
+	ws["A1"] = clean(_("Bulk Edit {0}").format(title))
+	ws["A1"].font = Font(name="Calibri", bold=True, size=14, color=COLOR_TEXT)
+	ws["A2"] = clean(
+		note
+		or _(
+			"Edit the rows below and upload this file back with the Upload button. "
+			"Do not rename or reorder the header row. Columns marked * are mandatory."
+		)
+	)
+	ws["A2"].font = Font(name="Calibri", size=9, italic=True, color=COLOR_NOTE)
+	if last_col > 1:
+		ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=last_col)
+		ws.merge_cells(start_row=2, start_column=1, end_row=2, end_column=last_col)
+	ws.row_dimensions[1].height = 22
+
+	# ---- hidden fieldname row -----------------------------------------
+	for i, df in enumerate(columns, start=1):
+		cell = ws.cell(row=TEMPLATE_FIELDNAME_ROW, column=i, value=df.get("fieldname"))
+		cell.font = Font(name="Calibri", size=8, color=COLOR_MUTED)
+	ws.row_dimensions[TEMPLATE_FIELDNAME_ROW].hidden = True
+
+	# ---- header row ---------------------------------------------------
+	header_font = Font(name="Calibri", bold=True, size=11, color="FFFFFF")
+	header_fill = PatternFill("solid", fgColor=COLOR_HEADER_BG)
+	reqd_fill = PatternFill("solid", fgColor=COLOR_REQD_BG)
+	widths = []
+
+	for i, df in enumerate(columns, start=1):
+		label = _(df.get("label") or df.get("fieldname"))
+		if df.get("reqd"):
+			label += " *"
+
+		cell = ws.cell(row=TEMPLATE_HEADER_ROW, column=i, value=clean(label))
+		cell.font = header_font
+		cell.fill = reqd_fill if df.get("reqd") else header_fill
+		cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+		cell.border = CELL_BORDER
+
+		hint = column_hint(df)
+		if hint:
+			cell.comment = Comment(hint, "ISOFT", height=110, width=260)
+
+		widths.append(len(label))
+
+	ws.row_dimensions[TEMPLATE_HEADER_ROW].height = 24
+
+	# ---- data ---------------------------------------------------------
+	date_fmt = get_date_format()
+	time_fmt = get_time_format()
+	first_data_row = TEMPLATE_HEADER_ROW + 1
+
+	for r, row in enumerate(rows):
+		excel_row = first_data_row + r
+		for i, df in enumerate(columns, start=1):
+			value = template_value(row.get(df.get("fieldname")), df)
+			cell = ws.cell(row=excel_row, column=i, value=value)
+			style_data_cell(cell, df, date_fmt, time_fmt)
+			if df.get("fieldtype") == "Percent":
+				# store 20, not 0.2 - the sheet has to round trip through a
+				# parser that cannot tell "20%" typed as 20 from 20% as 0.2
+				cell.number_format = '0.00"%"'
+			widths[i - 1] = max(widths[i - 1], display_width(value, df))
+
+	# keep the formatting going past the last row so added rows look the same
+	for r in range(len(rows), len(rows) + TEMPLATE_BLANK_ROWS):
+		excel_row = first_data_row + r
+		for i, df in enumerate(columns, start=1):
+			cell = ws.cell(row=excel_row, column=i)
+			style_data_cell(cell, df, date_fmt, time_fmt)
+			if df.get("fieldtype") == "Percent":
+				cell.number_format = '0.00"%"' 
+
+	last_row = first_data_row + len(rows) + TEMPLATE_BLANK_ROWS - 1
+	add_validations(ws, columns, first_data_row, last_row)
+
+	# ---- finishing ----------------------------------------------------
+	for i, width in enumerate(widths, start=1):
+		ws.column_dimensions[get_column_letter(i)].width = min(max(width + 3, 12), 45)
+
+	ws.freeze_panes = ws.cell(row=first_data_row, column=1)
+	ws.sheet_view.showGridLines = False
+	ws.page_setup.orientation = "landscape" if last_col > 6 else "portrait"
+	ws.print_title_rows = "{0}:{0}".format(TEMPLATE_HEADER_ROW)
+
+	out = BytesIO()
+	wb.save(out)
+	return out
+
+
+def template_value(value, df):
+	"""cell_value, tuned for a sheet that gets read back.
+
+	Blank stays blank even for numbers - a 0 written into every empty numeric
+	cell comes back as a real 0 on upload and quietly overrides field defaults.
+	Percent keeps the number the user reads (20, not 0.2), see the format below.
+	"""
+	if value in (None, ""):
+		return ""
+
+	if df.get("fieldtype") == "Percent":
+		return flt(value)
+
+	return cell_value(value, df)
+
+
+def column_hint(df):
+	"""Tooltip pinned to the header cell, so the sheet explains itself."""
+	parts = [df.get("fieldname")]
+
+	fieldtype = df.get("fieldtype")
+	if fieldtype == "Link":
+		parts.append(_("Link to {0} - type the exact ID").format(_(df.get("options") or "")))
+	elif fieldtype == "Check":
+		parts.append(_("Yes or No"))
+	elif fieldtype == "Date":
+		parts.append(get_date_format())
+	elif fieldtype == "Datetime":
+		parts.append(get_date_format() + " " + get_time_format())
+	elif fieldtype:
+		parts.append(_(fieldtype))
+
+	if df.get("reqd"):
+		parts.append(_("Mandatory"))
+
+	if df.get("read_only"):
+		parts.append(_("Calculated - may be recalculated when the document is saved"))
+
+	description = strip_html(df.get("description") or "").strip()
+	if description:
+		parts.append(description)
+
+	return "\n".join(clean(p) for p in parts if p)
+
+
+def add_validations(ws, columns, first_row, last_row):
+	"""Dropdowns for Check and short Select columns - fewer typos on upload."""
+	from openpyxl.worksheet.datavalidation import DataValidation
+
+	for i, df in enumerate(columns, start=1):
+		fieldtype = df.get("fieldtype")
+
+		if fieldtype == "Check":
+			choices = [_("Yes"), _("No")]
+		elif fieldtype == "Select":
+			choices = [o.strip() for o in (df.get("options") or "").split("\n") if o.strip()]
+		else:
+			continue
+
+		formula = '"{0}"'.format(",".join(c.replace('"', "") for c in choices))
+		# excel caps the inline list at 255 characters
+		if not choices or len(formula) > 255:
+			continue
+
+		dv = DataValidation(type="list", formula1=formula, allow_blank=True)
+		dv.error = _("Pick one of: {0}").format(", ".join(choices))
+		dv.errorTitle = _("Invalid value")
+		ws.add_data_validation(dv)
+		letter = get_column_letter(i)
+		dv.add("{0}{1}:{0}{2}".format(letter, first_row, last_row))
+
+
+def read_spreadsheet(content, filename=None):
+	"""Read an uploaded xlsx / xls / csv into a list of rows of raw cell values."""
+	from frappe.utils.csvutils import read_csv_content
+	from frappe.utils.xlsxutils import (
+		read_xls_file_from_attached_file,
+		read_xlsx_file_from_attached_file,
+	)
+
+	extension = (filename or "").rsplit(".", 1)[-1].lower()
+
+	if extension == "csv":
+		return read_csv_content(frappe.safe_decode(content))
+
+	if extension == "xls":
+		return read_xls_file_from_attached_file(content)
+
+	# .xlsx and anything else worth a try - openpyxl fails loudly on garbage
+	try:
+		return read_xlsx_file_from_attached_file(fcontent=content)
+	except Exception:
+		if extension in ("xlsx", "xlsm"):
+			raise
+		return read_csv_content(frappe.safe_decode(content))
