@@ -25,17 +25,22 @@
 // it in boot would go stale).
 
 (function () {
-	// Filled gold bell, same 20x20 viewBox as core's outline bell.
+	// Rounded, modern bell (Material "notifications" outline, Apache-2.0), 24x24 viewBox,
+	// filled with a soft gold gradient. The gradient lives inside the symbol; <use>
+	// clones resolve url(#...) against the document, where the original still exists.
 	const GOLD_BELL =
-		'<path d="M10 2.2c.6 0 1.1.5 1.1 1.1v.5c2.3.5 3.9 2.5 3.9 4.9v3.6c0 .6.2 1.1.6 1.5l1.2 1.2H3.2l1.2-1.2c.4-.4.6-.9.6-1.5V8.7c0-2.4 1.6-4.4 3.9-4.9v-.5c0-.6.5-1.1 1.1-1.1z" fill="#F2B705" stroke="#B8860B" stroke-width="1" stroke-linejoin="round"/>' +
-		'<path d="M7.8 16.2h4.4a2.2 2.2 0 0 1-4.4 0z" fill="#B8860B"/>';
+		'<defs><linearGradient id="isoft-bell-gold" x1="0" y1="0" x2="0" y2="1">' +
+		'<stop offset="0" stop-color="#FFD966"/><stop offset="1" stop-color="#F2A81D"/>' +
+		'</linearGradient></defs>' +
+		'<path fill="url(#isoft-bell-gold)" d="M12 2.5c.7 0 1.3.6 1.3 1.3v.6c2.9.6 5 3.1 5 6.1v4.4l1.5 1.7c.5.6.1 1.4-.6 1.4H4.8c-.7 0-1.1-.8-.6-1.4l1.5-1.7v-4.4c0-3 2.1-5.5 5-6.1v-.6c0-.7.6-1.3 1.3-1.3z"/>' +
+		'<path fill="#E29A12" d="M9.7 19h4.6a2.3 2.3 0 0 1-4.6 0z"/>';
 
 	function goldify_symbols() {
 		['icon-notification', 'icon-notification-with-indicator'].forEach((id) => {
 			const sym = document.getElementById(id);
 			if (sym && !sym.getAttribute('data-isoft-gold')) {
 				sym.innerHTML = GOLD_BELL;
-				sym.setAttribute('viewBox', '0 0 20 20');
+				sym.setAttribute('viewBox', '0 0 24 24');
 				sym.setAttribute('data-isoft-gold', '1');
 			}
 		});

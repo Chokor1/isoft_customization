@@ -20,25 +20,25 @@
 	line-height: 0;
 }
 
-/* --- unread count: small circle on the top-right corner of the bell ------- */
+/* --- unread count: compact circle on the top-right corner of the bell ------ */
 .navbar .dropdown-notifications .notifications-icon .isoft-notif-count {
 	position: absolute;
-	top: 0;
-	right: 0;
-	transform: translate(35%, -35%);
-	min-width: 15px;
-	height: 15px;
-	padding: 0 3px;
+	top: -3px;
+	right: -5px;
+	min-width: 16px;
+	height: 16px;
+	padding: 0 4px;
 	box-sizing: border-box;
 	border-radius: 999px; /* circle for one digit, pill for 2-3 digits */
-	background: #e03131;
+	background: #f04438;
 	color: #fff;
-	font-size: 9px;
-	font-weight: 700;
-	line-height: 15px;
-	letter-spacing: -0.2px;
+	font-family: var(--font-stack, inherit);
+	font-size: 10px;
+	font-weight: 600;
+	line-height: 16px;
+	letter-spacing: 0;
 	text-align: center;
-	box-shadow: 0 0 0 1.5px var(--navbar-bg, #fff);
+	box-shadow: 0 0 0 2px var(--navbar-bg, #fff), 0 1px 3px rgba(0, 0, 0, 0.25);
 	pointer-events: none;
 	z-index: 2;
 }
@@ -49,11 +49,11 @@
 	position: absolute;
 	left: 50%;
 	top: 50%;
-	width: 30px;
-	height: 30px;
-	margin: -15px 0 0 -15px;
+	width: 34px;
+	height: 34px;
+	margin: -17px 0 0 -17px;
 	border-radius: 50%;
-	background: rgba(242, 183, 5, 0.28);
+	background: radial-gradient(circle, rgba(255, 217, 102, 0.45) 0%, rgba(242, 168, 29, 0.15) 60%, rgba(242, 168, 29, 0) 72%);
 	animation: isoft-notif-pulse 1.8s ease-out infinite;
 	pointer-events: none;
 	z-index: 0;
@@ -62,6 +62,9 @@
 .navbar .dropdown-notifications .notifications-icon svg {
 	position: relative;
 	z-index: 1;
+	width: 22px;
+	height: 22px;
+	filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.18));
 }
 
 .navbar .dropdown-notifications .notifications-icon.isoft-notif-unseen .isoft-notif-count {
