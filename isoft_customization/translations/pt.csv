@@ -370,3 +370,19 @@ Withholding Tax,Imposto retido na fonte
 Yesterday,Ontem
 You,Você,Name of the current user. For example: You edited this 5 hours ago.
 {0} Fields,{0} campos
+Isoft Naming Series Settings,Definições de Séries de Numeração Isoft
+Enable Company-wise Naming Series,Activar Séries de Numeração por Empresa
+Naming Series by Company,Séries de Numeração por Empresa
+Naming Series not allowed for this Company,Série de Numeração não permitida para esta Empresa
+Naming Series {0} is not allowed for {1} in company {2}. Allowed: {3},A Série de Numeração {0} não é permitida para {1} na empresa {2}. Permitidas: {3}
+Row {0}: Document Type {1} does not have a Naming Series field,Linha {0}: o Tipo de Documento {1} não tem um campo de Série de Numeração
+Row {0}: Document Type {1} does not have a Company field,Linha {0}: o Tipo de Documento {1} não tem um campo de Empresa
+Row {0}: {1} is not a naming series option of {2}. Valid options: {3},"Linha {0}: {1} não é uma opção de série de numeração de {2}. Opções válidas: {3}"
+Row {0}: {1} is already assigned to {2} for {3},Linha {0}: {1} já está atribuída a {2} para {3}
+Row {0}: {1} already has a default naming series for {2},Linha {0}: {1} já tem uma série de numeração predefinida para {2}
+Preselected on new documents of this company. Without one, the first series listed for the company is used.,"Pré-seleccionada em novos documentos desta empresa. Sem predefinição, é usada a primeira série listada para a empresa."
+Rendered as a dropdown of the Document Type's naming series options.,Apresentada como lista das opções de série de numeração do Tipo de Documento.
+"When enabled, the Naming Series dropdown of a new document only offers the series assigned below to the document's Company, and the server rejects any other series. Companies and Document Types with no rows below are not affected. When disabled nothing changes.","Quando activo, a lista de Séries de Numeração de um novo documento apresenta apenas as séries atribuídas abaixo à Empresa do documento, e o servidor rejeita qualquer outra série. Empresas e Tipos de Documento sem linhas abaixo não são afectados. Quando inactivo nada muda."
+No Naming Series for this Company,Sem Série de Numeração para esta Empresa
+"No naming series is available for {0} in company {1}: every series of this document type is assigned to other companies. Assign one to {1} in Isoft Naming Series Settings.","Não há nenhuma série de numeração disponível para {0} na empresa {1}: todas as séries deste tipo de documento estão atribuídas a outras empresas. Atribua uma a {1} em Definições de Séries de Numeração Isoft."
+"When enabled, the Naming Series dropdown of a new document only offers the series assigned below to the document's Company, and the server rejects any other series. A series assigned to a company is hidden from every other company; a company with no rows only sees the series nobody has claimed. Document Types with no rows below are not affected. When disabled nothing changes.","Quando activo, a lista de Séries de Numeração de um novo documento apresenta apenas as séries atribuídas abaixo à Empresa do documento, e o servidor rejeita qualquer outra série. Uma série atribuída a uma empresa fica oculta para todas as outras; uma empresa sem linhas vê apenas as séries que ninguém reclamou. Tipos de Documento sem linhas abaixo não são afectados. Quando inactivo nada muda."

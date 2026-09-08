@@ -1,0 +1,64 @@
+{
+ "actions": [],
+ "creation": "2026-09-08 10:00:00.000000",
+ "description": "Restrict the naming series offered on a transaction to the ones assigned to its Company.",
+ "doctype": "DocType",
+ "document_type": "Other",
+ "engine": "InnoDB",
+ "field_order": [
+  "enabled",
+  "help_html",
+  "series_section",
+  "series"
+ ],
+ "fields": [
+  {
+   "default": "0",
+   "description": "When enabled, the Naming Series dropdown of a new document only offers the series assigned below to the document's Company, and the server rejects any other series. A series assigned to a company is hidden from every other company; a company with no rows only sees the series nobody has claimed. Document Types with no rows below are not affected. When disabled nothing changes.",
+   "fieldname": "enabled",
+   "fieldtype": "Check",
+   "label": "Enable Company-wise Naming Series"
+  },
+  {
+   "fieldname": "help_html",
+   "fieldtype": "HTML",
+   "label": "Help",
+   "options": "<p class=\"text-muted small\">Add one row per Document Type, Company and Naming Series. Tick <b>Default</b> on the series a new document of that company should start with. A series must already exist in the Document Type's naming series options (Setup &gt; Naming Series) before it can be assigned here. Per-user restrictions from <i>Naming Series Per User</i> still apply on top of these.</p>"
+  },
+  {
+   "depends_on": "enabled",
+   "fieldname": "series_section",
+   "fieldtype": "Section Break",
+   "label": "Naming Series by Company"
+  },
+  {
+   "fieldname": "series",
+   "fieldtype": "Table",
+   "label": "Naming Series by Company",
+   "options": "Isoft Company Naming Series"
+  }
+ ],
+ "icon": "fa fa-cog",
+ "index_web_pages_for_search": 0,
+ "issingle": 1,
+ "links": [],
+ "modified": "2026-09-08 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "ISOFT Customization",
+ "name": "Isoft Naming Series Settings",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "track_changes": 1
+}

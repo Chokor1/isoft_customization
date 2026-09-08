@@ -18,6 +18,9 @@ app_include_js = [
 	# Full-width Desk by default: seeds localStorage.container_fullwidth when it
 	# is absent, which is what flipping the two literals in toolbar.js did.
 	"/assets/isoft_customization/js/fullwidth_default.js",
+	# Company-wise naming series: rebuilds the naming_series dropdown from the
+	# Isoft Naming Series Settings map shipped in boot. Inert while disabled.
+	"/assets/isoft_customization/js/company_naming_series.js",
 ]
 
 # bulk "Stop" action in the Material Request list view
@@ -29,6 +32,12 @@ doctype_list_js = {"Material Request": "public/js/material_request_list.js"}
 # doc_events across apps, so these stack with ERPNext's own on_submit handlers
 # rather than replacing them.
 doc_events = {
+	# Company-wise naming series. before_naming runs inside set_new_name, before
+	# the series counter is consumed, so a disallowed series is rejected without
+	# burning a number. No-op unless Isoft Naming Series Settings is enabled.
+	"*": {
+		"before_naming": "isoft_customization.isoft_customization.doctype.isoft_naming_series_settings.isoft_naming_series_settings.apply_company_naming_series",
+	},
 	"Sales Invoice": {
 		"on_submit": "isoft_customization.isoft_customization.doctype.invoice_payment_notification.invoice_payment_notification.trigger_notification_on_sales_invoice_submit",
 	},
@@ -46,6 +55,10 @@ doctype_js = {
 	"Sales Order": "public/js/sales_order.js",
 	"Quotation": "public/js/quotation.js",
 }
+
+
+# Ships the company-wise naming series map to the desk (see company_naming_series.js).
+boot_session = "isoft_customization.isoft_customization.doctype.isoft_naming_series_settings.isoft_naming_series_settings.boot_session"
 
 
 # Seed the Portuguese overrides as Translation records. The CSV in translations/ is
