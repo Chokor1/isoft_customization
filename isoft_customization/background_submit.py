@@ -90,6 +90,10 @@ def is_interactive_request():
 
 def lock_age(doc):
 	"""Seconds since the document's queue lock was created, or None when unlocked."""
+	if not doc.creation:
+		# Unsaved document (new form, mapper output such as Purchase Receipt ->
+		# Purchase Invoice): get_signature() would hash None. Nothing can be queued.
+		return None
 	path = file_lock.get_lock_path(doc.get_signature())
 	try:
 		return time.time() - os.path.getmtime(path)
