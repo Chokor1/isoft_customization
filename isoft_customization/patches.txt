@@ -1,3 +1,4 @@
 [pre_model_sync]
 
 [post_model_sync]
+isoft_customization.patches.bump_purchase_invoice_meta

@@ -1,0 +1,111 @@
+/* Gold navbar bell. The icon itself is swapped in js/notification_attention.js (sprite
+   symbol replacement). The halo keys off core's own .notifications-unseen span, so it
+   needs no script. Classes set by the JS:
+   .isoft-notif-unseen     mirror of core's unseen state (used to gate the ring)
+   .isoft-notif-ring       one-shot bell shake, added on arrival and every 12s while unseen
+   .isoft-notif-has-count  an unread-count badge is present */
+
+.navbar .dropdown-notifications .notifications-icon {
+	position: relative;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+}
+
+/* Do NOT set `display` on .notifications-seen / .notifications-unseen here: core hides
+   .notifications-unseen via a stylesheet rule and jQuery only writes inline styles once
+   its JS runs. Overriding it would paint both bells until then (two bells, then one). */
+.navbar .dropdown-notifications .notifications-icon .notifications-seen,
+.navbar .dropdown-notifications .notifications-icon .notifications-unseen {
+	line-height: 0;
+}
+
+/* --- unread count: small circle on the top-right corner of the bell ------- */
+.navbar .dropdown-notifications .notifications-icon .isoft-notif-count {
+	position: absolute;
+	top: 0;
+	right: 0;
+	transform: translate(35%, -35%);
+	min-width: 15px;
+	height: 15px;
+	padding: 0 3px;
+	box-sizing: border-box;
+	border-radius: 999px; /* circle for one digit, pill for 2-3 digits */
+	background: #e03131;
+	color: #fff;
+	font-size: 9px;
+	font-weight: 700;
+	line-height: 15px;
+	letter-spacing: -0.2px;
+	text-align: center;
+	box-shadow: 0 0 0 1.5px var(--navbar-bg, #fff);
+	pointer-events: none;
+	z-index: 2;
+}
+
+/* --- unseen: pulsing gold halo (CSS only, follows core's span) ------------- */
+.navbar .dropdown-notifications .notifications-icon .notifications-unseen::before {
+	content: '';
+	position: absolute;
+	left: 50%;
+	top: 50%;
+	width: 30px;
+	height: 30px;
+	margin: -15px 0 0 -15px;
+	border-radius: 50%;
+	background: rgba(242, 183, 5, 0.28);
+	animation: isoft-notif-pulse 1.8s ease-out infinite;
+	pointer-events: none;
+	z-index: 0;
+}
+
+.navbar .dropdown-notifications .notifications-icon svg {
+	position: relative;
+	z-index: 1;
+}
+
+.navbar .dropdown-notifications .notifications-icon.isoft-notif-unseen .isoft-notif-count {
+	animation: isoft-notif-badge-pop 0.5s cubic-bezier(0.2, 1.4, 0.4, 1) 1;
+}
+
+/* --- ring shake ---------------------------------------------------------- */
+.navbar .dropdown-notifications .notifications-icon.isoft-notif-ring svg {
+	transform-origin: 50% 12%;
+	animation: isoft-notif-ring 1.2s ease-in-out 1;
+}
+
+@keyframes isoft-notif-pulse {
+	0%   { transform: scale(0.7); opacity: 0.9; }
+	70%  { transform: scale(1.6); opacity: 0; }
+	100% { transform: scale(1.6); opacity: 0; }
+}
+
+@keyframes isoft-notif-ring {
+	0%   { transform: rotate(0); }
+	10%  { transform: rotate(18deg); }
+	20%  { transform: rotate(-16deg); }
+	30%  { transform: rotate(14deg); }
+	40%  { transform: rotate(-12deg); }
+	50%  { transform: rotate(9deg); }
+	60%  { transform: rotate(-6deg); }
+	70%  { transform: rotate(3deg); }
+	80%  { transform: rotate(-1deg); }
+	100% { transform: rotate(0); }
+}
+
+@keyframes isoft-notif-badge-pop {
+	0%   { transform: scale(0.4); }
+	100% { transform: scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.navbar .dropdown-notifications .notifications-icon .notifications-unseen::before,
+	.navbar .dropdown-notifications .notifications-icon.isoft-notif-ring svg,
+	.navbar .dropdown-notifications .notifications-icon.isoft-notif-unseen .isoft-notif-count {
+		animation: none;
+	}
+	.navbar .dropdown-notifications .notifications-icon .notifications-unseen::before {
+		opacity: 0.6;
+		transform: scale(1.1);
+	}
+}

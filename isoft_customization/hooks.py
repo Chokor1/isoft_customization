@@ -21,6 +21,13 @@ app_include_js = [
 	# Company-wise naming series: rebuilds the naming_series dropdown from the
 	# Isoft Naming Series Settings map shipped in boot. Inert while disabled.
 	"/assets/isoft_customization/js/company_naming_series.js",
+	# Louder navbar bell: gold pulsing halo, ring shake and an unread-count badge
+	# layered over core's tiny red dot. Pairs with css/notification_attention.css.
+	"/assets/isoft_customization/js/notification_attention.js",
+]
+
+app_include_css = [
+	"/assets/isoft_customization/css/notification_attention.css",
 ]
 
 # bulk "Stop" action in the Material Request list view
@@ -54,6 +61,14 @@ doc_events = {
 doctype_js = {
 	"Sales Order": "public/js/sales_order.js",
 	"Quotation": "public/js/quotation.js",
+	"Purchase Invoice": "public/js/purchase_invoice.js",
+}
+
+# Large documents submit / cancel from the long queue instead of inside the HTTP
+# request, which the web tier kills after 120 s. See background_submit.py.
+# Threshold: site_config `background_submit_min_rows` (default 200, 0 = off).
+override_doctype_class = {
+	"Purchase Invoice": "isoft_customization.overrides.purchase_invoice.IsoftPurchaseInvoice",
 }
 
 
