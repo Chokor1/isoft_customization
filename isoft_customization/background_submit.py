@@ -35,7 +35,12 @@ Behaviour
   re-queueing, instead of Frappe's stock behaviour of refusing forever with
   "This document is currently queued for execution".
 
-Requires a ``bench worker --queue long`` process on the site's bench.
+Requires a ``bench worker --queue long`` process on the site's bench. When no
+worker is registered for that queue in Redis the document is processed in the
+foreground instead (with a warning), because a job nobody will ever pick up is
+worse than a slow request. A lock that has outlived STALE_LOCK_SECONDS is
+reported to the form as stale so Submit / Cancel come back and a second click
+re-queues (or runs inline) after clearing it.
 """
 from __future__ import unicode_literals
 
@@ -57,6 +62,7 @@ JOB_TIMEOUT = 4 * 60 * 60
 STALE_LOCK_SECONDS = 600
 
 ONLOAD_FLAG = "isoft_background_queued"
+STALE_FLAG = "isoft_background_stale_minutes"
 
 ACTION_LABELS = {
 	"submit": "submission",
@@ -102,7 +108,28 @@ def lock_age(doc):
 
 
 def is_queued(doc):
-	return lock_age(doc) is not None
+	"""Lock present and young enough that a worker may still pick the job up."""
+	age = lock_age(doc)
+	return age is not None and age <= STALE_LOCK_SECONDS
+
+
+def stale_minutes(doc):
+	"""Minutes a lock has outlived STALE_LOCK_SECONDS, or 0 when not stale."""
+	age = lock_age(doc)
+	if age is None or age <= STALE_LOCK_SECONDS:
+		return 0
+	return int(age // 60)
+
+
+def worker_available(queue=QUEUE):
+	"""True when at least one RQ worker registered in Redis listens on ``queue``."""
+	try:
+		from rq import Worker
+		from frappe.utils.background_jobs import get_redis_conn
+
+		return any(queue in w.queue_names() for w in Worker.all(connection=get_redis_conn()))
+	except Exception:
+		return False
 
 
 def should_run_in_background(doc, rows_field="items"):
@@ -165,9 +192,26 @@ class BackgroundSubmitMixin(object):
 	def onload(self):
 		super(BackgroundSubmitMixin, self).onload()
 		self.set_onload(ONLOAD_FLAG, is_queued(self))
+		self.set_onload(STALE_FLAG, stale_minutes(self))
+
+	def _wants_background(self):
+		if not should_run_in_background(self, self.background_rows_field):
+			return False
+		if worker_available():
+			return True
+		# Queueing now would strand the document behind a lock nobody clears.
+		clear_stale_lock(self)
+		frappe.msgprint(
+			_(
+				"No background worker is listening on the '{0}' queue, so this large document is being processed in the foreground. Ask the administrator to start the workers."
+			).format(QUEUE),
+			title=_("Background worker unavailable"),
+			indicator="orange",
+		)
+		return False
 
 	def submit(self):
-		if should_run_in_background(self, self.background_rows_field):
+		if self._wants_background():
 			queue_document_action(self, "submit", self.background_rows_field)
 			# savedocs flips docstatus to 1 on this in-memory copy before calling
 			# submit(). The database still says Draft, and that is what the browser
@@ -177,7 +221,7 @@ class BackgroundSubmitMixin(object):
 			self._submit()
 
 	def cancel(self):
-		if should_run_in_background(self, self.background_rows_field):
+		if self._wants_background():
 			queue_document_action(self, "cancel", self.background_rows_field)
 		else:
 			self._cancel()

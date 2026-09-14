@@ -409,3 +409,6 @@ A reason is required to submit credit note {0}.,É obrigatório indicar o motivo
 Why are {0} and its linked documents being cancelled?,Qual o motivo do cancelamento de {0} e dos documentos associados?
 Not cancelled: a reason is required.,Não cancelado: é obrigatório indicar um motivo.
 Not submitted: a reason is required.,Não submetido: é obrigatório indicar um motivo.
+Background worker unavailable,Processamento em segundo plano indisponível
+"No background worker is listening on the '{0}' queue, so this large document is being processed in the foreground. Ask the administrator to start the workers.","Nenhum processo de segundo plano está a escutar a fila '{0}', pelo que este documento grande está a ser processado em primeiro plano. Peça ao administrador para iniciar os workers."
+"The background job queued {0} minutes ago never started. Check that the background workers are running, then Submit or Cancel again to retry.",A tarefa em segundo plano colocada em fila há {0} minutos nunca chegou a iniciar. Verifique se os workers de segundo plano estão em execução e volte a Submeter ou Cancelar para tentar de novo.

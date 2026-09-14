@@ -2,3 +2,4 @@
 
 [post_model_sync]
 isoft_customization.patches.bump_purchase_invoice_meta
+isoft_customization.patches.bump_purchase_invoice_meta #2 form script: stale-lock notice
