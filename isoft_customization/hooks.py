@@ -24,6 +24,9 @@ app_include_js = [
 	# Louder navbar bell: gold pulsing halo, ring shake and an unread-count badge
 	# layered over core's tiny red dot. Pairs with css/notification_attention.css.
 	"/assets/isoft_customization/js/notification_attention.js",
+	# Reason prompts before cancelling selling documents and submitting credit
+	# notes, per the Document Reasons checkboxes on Selling Settings.
+	"/assets/isoft_customization/js/document_reasons.js",
 ]
 
 app_include_css = [
@@ -47,6 +50,18 @@ doc_events = {
 	},
 	"Sales Invoice": {
 		"on_submit": "isoft_customization.isoft_customization.doctype.invoice_payment_notification.invoice_payment_notification.trigger_notification_on_sales_invoice_submit",
+		# Mandatory reasons, per Selling Settings. See document_reasons.py.
+		"before_submit": "isoft_customization.document_reasons.validate_credit_note_reason",
+		"before_cancel": "isoft_customization.document_reasons.validate_cancel_reason",
+	},
+	"Quotation": {
+		"before_cancel": "isoft_customization.document_reasons.validate_cancel_reason",
+	},
+	"Sales Order": {
+		"before_cancel": "isoft_customization.document_reasons.validate_cancel_reason",
+	},
+	"Delivery Note": {
+		"before_cancel": "isoft_customization.document_reasons.validate_cancel_reason",
 	},
 	"Payment Entry": {
 		"on_submit": "isoft_customization.isoft_customization.doctype.invoice_payment_notification.invoice_payment_notification.trigger_notification_on_payment_submit",
@@ -79,4 +94,8 @@ boot_session = "isoft_customization.isoft_customization.doctype.isoft_naming_ser
 # Seed the Portuguese overrides as Translation records. The CSV in translations/ is
 # the source of truth; this only guarantees it beats erpnext's catalogue, which
 # sorts after this app in sites/apps.txt. See translations_override.py.
-after_migrate = "isoft_customization.translations_override.sync_translations"
+after_migrate = [
+	"isoft_customization.translations_override.sync_translations",
+	# Selling Settings "Document Reasons" switches and the reason fields they fill.
+	"isoft_customization.document_reasons.setup_custom_fields",
+]

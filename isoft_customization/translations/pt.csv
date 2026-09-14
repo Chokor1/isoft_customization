@@ -392,3 +392,20 @@ cancellation,cancelamento
 "This document has {0} rows. Its {1} has been queued as a background job and the form will refresh when it finishes. If it fails, the error is added as a comment and the document keeps its current status.","Este documento tem {0} linhas. A sua {1} foi colocada em fila como tarefa em segundo plano e o formulário será actualizado quando terminar. Em caso de falha, o erro é registado como comentário e o documento mantém o estado actual."
 A previous background job for this document never started and its lock was cleared automatically.,Uma tarefa em segundo plano anterior deste documento nunca chegou a iniciar e o seu bloqueio foi removido automaticamente.
 A background job is processing this document. Submit and Cancel are unavailable until it finishes; the form refreshes automatically.,Uma tarefa em segundo plano está a processar este documento. Submeter e Cancelar ficam indisponíveis até terminar; o formulário actualiza-se automaticamente.
+Document Reasons,Motivos dos Documentos
+Require Reason on Cancel,Exigir Motivo ao Cancelar
+Require Reason on Credit Note Submit,Exigir Motivo ao Submeter Nota de Crédito
+"Ask for a reason when cancelling a Quotation, Sales Order, Delivery Note or Sales Invoice. The document cannot be cancelled without one.","Pedir um motivo ao cancelar uma Cotação, Encomenda de Venda, Guia de Remessa ou Factura de Venda. O documento não pode ser cancelado sem motivo."
+Ask for a reason when submitting a credit note (Sales Invoice return). Returns made in POS Awesome are exempt.,Pedir um motivo ao submeter uma nota de crédito (devolução de Factura de Venda). As devoluções feitas no POS Awesome estão isentas.
+Cancellation Reason,Motivo do Cancelamento
+Credit Note Reason,Motivo da Nota de Crédito
+Reason for Cancellation,Motivo do Cancelamento
+Why is {0} being cancelled?,Qual o motivo do cancelamento de {0}?
+Why is this credit note being issued?,Qual o motivo desta nota de crédito?
+Please enter a reason.,Indique um motivo.
+{0} (cancelled together with {1} {2}),{0} (cancelado juntamente com {1} {2})
+A cancellation reason is required to cancel {0} {1}.,É obrigatório indicar o motivo do cancelamento para cancelar {0} {1}.
+A reason is required to submit credit note {0}.,É obrigatório indicar o motivo para submeter a nota de crédito {0}.
+Why are {0} and its linked documents being cancelled?,Qual o motivo do cancelamento de {0} e dos documentos associados?
+Not cancelled: a reason is required.,Não cancelado: é obrigatório indicar um motivo.
+Not submitted: a reason is required.,Não submetido: é obrigatório indicar um motivo.
