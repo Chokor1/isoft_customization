@@ -51,7 +51,15 @@ doc_events = {
 	"Sales Invoice": {
 		"on_submit": "isoft_customization.isoft_customization.doctype.invoice_payment_notification.invoice_payment_notification.trigger_notification_on_sales_invoice_submit",
 		# Mandatory reasons, per Selling Settings. See document_reasons.py.
-		"before_submit": "isoft_customization.document_reasons.validate_credit_note_reason",
+		# Batch ownership check runs first so a bad batch fails before docstatus is
+		# written (and before anyone is asked for a reason). See batch_integrity.py.
+		"before_submit": [
+			"isoft_customization.batch_integrity.validate_batch_belongs_to_item",
+			"isoft_customization.document_reasons.validate_credit_note_reason",
+		],
+		# saft_xml auto-submits non-POS invoices from before_save, which skips
+		# before_submit; this re-runs the batch check right before that write.
+		"before_save": "isoft_customization.batch_integrity.validate_batch_on_auto_submit",
 		"before_cancel": "isoft_customization.document_reasons.validate_cancel_reason",
 	},
 	"Quotation": {
@@ -61,10 +69,30 @@ doc_events = {
 		"before_cancel": "isoft_customization.document_reasons.validate_cancel_reason",
 	},
 	"Delivery Note": {
+		"before_submit": "isoft_customization.batch_integrity.validate_batch_belongs_to_item",
 		"before_cancel": "isoft_customization.document_reasons.validate_cancel_reason",
 	},
 	"Payment Entry": {
 		"on_submit": "isoft_customization.isoft_customization.doctype.invoice_payment_notification.invoice_payment_notification.trigger_notification_on_payment_submit",
+	},
+	# Batch <-> Item integrity. See batch_integrity.py.
+	# Guard 1: Batch.item cannot be re-pointed once the ledger has stock under it.
+	"Batch": {
+		"validate": "isoft_customization.batch_integrity.prevent_item_reassignment",
+	},
+	# Guard 2: every batch-bearing row must be owned by its item, checked before
+	# docstatus is written. Sales Invoice and Delivery Note are wired above.
+	"Purchase Receipt": {
+		"before_submit": "isoft_customization.batch_integrity.validate_batch_belongs_to_item",
+	},
+	"Purchase Invoice": {
+		"before_submit": "isoft_customization.batch_integrity.validate_batch_belongs_to_item",
+	},
+	"Stock Entry": {
+		"before_submit": "isoft_customization.batch_integrity.validate_batch_belongs_to_item",
+	},
+	"Stock Reconciliation": {
+		"before_submit": "isoft_customization.batch_integrity.validate_batch_belongs_to_item",
 	},
 }
 
