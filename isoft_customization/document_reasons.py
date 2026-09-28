@@ -6,7 +6,8 @@ Two switches on Selling Settings, both off by default:
   cannot be cancelled without a `cancellation_reason`. Sales Invoice already has that
   field in the ERPNext fork; the other three get it as a read-only Custom Field.
 * Require Reason on Credit Note Submit -- a Sales Invoice with is_return = 1 cannot be
-  submitted without `return_reason`.
+  submitted without `return_reason`. saft_xml submits returns from before_save rather
+  than through submit(), so this is armed from before_save as well as before_submit.
 
 The reason is asked for only once the document has passed validation, so nobody types
 a reason for a cancel that FE Angola, a closed accounting period or ERPNext then
@@ -234,6 +235,10 @@ def _require_cancel_reason(doc):
 
 
 def _require_credit_note_reason(doc):
+	# Armed from before_save too, where the row may still be a draft: a credit
+	# note only needs its reason once it is written as submitted.
+	if cint(doc.docstatus) != 1:
+		return
 	doc.return_reason = _clean(doc.get("return_reason"))
 	if not doc.return_reason:
 		frappe.throw(
@@ -250,7 +255,15 @@ def validate_cancel_reason(doc, method=None):
 
 
 def validate_credit_note_reason(doc, method=None):
-	"""before_submit for Sales Invoice."""
+	"""before_submit AND before_save for Sales Invoice.
+
+	saft_xml auto-submits every return from its own before_save hook, by setting
+	docstatus = 1 during a plain insert, so before_submit never runs for a desk
+	credit note and the rule used to be silent there. Arming from before_save as
+	well catches that path: the guard fires at the write itself, whichever hook
+	armed it and whatever order the apps' hooks ran in, and the check bites only
+	when the row being written is submitted.
+	"""
 	if not cint(doc.get("is_return")) or not _enabled(CREDIT_NOTE_FLAG):
 		return
 	if (frappe.form_dict.get("cmd") or "").startswith("posawesome."):

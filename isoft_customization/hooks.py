@@ -57,9 +57,12 @@ doc_events = {
 			"isoft_customization.batch_integrity.validate_batch_belongs_to_item",
 			"isoft_customization.document_reasons.validate_credit_note_reason",
 		],
-		# saft_xml auto-submits non-POS invoices from before_save, which skips
-		# before_submit; this re-runs the batch check right before that write.
-		"before_save": "isoft_customization.batch_integrity.validate_batch_on_auto_submit",
+		# saft_xml auto-submits non-POS invoices AND every return from before_save,
+		# which skips before_submit; these re-run right before that write.
+		"before_save": [
+			"isoft_customization.batch_integrity.validate_batch_on_auto_submit",
+			"isoft_customization.document_reasons.validate_credit_note_reason",
+		],
 		"before_cancel": "isoft_customization.document_reasons.validate_cancel_reason",
 	},
 	"Quotation": {
