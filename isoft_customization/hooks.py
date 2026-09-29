@@ -129,4 +129,8 @@ after_migrate = [
 	"isoft_customization.translations_override.sync_translations",
 	# Selling Settings "Document Reasons" switches and the reason fields they fill.
 	"isoft_customization.document_reasons.setup_custom_fields",
+	# Repair a desk Page whose record still names the module it was first
+	# imported under: Frappe then looks for its .js in the wrong app and shows a
+	# blank page. See page_modules.py.
+	"isoft_customization.page_modules.sync_page_modules",
 ]

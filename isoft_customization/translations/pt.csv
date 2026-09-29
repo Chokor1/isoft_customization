@@ -412,3 +412,99 @@ Not submitted: a reason is required.,Não submetido: é obrigatório indicar um 
 Background worker unavailable,Processamento em segundo plano indisponível
 "No background worker is listening on the '{0}' queue, so this large document is being processed in the foreground. Ask the administrator to start the workers.","Nenhum processo de segundo plano está a escutar a fila '{0}', pelo que este documento grande está a ser processado em primeiro plano. Peça ao administrador para iniciar os workers."
 "The background job queued {0} minutes ago never started. Check that the background workers are running, then Submit or Cancel again to retry.",A tarefa em segundo plano colocada em fila há {0} minutos nunca chegou a iniciar. Verifique se os workers de segundo plano estão em execução e volte a Submeter ou Cancelar para tentar de novo.
+Items to credit,Itens a creditar
+Add Item,Adicionar Item
+Requested,Pedido
+On credit notes submitted for this customer since the list was started,Em notas de crédito submetidas para este cliente desde o início da lista
+Credited,Creditado
+Still to credit,Falta creditar
+Selected invoice,Fatura selecionada
+Credit notes made for this list,Notas de crédito feitas para esta lista
+Invoices with these items,Faturas com estes itens
+Filter by invoice number,Filtrar por número de fatura
+Line,Linha
+Sold,Vendido
+Already credited,Já creditado
+Can credit,Pode creditar
+Credit now,Creditar agora
+Credit value excl. taxes,Valor a creditar sem impostos
+Open Credit Note,Abrir Nota de Crédito
+"The credit note opens unsaved. Saving it submits it and sends it to AGT, so check it in the form first.","A nota de crédito abre sem gravar. Ao gravar é submetida e enviada à AGT, por isso confirme-a primeiro no formulário."
+Return to Warehouse,Armazém de devolução
+Only for invoices that moved stock. Leave empty to choose it in the credit note.,Só para faturas que movimentaram stock. Deixe vazio para o escolher na nota de crédito.
+Item not found,Item não encontrado
+Nothing left to credit on any invoice,Nada por creditar em nenhuma fatura
+Not on this invoice,Não está nesta fatura
+Crediting {0} of {1},A creditar {0} de {1}
+{0} available,{0} disponível
+{0} on {1} invoices,{0} em {1} faturas
+Start a new list? The current items and progress are cleared.,Começar uma nova lista? Os itens e o progresso atuais serão apagados.
+The list changed. Press Find Invoices to update.,A lista mudou. Clique em Procurar Faturas para atualizar.
+Choose the company and the customer first.,Escolha primeiro a empresa e o cliente.
+Add at least one item with a quantity.,Adicione pelo menos um item com quantidade.
+Looking for invoices...,A procurar faturas...
+List started {0},Lista iniciada em {0}
+"Choose the customer, add the items and press Find Invoices.","Escolha o cliente, adicione os itens e clique em Procurar Faturas."
+Invoices with these items ({0}),Faturas com estes itens ({0})
+Only the first {0} invoices are shown. Narrow the dates to see others.,Só são mostradas as primeiras {0} faturas. Reduza o intervalo de datas para ver as outras.
+No invoice matches the filter.,Nenhuma fatura corresponde ao filtro.
+No invoice of this customer still has these items to credit.,Nenhuma fatura deste cliente tem ainda estes itens por creditar.
+Draft credit note exists,Existe nota de crédito em rascunho
+FE invalid,FE inválida
+{0} of {1} items,{0} de {1} itens
+can credit,pode creditar
+invoice,fatura
+Credit note against {0},Nota de crédito contra {0}
+outstanding,em dívida
+serial numbers,números de série
+Line #{0} can only take {1}.,A linha #{0} só aceita {1}.
+against,contra
+Tick at least one line with a quantity to credit.,Marque pelo menos uma linha com quantidade a creditar.
+Preparing the credit note...,A preparar a nota de crédito...
+Rows {0} carry serial numbers. Keep only the serial numbers that are coming back before saving.,As linhas {0} têm números de série. Deixe apenas os números de série que são devolvidos antes de gravar.
+Check serial numbers,Verificar números de série
+Find Invoices,Procurar Faturas
+New List,Nova Lista
+Quantity for Item {0} must be greater than zero.,A quantidade do Item {0} tem de ser maior que zero.
+Not permitted to read Sales Invoices.,Sem permissão para ler Faturas de Venda.
+Not permitted to create Sales Invoices.,Sem permissão para criar Faturas de Venda.
+{0} is not a submitted sales invoice.,{0} não é uma fatura de venda submetida.
+Choose at least one line with a quantity to credit.,Escolha pelo menos uma linha com quantidade a creditar.
+Line {0} does not belong to {1}.,A linha {0} não pertence a {1}.
+"Row #{0} ({1}): only {2} can still be credited, {3} requested.","Linha #{0} ({1}): só é possível creditar {2}, foram pedidos {3}."
+Warehouse {0} does not belong to {1}.,O armazém {0} não pertence a {1}.
+{0} credited,{0} creditado
+Choose the customer above to start.,Escolha primeiro o cliente acima para começar.
+Type the item code or name and pick it from the list,Escreva o código ou o nome do item e escolha-o na lista
+Items to credit ({0}),Itens a creditar ({0})
+Choose an item from the list.,Escolha um item da lista.
+Enter a quantity greater than zero.,Introduza uma quantidade maior que zero.
+Item {0} not found.,Item {0} não encontrado.
+{0} was already on the list: quantity is now {1}.,{0} já estava na lista: a quantidade é agora {1}.
+"No items yet. Choose an item above, enter the quantity and press Add.","Ainda sem itens. Escolha um item acima, indique a quantidade e clique em Adicionar."
+Add the items and press Find Invoices.,Adicione os itens e clique em Procurar Faturas.
+Only items this customer bought in the dates above that still have quantity to credit.,Só itens que este cliente comprou nas datas acima e que ainda têm quantidade por creditar.
+{0} has nothing left to credit for this customer in these dates.,{0} não tem nada por creditar para este cliente nestas datas.
+"{0}: only {1} can still be credited in these dates, {2} requested.","{0}: só é possível creditar {1} nestas datas, foram pedidos {2}."
+can credit {0} on {1} invoices,pode creditar {0} em {1} faturas
+Who the credit note is for. The dates are optional and limit which invoices are used.,Para quem é a nota de crédito. As datas são opcionais e limitam as faturas usadas.
+Pick an item and it is added. Then type the quantity and press Enter to pick the next one.,Escolha um item e ele é adicionado. Depois indique a quantidade e prima Enter para escolher o seguinte.
+Choose the customer in step 1 first.,Escolha primeiro o cliente no passo 1.
+Search the items this customer can credit: code or name,Pesquise os itens que este cliente pode creditar: código ou nome
+Qty to credit,Qtd a creditar
+On selected invoice,Na fatura selecionada
+Choose the invoice,Escolha a fatura
+Invoices of this customer that still have these items to credit. Most matching items first.,Faturas deste cliente que ainda têm estes itens por creditar. Primeiro as que têm mais itens.
+on the list,na lista
+can credit {0},pode creditar {0}
+No item matching {0} is left to credit for this customer.,Nenhum item com {0} está por creditar para este cliente.
+{0} is already on the list. Change its quantity there.,{0} já está na lista. Altere a quantidade lá.
+No items yet. Search above and pick an item to add it.,Ainda sem itens. Pesquise acima e escolha um item para o adicionar.
+more than can be credited,mais do que é possível creditar
+Updating...,A atualizar...
+Add items in step 2. The invoices appear here.,Adicione itens no passo 2. As faturas aparecem aqui.
+Choose the invoice ({0}),Escolha a fatura ({0})
+Credit note {0} saved. The invoice list is updated.,Nota de crédito {0} gravada. A lista de faturas foi atualizada.
+Credit Note Assistant,Assistente de Notas de Crédito
+Back to Credit Note Assistant,Voltar ao Assistente de Notas de Crédito
+Open {0} in a new tab,Abrir {0} num novo separador
