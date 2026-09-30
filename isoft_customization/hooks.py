@@ -97,6 +97,12 @@ doc_events = {
 	"Stock Reconciliation": {
 		"before_submit": "isoft_customization.batch_integrity.validate_batch_belongs_to_item",
 	},
+	# Refuse a Pricing Rule that collides with another active rule of the same
+	# priority (ERPNext would fail every line both match). The form offers the
+	# fixes before it gets here. See pricing_rule_conflicts.py.
+	"Pricing Rule": {
+		"validate": "isoft_customization.pricing_rule_conflicts.validate_no_conflicts",
+	},
 }
 
 
@@ -108,6 +114,7 @@ doctype_js = {
 	"Sales Order": "public/js/sales_order.js",
 	"Quotation": "public/js/quotation.js",
 	"Purchase Invoice": "public/js/purchase_invoice.js",
+	"Pricing Rule": "public/js/pricing_rule.js",
 }
 
 # Large documents submit / cancel from the long queue instead of inside the HTTP
