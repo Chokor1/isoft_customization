@@ -33,6 +33,11 @@ app_include_css = [
 	"/assets/isoft_customization/css/notification_attention.css",
 ]
 
+# ISOFT favicon instead of Frappe's / ERPNext's when Website Settings has none.
+# A function rather than `website_context`: that hook is last-app-wins, and
+# erpnext sorts after this app in sites/apps.txt.
+update_website_context = ["isoft_customization.branding.update_website_context"]
+
 # bulk "Stop" action in the Material Request list view
 doctype_list_js = {"Material Request": "public/js/material_request_list.js"}
 
