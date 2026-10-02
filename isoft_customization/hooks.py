@@ -145,7 +145,4 @@ after_migrate = [
 	# imported under: Frappe then looks for its .js in the wrong app and shows a
 	# blank page. See page_modules.py.
 	"isoft_customization.page_modules.sync_page_modules",
-	# Columns the ERPNext fork's raw SQL needs (Quotation submit fails without
-	# them on sites lacking woocommerceconnector). See fork_columns.py.
-	"isoft_customization.fork_columns.ensure_fork_columns",
 ]
