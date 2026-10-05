@@ -54,6 +54,9 @@ doc_events = {
 		"before_naming": "isoft_customization.isoft_customization.doctype.isoft_naming_series_settings.isoft_naming_series_settings.apply_company_naming_series",
 	},
 	"Sales Invoice": {
+		# Keep Delivery Note prices, per Selling Settings. See delivery_note_prices.py.
+		"before_validate": "isoft_customization.delivery_note_prices.keep_prices",
+		"validate": "isoft_customization.delivery_note_prices.release",
 		"on_submit": "isoft_customization.isoft_customization.doctype.invoice_payment_notification.invoice_payment_notification.trigger_notification_on_sales_invoice_submit",
 		# Mandatory reasons, per Selling Settings. See document_reasons.py.
 		# Batch ownership check runs first so a bad batch fails before docstatus is
@@ -69,6 +72,10 @@ doc_events = {
 			"isoft_customization.document_reasons.validate_credit_note_reason",
 		],
 		"before_cancel": "isoft_customization.document_reasons.validate_cancel_reason",
+	},
+	# The Keep Delivery Note Prices switch reaches the desk through bootinfo.
+	"Selling Settings": {
+		"on_update": "isoft_customization.delivery_note_prices.clear_boot_cache",
 	},
 	"Quotation": {
 		"before_cancel": "isoft_customization.document_reasons.validate_cancel_reason",
@@ -120,6 +127,8 @@ doctype_js = {
 	"Quotation": "public/js/quotation.js",
 	"Purchase Invoice": "public/js/purchase_invoice.js",
 	"Pricing Rule": "public/js/pricing_rule.js",
+	# Keeps Delivery Note prices on drafts made from one. See delivery_note_prices.py.
+	"Sales Invoice": "public/js/sales_invoice.js",
 }
 
 # Large documents submit / cancel from the long queue instead of inside the HTTP
@@ -131,7 +140,11 @@ override_doctype_class = {
 
 
 # Ships the company-wise naming series map to the desk (see company_naming_series.js).
-boot_session = "isoft_customization.isoft_customization.doctype.isoft_naming_series_settings.isoft_naming_series_settings.boot_session"
+# Also the Selling Settings "Keep Delivery Note Prices" switch (see sales_invoice.js).
+boot_session = [
+	"isoft_customization.isoft_customization.doctype.isoft_naming_series_settings.isoft_naming_series_settings.boot_session",
+	"isoft_customization.delivery_note_prices.boot_session",
+]
 
 
 # Seed the Portuguese overrides as Translation records. The CSV in translations/ is
@@ -141,6 +154,9 @@ after_migrate = [
 	"isoft_customization.translations_override.sync_translations",
 	# Selling Settings "Document Reasons" switches and the reason fields they fill.
 	"isoft_customization.document_reasons.setup_custom_fields",
+	# Selling Settings "Keep Delivery Note Prices on Sales Invoice" switch. After the
+	# line above: its section sits below the Document Reasons checkboxes.
+	"isoft_customization.delivery_note_prices.setup_custom_fields",
 	# Repair a desk Page whose record still names the module it was first
 	# imported under: Frappe then looks for its .js in the wrong app and shows a
 	# blank page. See page_modules.py.
