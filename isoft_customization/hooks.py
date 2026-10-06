@@ -55,6 +55,7 @@ doc_events = {
 	},
 	"Sales Invoice": {
 		# Keep Delivery Note prices, per Selling Settings. See delivery_note_prices.py.
+		"set_missing_values": "isoft_customization.delivery_note_prices.on_map",
 		"before_validate": "isoft_customization.delivery_note_prices.keep_prices",
 		"validate": "isoft_customization.delivery_note_prices.release",
 		"on_submit": "isoft_customization.isoft_customization.doctype.invoice_payment_notification.invoice_payment_notification.trigger_notification_on_sales_invoice_submit",
