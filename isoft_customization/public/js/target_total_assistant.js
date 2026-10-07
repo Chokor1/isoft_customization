@@ -150,16 +150,21 @@ frappe.provide('isoft.target_total');
 			return ns.current(frm, state.kind);
 		}
 
+		// S(0) is the fixed part: with positive quantities every reachable total is
+		// above it, on a return (negative qty) every reachable total is below it.
 		const s_min = S(0);
-		if (target < s_min - TOL) {
+		let k0 = 1, s0 = S(1);
+		const dir = Math.sign(s0 - s_min) || 1;
+		if ((target - s_min) * dir < -TOL) {
 			reset_lines(frm, state);
 			return finish(false, {
-				reason: __('Target too low: lowest reachable total is {0}', [format_currency(s_min, frm.doc.currency)]),
+				reason: dir > 0
+					? __('Target too low: lowest reachable total is {0}', [format_currency(s_min, frm.doc.currency)])
+					: __('Target too high: highest reachable total is {0}', [format_currency(s_min, frm.doc.currency)]),
 				min_total: s_min
 			});
 		}
 
-		let k0 = 1, s0 = S(1);
 		if (!math.converged(s0, target, TOL)) {
 			let k1 = s0 ? target / s0 : 2, s1 = S(k1), n = 0;
 			while (!math.converged(s1, target, TOL) && n++ < MAX_SECANT) {
@@ -220,12 +225,14 @@ frappe.provide('isoft.target_total');
 
 	function rate_str(v, it) { return flt(v, precision('rate', it)).toString(); }
 
-	function debounce(fn, wait) {
+	// Debounce whose pending timer is handed to `track` so the caller can cancel it.
+	function debounce(fn, wait, track) {
 		let t;
 		return function () {
 			const args = arguments, ctx = this;
 			clearTimeout(t);
 			t = setTimeout(function () { fn.apply(ctx, args); }, wait);
+			track && track(t);
 		};
 	}
 
@@ -241,7 +248,7 @@ frappe.provide('isoft.target_total');
 					original_rate: flt(it.rate), typed_rate: null, typed_mode: null, margin: false };
 			})
 		};
-		let applied = false;
+		let applied = false, closed = false, pending = null;
 
 		const d = new frappe.ui.Dialog({
 			title: __('Target Total Assistant'),
@@ -280,6 +287,8 @@ frappe.provide('isoft.target_total');
 		});
 		d.add_custom_action(__('Cancel'), function () { d.hide(); });
 		d.onhide = function () {
+			closed = true;
+			clearTimeout(pending);
 			if (!applied) { ns.restore(frm, state.snap); }
 			frm.refresh_field('items');
 			frm.cscript.calculate_taxes_and_totals();
@@ -364,6 +373,7 @@ frappe.provide('isoft.target_total');
 		}
 
 		function refit() {
+			if (closed) return;
 			const result = ns.fit(frm, state);
 			render(result);
 			frm.refresh_field('items');
@@ -387,7 +397,7 @@ frappe.provide('isoft.target_total');
 				r.mode = 'Fixed';
 			}
 			refit();
-		}, 150));
+		}, 150, function (t) { pending = t; }));
 
 		build_table();
 		d.show();

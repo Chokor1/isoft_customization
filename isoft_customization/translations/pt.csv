@@ -540,3 +540,4 @@ All lines are fixed,Todas as linhas estão fixas
 Free lines have no amount; type a rate on at least one line,As linhas livres não têm valor; indique um preço em pelo menos uma linha
 Target too low: lowest reachable total is {0},Alvo demasiado baixo: o total mínimo alcançável é {0}
 Above price list rate: creates a margin (rejected by AGT on invoices). Use Price List Rate.,Acima do preço de tabela: cria uma margem (rejeitada pela AGT nas faturas). Use Preço de Tabela.
+Target too high: highest reachable total is {0},Alvo demasiado alto: o total máximo alcançável é {0}

@@ -24,7 +24,7 @@
 ## Review Focus
 
 1. Document with a document-level discount (`additional_discount_percentage` / `discount_amount`, `apply_discount_on` Grand Total): Net Total target must be the post-discount `net_total` the form shows. Test: Task 4 browser step 2 uses a quotation with 5% additional discount.
-2. Inclusive taxes (`included_in_print_rate`): the Grand Total equals the sum of rates × qty; the solver must still converge. Test: Task 1 secant test with a non-linear S(k); Task 4 step 1 quotation includes one inclusive-tax line.
+2. Inclusive taxes (`included_in_print_rate`): the Grand Total equals the sum of rates × qty; the solver must still converge. Test: Task 1 secant test with a non-linear S(k); the browser test quotation has only an exclusive 14% tax and dev has no inclusive-tax template, so this stays covered by the synthetic Node secant test only.
 3. Two item rows with the same item_code: the residue step must address the row, not the item. Test: Task 2 residue picks by row index (`largest_free` returns an index, writers address `frm.doc.items[idx]`).
 4. Typing a rate on a line then changing the default mode: the typed line must stay Fixed. Test: Task 3 `set_default_mode` only touches rows whose mode is not Fixed (Node test on the state helper).
 5. Target lower than the fixed lines' contribution: refuse with the lowest reachable total, leave lines at original values. Test: Task 1 `clamp` test and Task 3 `fit` returning `{ok:false, reason}` with the minimum.

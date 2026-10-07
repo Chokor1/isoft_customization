@@ -343,7 +343,63 @@ def task4(page, log, args):
         log("deleted test quotation", q.name, "exists:", bool(frappe.db.exists("Quotation", q.name)))
 
 
-TASKS = {"2": task2, "3": task3, "4": task4}
+def task5(page, log, args):
+    """Review fixes: credit notes (negative qty) fit in the right direction; a
+    debounced refit never runs after Cancel. Nothing is saved."""
+    import frappe
+    q = frappe.get_doc("Quotation", args.quotation)
+    # Credit note: new Sales Invoice with is_return and a negative-qty line, never saved.
+    page.goto(f"{BASE_URL}/app/sales-invoice/new", wait_until="networkidle")
+    page.wait_for_function("() => window.cur_frm && cur_frm.doc && cur_frm.doc.doctype === 'Sales Invoice'", timeout=30000)
+    page.evaluate("(c) => cur_frm.set_value('customer', c)", q.party_name)
+    page.wait_for_timeout(1500)
+    page.evaluate("() => cur_frm.set_value('is_return', 1)")
+    page.wait_for_timeout(500)
+    page.evaluate("(code) => { frappe.model.clear_table(cur_frm.doc, 'items'); const r = cur_frm.add_child('items', {qty: -2}); frappe.model.set_value(r.doctype, r.name, 'item_code', code); }", q.items[0].item_code)
+    page.wait_for_function("() => cur_frm.doc.items.length && cur_frm.doc.items[0].price_list_rate > 0 && cur_frm.doc.grand_total < 0", timeout=30000)
+    page.evaluate("() => { cur_frm.refresh(); }")
+    page.wait_for_timeout(500)
+    gt0 = page.evaluate("() => cur_frm.doc.grand_total")
+    page.click(".page-actions button:has-text('Target Total')")
+    page.wait_for_selector(".modal:visible .isoft-tt-table", timeout=10000)
+    page.wait_for_timeout(300)
+    st = dialog_state(page)
+    log("return open", json.dumps(st))
+    log.check(st["ok"], "credit note: opening target (current total) is accepted", st["status"])
+    target = round(gt0 - 1000, 2)
+    dialog_set_target(page, target)
+    st = dialog_state(page)
+    log("return fit", json.dumps(st))
+    # Single line with qty -2: 2-cent steps, so an odd cent may only be reachable within 0,01 (warning).
+    warned = page.evaluate("() => !!document.querySelector('.isoft-tt-status.tt-ok, .isoft-tt-status.tt-warn')")
+    log.check(round(abs(st["gt"] - target), 2) <= 0.01 and warned, "credit note fitted to a more negative target", f"{st['gt']} vs {target} {st['status']}")
+    dialog_set_target(page, 500)
+    st = dialog_state(page)
+    log.check(st["bad"] and st["status"].startswith("Target too high"), "credit note: positive target refused as too high", st["status"])
+    page.click(".modal:visible button:has-text('Cancel')")
+    page.wait_for_timeout(300)
+    log.check(page.evaluate("() => cur_frm.doc.grand_total") == gt0, "credit note: Cancel restores total")
+    log.check(page.evaluate("() => cur_frm.doc.__islocal === 1"), "credit note was never saved")
+
+    # Debounce race: type a rate and hide the dialog in the same tick; the pending refit must not run.
+    open_form(page, log, "Quotation", args.quotation)
+    orig = dialog_state(page)
+    page.click(".page-actions button:has-text('Target Total')")
+    page.wait_for_selector(".modal:visible .isoft-tt-table", timeout=10000)
+    page.wait_for_timeout(300)
+    page.evaluate("""() => {
+        const inp = document.querySelector('.modal.show .isoft-tt-table tr:nth-child(2) input.tt-rate');
+        inp.value = '1';
+        inp.dispatchEvent(new Event('input', {bubbles: true}));
+        isoft.target_total._dialog.hide();
+    }""")
+    page.wait_for_timeout(600)
+    st = dialog_state(page)
+    log("race", json.dumps(st))
+    log.check(st["rates"] == orig["rates"] and st["gt"] == orig["gt"], "no refit after Cancel within the debounce window", f"{st['rates']} vs {orig['rates']}")
+
+
+TASKS = {"2": task2, "3": task3, "4": task4, "5": task5}
 
 
 def main():
