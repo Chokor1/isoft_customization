@@ -12,6 +12,11 @@ frappe.ui.form.on('Quotation', {
 	refresh: function (frm) {
 		if (frm.doc.docstatus !== 0) return;
 
+		// Target Total Assistant (public/js/target_total_assistant.js).
+		if ((frm.doc.items || []).length) {
+			frm.add_custom_button(__('Target Total'), function () { isoft.target_total.open(frm); });
+		}
+
 		frm.add_custom_button(__('Quotation'), function () {
 			erpnext.utils.map_current_doc({
 				method: 'isoft_customization.quotation.make_quotation',

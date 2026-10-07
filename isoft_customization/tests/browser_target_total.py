@@ -224,13 +224,135 @@ def task3(page, log, args):
     page.wait_for_timeout(1000)
 
 
-TASKS = {"2": task2, "3": task3}
+def make_test_quotation(source):
+    """Server-side copy of a quotation with a 5% document discount; deleted by drop_test_doc."""
+    import frappe
+    src = frappe.get_doc("Quotation", source)
+    doc = frappe.copy_doc(src)
+    doc.additional_discount_percentage = 5
+    doc.apply_discount_on = "Net Total"  # AGT rule on dev forbids Grand Total
+    doc.insert()
+    frappe.db.commit()
+    return doc
+
+
+def drop_test_doc(doctype, name):
+    """Deletes the test document and gives its series number back when it was the last one."""
+    import frappe
+    from frappe.model.naming import parse_naming_series
+    try:
+        series = frappe.db.get_value(doctype, name, "naming_series")
+        frappe.delete_doc(doctype, name, force=1)
+        if series:
+            prefix = parse_naming_series(series.split(".#")[0])  # "PP ALV.YYYY./" -> "PP ALV2026/"
+            number = name[len(prefix):] if name.startswith(prefix) else None
+            if number and number.isdigit():
+                frappe.db.sql("update tabSeries set current = current - 1 where name=%s and current=%s", (prefix, int(number)))
+        frappe.db.commit()
+    except Exception as e:
+        print("cleanup failed", doctype, name, e)
+
+
+def button_present(page):
+    return page.evaluate("() => !!Array.from(document.querySelectorAll('.page-actions button, .page-actions a')).find(b => b.textContent.trim() === __('Target Total') && b.offsetParent !== null)")
+
+
+def task4(page, log, args):
+    """Toolbar button on the three forms; real save on a test quotation; SI margin flag without saving."""
+    import frappe
+    q = make_test_quotation(args.quotation)
+    log("test quotation", q.name, "customer", q.party_name, "item", q.items[0].item_code)
+    try:
+        # Button on drafts, not on submitted documents.
+        open_form(page, log, "Quotation", q.name)
+        log.check(button_present(page), "Target Total button on draft Quotation")
+        for dt, name in (("Delivery Note", args.delivery_note), ("Sales Invoice", args.sales_invoice)):
+            if not name:
+                log("skip submitted", dt)
+                continue
+            open_form(page, log, dt, name)
+            log.check(not button_present(page), f"no button on submitted {dt}")
+        if args.delivery_note_draft:
+            open_form(page, log, "Delivery Note", args.delivery_note_draft)
+            log.check(button_present(page), "Target Total button on draft Delivery Note")
+
+        # Spec test 1: Grand Total fit, saved for real, persisted after reload.
+        open_form(page, log, "Quotation", q.name)
+        orig = dialog_state(page)
+        page.click(".page-actions button:has-text('Target Total')")
+        page.wait_for_selector(".modal:visible .isoft-tt-table", timeout=10000)
+        target = 500000.0
+        dialog_set_target(page, target)
+        st = dialog_state(page)
+        log("fit", json.dumps(st))
+        log.check(abs(st["gt"] - target) <= 0.005 and st["ok"], "quotation fitted to 500 000,00 grand total", f"{st['gt']} {st['status']}")
+        page.click(".modal:visible button:has-text('Apply')")
+        page.wait_for_timeout(300)
+        page.evaluate("() => { cur_frm.save(); }")
+        page.wait_for_function("() => !cur_frm.is_dirty() && cur_frm.doc.__unsaved !== 1", timeout=30000)
+        page.wait_for_timeout(500)
+        page.reload(wait_until="networkidle")
+        page.wait_for_function("() => window.cur_frm && cur_frm.doc && cur_frm.doc.items && cur_frm.doc.items.length", timeout=30000)
+        gt = page.evaluate("() => cur_frm.doc.grand_total")
+        db_gt = frappe.db.get_value("Quotation", q.name, "grand_total")
+        log.check(abs(gt - target) <= 0.005 and abs(db_gt - target) <= 0.005, "saved quotation keeps the target after reload", f"form {gt} db {db_gt}")
+
+        # Spec test 2: Net Total target with the 5% document discount in force.
+        page.click(".page-actions button:has-text('Target Total')")
+        page.wait_for_selector(".modal:visible .isoft-tt-table", timeout=10000)
+        page.evaluate("() => { isoft.target_total._dialog.set_value('kind', 'Net Total'); }")
+        page.wait_for_timeout(300)
+        nt_target = 400000.0
+        dialog_set_target(page, nt_target)
+        st = dialog_state(page)
+        log("net fit", json.dumps(st))
+        disc = page.evaluate("() => cur_frm.doc.additional_discount_percentage")
+        log.check(disc == 5 and abs(st["nt"] - nt_target) <= 0.005 and st["ok"], "net total target met with 5% document discount", f"{st['nt']} {st['status']}")
+        page.click(".modal:visible button:has-text('Cancel')")
+        page.wait_for_timeout(300)
+        st = dialog_state(page)
+        log.check(abs(st["gt"] - target) <= 0.005, "Cancel keeps the saved values", f"{st['gt']}")
+
+        # Spec test 3: new Sales Invoice, never saved. Rate mode above price list rate -> margin flag.
+        page.goto(f"{BASE_URL}/app/sales-invoice/new", wait_until="networkidle")
+        page.wait_for_function("() => window.cur_frm && cur_frm.doc && cur_frm.doc.doctype === 'Sales Invoice'", timeout=30000)
+        page.evaluate("(c) => cur_frm.set_value('customer', c)", q.party_name)
+        page.wait_for_timeout(1500)
+        # The new form opens with one blank row: drop it, then add the priced item.
+        page.evaluate("(code) => { frappe.model.clear_table(cur_frm.doc, 'items'); const r = cur_frm.add_child('items', {qty: 1}); frappe.model.set_value(r.doctype, r.name, 'item_code', code); }", q.items[0].item_code)
+        page.wait_for_function("() => cur_frm.doc.items.length && cur_frm.doc.items[0].price_list_rate > 0 && cur_frm.doc.grand_total > 0", timeout=30000)
+        page.evaluate("() => { cur_frm.refresh(); }")
+        page.wait_for_timeout(500)
+        log.check(button_present(page), "Target Total button on new Sales Invoice")
+        page.click(".page-actions button:has-text('Target Total')")
+        page.wait_for_selector(".modal:visible .isoft-tt-table", timeout=10000)
+        page.evaluate("() => { isoft.target_total._dialog.set_value('default_mode', 'Rate'); }")
+        page.wait_for_timeout(300)
+        gt0 = page.evaluate("() => cur_frm.doc.grand_total")
+        dialog_set_target(page, round(gt0 * 1.2, 2))
+        st = dialog_state(page)
+        log("si fit", json.dumps(st))
+        log.check(st["margin_rows"] >= 1, "Rate mode above price list rate flags a margin row", str(st["margin_rows"]))
+        page.click(".modal:visible button:has-text('Cancel')")
+        page.wait_for_timeout(300)
+        gt1 = page.evaluate("() => cur_frm.doc.grand_total")
+        log.check(gt1 == gt0, "Cancel restores the invoice total", f"{gt1} vs {gt0}")
+        log.check(page.evaluate("() => cur_frm.doc.__islocal === 1"), "sales invoice was never saved")
+    finally:
+        drop_test_doc("Quotation", q.name)
+        log("deleted test quotation", q.name, "exists:", bool(frappe.db.exists("Quotation", q.name)))
+
+
+TASKS = {"2": task2, "3": task3, "4": task4}
 
 
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--task", required=True)
     ap.add_argument("--quotation", default="PP ALV2026/7")
+    ap.add_argument("--delivery-note", default="GR SPL2026/10", help="a submitted Delivery Note")
+    ap.add_argument("--delivery-note-draft", default="GR 2026/359", help="a draft Delivery Note with items")
+    ap.add_argument("--sales-invoice", default="FR FR3726S1246N/102", help="a submitted Sales Invoice")
     ap.add_argument("--log", default="browser_target_total.log")
     ap.add_argument("--headed", action="store_true")
     args = ap.parse_args()

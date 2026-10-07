@@ -142,6 +142,9 @@ doc_events = {
 doctype_js = {
 	"Sales Order": "public/js/sales_order.js",
 	"Quotation": "public/js/quotation.js",
+	# Target Total Assistant button (Quotation gets it inside quotation.js).
+	"Sales Invoice": "public/js/sales_invoice.js",
+	"Delivery Note": "public/js/delivery_note.js",
 	"Purchase Invoice": "public/js/purchase_invoice.js",
 	"Pricing Rule": "public/js/pricing_rule.js",
 }
