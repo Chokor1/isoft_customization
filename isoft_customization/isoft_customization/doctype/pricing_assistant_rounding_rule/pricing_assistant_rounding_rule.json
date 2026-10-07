@@ -1,0 +1,41 @@
+{
+ "actions": [],
+ "creation": "2026-10-07 12:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "upto",
+  "round_to"
+ ],
+ "fields": [
+  {
+   "columns": 5,
+   "description": "The part of the price inside the block, below this value",
+   "fieldname": "upto",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Remainder below",
+   "reqd": 1
+  },
+  {
+   "columns": 5,
+   "description": "Rounded to this value inside the block",
+   "fieldname": "round_to",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Round to"
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-10-07 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "ISOFT Customization",
+ "name": "Pricing Assistant Rounding Rule",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC"
+}

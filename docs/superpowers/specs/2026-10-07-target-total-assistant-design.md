@@ -91,20 +91,32 @@ If there are no free lines the panel shows "All lines are fixed".
 If every free line has amount 0 the proportional split cannot move them; the
 panel says "Free lines have no amount; type a rate on at least one line".
 
-## Adjust by percent and price step rounding (added 2026-10-07, user request)
+## Adjust by percent and rule rounding (added 2026-10-07, user request; rounding redesigned the same day)
 
 - Bar switch "Target total | Adjust by %". In percent mode the target input is
   replaced by a percent input with -/+ buttons; every free line becomes
   `original_rate * (1 + p/100)` (never below 0); no target is solved. Status:
   "Prices +5,00%".
-- "Round to" step (Off, 1, 5, 10, 50, 100, 500, 1000) with Nearest / Up / Down
-  (Up/Down are away from / towards zero so returns keep their sign). Applied to
-  every free line in both modes after scaling; Fixed and typed rows are never
-  rounded. Rationale: with 14% IVA a rate on a multiple of 50 gives a
-  whole-number tax (50 x 14% = 7), e.g. 1 030 -> 1 050, 22 390 -> 22 400.
-- In Target mode with a step the residue search moves whole steps, the result
-  is the closest reachable total; the status is an amber "Off by X: prices
-  rounded to S" and Apply stays enabled. Reset puts mode Target, 0 %, step Off.
+- Rounding is a single on/off switch in the bar ("Rounding"); the rule itself
+  lives in the Single **Pricing Assistant Settings** (module ISOFT
+  Customization), edited from the gear icon next to the switch or from the
+  desk form. Rule = block size (default 100) + thresholds (child table
+  Pricing Assistant Rounding Rule: remainder below -> round to). The price is
+  split into whole blocks plus a remainder; the first threshold the remainder
+  is below decides the landing value; above every threshold the price goes up
+  to the next block. Default rule (never saved): below 20 -> 0, below 70 -> 50,
+  so 1 030 -> 1 050, 1 015 -> 1 000, 22 390 -> 22 400. Multiples of 50 give
+  whole-number IVA at 14%. Settings also hold the opening defaults: target
+  kind, free-lines mode, rounding on by default. Write needs System Manager
+  or Sales Manager; others see the dialog read-only.
+- Rounding applies to every free line in both modes after scaling; Fixed and
+  typed rows are never rounded. In Target mode the residue search only moves a
+  line to neighbouring landing points of the rule, the result is the closest
+  reachable total; the status is an amber "Off by X: prices rounded" and Apply
+  stays enabled. Reset puts mode Target, 0 %, rounding back to the default.
+- Server: `isoft_customization.pricing_assistant.get_settings` /
+  `save_settings` (whitelisted). Pure rule math: `math.round_rule`,
+  `math.landing_deltas`, `math.scaled_rate(rate, k, precision, rule)`.
 
 ## What each mode writes on a line
 

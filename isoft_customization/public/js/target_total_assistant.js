@@ -152,9 +152,9 @@ frappe.provide('isoft.target_total');
 			return finish(false, { reason: __('Free lines have no amount; type a rate on at least one line') });
 		}
 
-		const step = flt(state.step) || 0, method = state.method || 'Nearest';
+		const rule = state.rounding && ns._settings && flt(ns._settings.base) ? ns._settings : null;
 		function rate_at(r, k) {
-			return math.scaled_rate(r.original_rate, k, precision('rate', item_of(frm, r)), step, method);
+			return math.scaled_rate(r.original_rate, k, precision('rate', item_of(frm, r)), rule);
 		}
 
 		// Adjust-by-percent mode: every free line moves by the same percentage (and
@@ -204,7 +204,12 @@ frappe.provide('isoft.target_total');
 		const moves = [];
 		candidates.forEach(function (r) {
 			const it = item_of(frm, r);
-			const unit = step || 1 / Math.pow(10, precision('rate', it));  // whole price steps when rounding
+			if (rule) {
+				// Only moves that land on another rounded price are allowed.
+				math.landing_deltas(flt(it.rate), rule, RESIDUE_STEPS).forEach(function (delta) { moves.push({ row: r, delta: delta }); });
+				return;
+			}
+			const unit = 1 / Math.pow(10, precision('rate', it));
 			for (let n = -RESIDUE_STEPS; n <= RESIDUE_STEPS; n++) if (n) moves.push({ row: r, delta: n * unit });
 		});
 		function apply_moves(list, base_rates) {
@@ -237,8 +242,8 @@ frappe.provide('isoft.target_total');
 		}
 
 		const diff = flt(target - ns.current(frm, state.kind), 2);
-		// With a price step the user accepts landing one step away: still ok, flagged.
-		if (step && Math.abs(diff) > WARN) return finish(true, { stepped: true });
+		// With rounding on the user accepts landing on the nearest rounded prices: still ok, flagged.
+		if (rule && Math.abs(diff) > WARN) return finish(true, { rounded: true });
 		return finish(Math.abs(diff) <= WARN);
 	};
 
@@ -247,6 +252,7 @@ frappe.provide('isoft.target_total');
 	const ICON = '<svg class="isoft-tt-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
 		'<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/>' +
 		'<path d="M12 3v2M12 19v2M3 12h2M19 12h2"/></svg>';
+	const GEAR = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>';
 	const LOCK = '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>';
 
 	// Toolbar button with the target icon. Called from the three doctype_js files.
@@ -282,20 +288,32 @@ frappe.provide('isoft.target_total');
 		}).join('') + '</div>';
 	}
 
+	// Loads Pricing Assistant Settings, then builds the dialog.
 	ns.open = function (frm) {
+		if (ns._dialog || ns._opening) return ns._dialog;
+		ns._opening = true;
+		return frappe.call({ method: 'isoft_customization.pricing_assistant.get_settings' }).then(function (r) {
+			ns._settings = r.message || {};
+			return ns._build_dialog(frm);
+		}).always(function () { ns._opening = false; });
+	};
+
+	ns._build_dialog = function (frm) {
 		if (ns._dialog) return ns._dialog;
+		const cfg = ns._settings || {};
+		const kind0 = cfg.default_target_kind === 'Net Total' ? 'Net Total' : 'Grand Total';
+		const line_mode0 = cfg.default_line_mode === 'Rate' ? 'Rate' : 'Price List Rate';
 		const state = {
-			kind: 'Grand Total',
-			target: ns.current(frm, 'Grand Total'),
+			kind: kind0,
+			target: ns.current(frm, kind0),
 			mode: 'Target',          // 'Target' | 'Percent'
 			percent: 0,
-			step: 0,                 // price step: 0 = off
-			method: 'Nearest',       // 'Nearest' | 'Up' | 'Down'
-			default_mode: 'Price List Rate',
+			rounding: !!cint(cfg.apply_rounding_by_default),  // rule from Pricing Assistant Settings
+			default_mode: line_mode0,
 			snap: ns.snapshot(frm),
 			rows: (frm.doc.items || []).map(function (it, i) {
 				const locked = flt(it.qty) === 0;
-				return { idx: i, mode: locked ? 'Fixed' : 'Price List Rate', locked: locked,
+				return { idx: i, mode: locked ? 'Fixed' : line_mode0, locked: locked,
 					original_rate: flt(it.rate), typed_rate: null, typed_mode: null, margin: false };
 			})
 		};
@@ -311,7 +329,7 @@ frappe.provide('isoft.target_total');
 			secondary_action_label: __('Reset'),
 			secondary_action: function () {
 				state.rows.forEach(function (r) { r.typed_rate = null; r.typed_mode = null; r.mode = r.locked ? 'Fixed' : state.default_mode; });
-				state.mode = 'Target'; state.percent = 0; state.step = 0; state.method = 'Nearest';
+				state.mode = 'Target'; state.percent = 0; state.rounding = !!cint(cfg.apply_rounding_by_default);
 				ns.restore(frm, state.snap); ns.recalc_silent(frm);
 				state.target = ns.current(frm, state.kind);
 				build(); refit();
@@ -373,13 +391,11 @@ frappe.provide('isoft.target_total');
 								'<button type="button" class="isoft-tt-stepbtn tt-pct-plus" title="+1%">+</button>' +
 							'</div>' +
 						'</div>' +
-						'<div class="isoft-tt-bar-mode" title="' + __('Round every free line to a multiple of this step. Multiples of 50 give whole-number tax at 14%.') + '">' +
-							'<span class="isoft-tt-bar-label">' + __('Round to') + '</span>' +
-							'<select class="tt-round-step">' + [0, 1, 5, 10, 50, 100, 500, 1000].map(function (v) {
-								return '<option value="' + v + '"' + (v === flt(state.step) ? ' selected' : '') + '>' + (v ? num(v, 0) : __('Off')) + '</option>';
-							}).join('') + '</select>' +
-							seg('tt-round-method', [{ value: 'Nearest', label: __('Nearest') }, { value: 'Up', label: __('Up') }, { value: 'Down', label: __('Down') }], state.method) +
-						'</div>' +
+						'<label class="isoft-tt-switch" title="' + __('Round every free line with the rule from the settings') + '">' +
+							'<input type="checkbox" class="tt-round-toggle"' + (state.rounding ? ' checked' : '') + '>' +
+							'<span class="isoft-tt-switch-track"></span><span class="isoft-tt-switch-label">' + __('Rounding') + '</span>' +
+						'</label>' +
+						'<button type="button" class="isoft-tt-iconbtn tt-settings" title="' + __('Pricing Assistant Settings') + '">' + GEAR + '</button>' +
 						'<div class="isoft-tt-bar-mode"><span class="isoft-tt-bar-label">' + __('Free lines') + '</span>' +
 							seg('tt-default-mode', [{ value: 'Price List Rate', label: __('Price List Rate') }, { value: 'Rate', label: __('Rate') }], state.default_mode) + '</div>' +
 						'<span class="isoft-tt-spacer"></span>' +
@@ -446,7 +462,7 @@ frappe.provide('isoft.target_total');
 			const percent_mode = state.mode === 'Percent';
 			$body.find('.isoft-tt-only-target').toggle(!percent_mode);
 			$body.find('.isoft-tt-only-percent').toggle(percent_mode);
-			$body.find('.tt-round-method').toggleClass('is-off', !flt(state.step));
+			$body.find('.tt-round-toggle').prop('checked', !!state.rounding);
 
 			const cur = ns.current(frm, state.kind);
 			const was = state.kind === 'Grand Total' ? open_totals.grand : open_totals.net;
@@ -457,15 +473,15 @@ frappe.provide('isoft.target_total');
 
 			const $st = $body.find('.isoft-tt-status').removeClass('tt-ok tt-warn tt-bad');
 			const $sub = $body.find('.tt-kpi-status-sub').text('');
-			const step_note = flt(state.step) ? ' \u00b7 ' + __('rounded to {0}', [num(state.step, 0)]) : '';
+			const step_note = state.rounding ? ' \u00b7 ' + __('rounded') : '';
 			if (result.reason) {
 				$st.addClass('tt-bad').text(result.reason);
 			} else if (result.percent) {
 				$st.addClass('tt-ok').text(__('Prices {0}', [signed(flt(state.percent), 2) + '%']) + step_note);
 				$sub.text(__('Apply to keep these prices'));
-			} else if (result.stepped) {
-				$st.addClass('tt-warn').text(__('Off by {0}: prices rounded to {1}', [money(result.diff, frm), num(state.step, 0)]));
-				$sub.text(__('Closest total with every free line on the step'));
+			} else if (result.rounded) {
+				$st.addClass('tt-warn').text(__('Off by {0}: prices rounded', [money(result.diff, frm)]));
+				$sub.text(__('Closest total with every free line rounded'));
 			} else if (Math.abs(result.diff) <= TOL) {
 				$st.addClass('tt-ok').text(__('On target') + step_note);
 				$sub.text(__('Apply to keep these prices'));
@@ -520,12 +536,8 @@ frappe.provide('isoft.target_total');
 			set_kind: function (k) { state.kind = k; set_seg($body.find('.tt-kind'), k); d.tt.set_target(ns.current(frm, k)); },
 			set_mode: function (m) { state.mode = m; set_seg($body.find('.tt-mode-switch'), m); refit(); },
 			set_percent: function (p) { state.percent = flt(p); $body.find('.isoft-tt-percent').val(num(state.percent)); refit(); },
-			set_round: function (step, method) {
-				state.step = flt(step) || 0; state.method = method || state.method;
-				$body.find('.tt-round-step').val(String(flt(state.step)));
-				set_seg($body.find('.tt-round-method'), state.method);
-				refit();
-			},
+			set_rounding: function (on) { state.rounding = !!on; refit(); },
+			open_settings: function () { ns.open_settings(function () { refit(); }); },
 			set_default_mode: function (m) {
 				state.default_mode = m; set_seg($body.find('.tt-default-mode'), m);
 				state.rows = ns.math.set_default_mode(state.rows, m);
@@ -541,8 +553,8 @@ frappe.provide('isoft.target_total');
 		$body.on('focus', '.isoft-tt-percent', function () { $(this).select(); });
 		$body.on('click', '.tt-pct-minus', function () { d.tt.set_percent(flt(state.percent) - 1); });
 		$body.on('click', '.tt-pct-plus', function () { d.tt.set_percent(flt(state.percent) + 1); });
-		$body.on('change', '.tt-round-step', function () { d.tt.set_round($(this).val(), state.method); });
-		$body.on('click', '.tt-round-method .isoft-tt-seg-btn', function () { d.tt.set_round(state.step, $(this).data('value')); });
+		$body.on('change', '.tt-round-toggle', function () { d.tt.set_rounding($(this).prop('checked')); });
+		$body.on('click', '.tt-settings', function () { d.tt.open_settings(); });
 		$body.on('click', '.tt-kind .isoft-tt-seg-btn', function () { d.tt.set_kind($(this).data('value')); });
 		$body.on('click', '.tt-default-mode .isoft-tt-seg-btn', function () { d.tt.set_default_mode($(this).data('value')); });
 		$body.on('change', '.isoft-tt-target', function () { d.tt.set_target(parse($(this).val())); });
@@ -581,6 +593,120 @@ frappe.provide('isoft.target_total');
 		refit();
 		d.$wrapper.one('shown.bs.modal', fit_height);
 		setTimeout(function () { $body.find('.isoft-tt-target').focus().select(); }, 300);
+		return d;
+	};
+
+	// ------------------------------------------------------- settings dialog
+
+	const SAMPLES = [1030, 1015, 1070, 22390];
+
+	function rules_from_dom($w) {
+		return {
+			base: parse($w.find('.tt-set-base').val()),
+			rules: $w.find('.tt-rule-row').map(function () {
+				return { upto: parse($(this).find('.tt-rule-upto').val()), to: parse($(this).find('.tt-rule-to').val()) };
+			}).get()
+		};
+	}
+
+	function validate_rules(cfg) {
+		if (!(cfg.base > 0)) return __('Block size must be greater than zero');
+		for (let i = 0; i < cfg.rules.length; i++) {
+			const r = cfg.rules[i];
+			if (!(r.upto > 0 && r.upto <= cfg.base) || !(r.to >= 0 && r.to <= cfg.base)) {
+				return __('Thresholds must be between 0 and the block size');
+			}
+		}
+		return null;
+	}
+
+	ns.open_settings = function (on_saved) {
+		if (ns._settings_dialog) return ns._settings_dialog;
+		const cfg = ns._settings || {};
+		const can_write = !!cfg.can_write;
+		const d = new frappe.ui.Dialog({
+			title: __('Pricing Assistant Settings'),
+			size: 'large',
+			fields: [{ fieldname: 'body', fieldtype: 'HTML' }],
+			primary_action_label: __('Save'),
+			primary_action: function () {
+				const next = rules_from_dom($w);
+				const err = validate_rules(next);
+				if (err) { frappe.msgprint(err); return; }
+				next.rules.sort(function (a, b) { return a.upto - b.upto; });
+				next.default_target_kind = $w.find('.tt-set-kind .is-on').data('value');
+				next.default_line_mode = $w.find('.tt-set-mode .is-on').data('value');
+				next.apply_rounding_by_default = $w.find('.tt-set-default-on').prop('checked') ? 1 : 0;
+				frappe.call({
+					method: 'isoft_customization.pricing_assistant.save_settings',
+					args: { settings: next },
+					freeze: true
+				}).then(function (r) {
+					ns._settings = r.message || next;
+					d.hide();
+					on_saved && on_saved();
+				});
+			}
+		});
+		d.$wrapper.addClass('isoft-tt-settings isoft-tt-modal');
+		d.onhide = function () { if (ns._settings_dialog === d) ns._settings_dialog = null; d.$wrapper.remove(); };
+		ns._settings_dialog = d;
+		const $w = $(d.fields_dict.body.wrapper);
+		const dis = can_write ? '' : ' disabled';
+
+		function row_html(r) {
+			return '<div class="tt-rule-row">' +
+				'<span class="tt-rule-text">' + __('Remainder below') + '</span><input type="text" inputmode="decimal" class="tt-rule-upto"' + dis + ' value="' + num(r.upto, 2) + '">' +
+				'<span class="tt-rule-text">' + __('round to') + '</span><input type="text" inputmode="decimal" class="tt-rule-to"' + dis + ' value="' + num(r.to, 2) + '">' +
+				(can_write ? '<button type="button" class="isoft-tt-iconbtn tt-rule-del" title="' + __('Remove') + '">&times;</button>' : '') +
+			'</div>';
+		}
+
+		$w.html(
+			'<div class="isoft-tt isoft-tt-set">' +
+				(can_write ? '' : '<div class="isoft-tt-set-note">' + __('Only System Manager or Sales Manager can change these settings') + '</div>') +
+				'<div class="isoft-tt-set-card">' +
+					'<div class="isoft-tt-set-head"><b>' + __('Rounding rule') + '</b>' +
+						'<span class="isoft-tt-set-sub">' + __('Prices are split into blocks of the block size; the remainder decides where the price lands.') + '</span></div>' +
+					'<div class="isoft-tt-set-base"><span class="isoft-tt-bar-label">' + __('Block size') + '</span>' +
+						'<input type="text" inputmode="decimal" class="tt-set-base"' + dis + ' value="' + num(cfg.base || 100, 2) + '"></div>' +
+					'<div class="tt-rules">' + (cfg.rules || []).map(row_html).join('') + '</div>' +
+					(can_write ? '<button type="button" class="isoft-tt-chip tt-rule-add">+ ' + __('Add threshold') + '</button>' : '') +
+					'<div class="isoft-tt-set-preview"><span class="isoft-tt-bar-label">' + __('Examples') + '</span> <span class="tt-rule-preview"></span></div>' +
+					'<div class="isoft-tt-set-hint">' + __('Above every threshold the price goes up to the next block. Prices on multiples of 50 give whole-number IVA at 14%.') + '</div>' +
+				'</div>' +
+				'<div class="isoft-tt-set-card">' +
+					'<div class="isoft-tt-set-head"><b>' + __('Defaults when the assistant opens') + '</b></div>' +
+					'<div class="isoft-tt-set-grid">' +
+						'<div><span class="isoft-tt-bar-label">' + __('Target kind') + '</span>' +
+							seg('tt-set-kind', [{ value: 'Grand Total', label: __('Grand Total') }, { value: 'Net Total', label: __('Net Total') }], cfg.default_target_kind || 'Grand Total') + '</div>' +
+						'<div><span class="isoft-tt-bar-label">' + __('Free lines mode') + '</span>' +
+							seg('tt-set-mode', [{ value: 'Price List Rate', label: __('Price List Rate') }, { value: 'Rate', label: __('Rate') }], cfg.default_line_mode || 'Price List Rate') + '</div>' +
+						'<label class="isoft-tt-switch"><input type="checkbox" class="tt-set-default-on"' + dis + (cint(cfg.apply_rounding_by_default) ? ' checked' : '') + '>' +
+							'<span class="isoft-tt-switch-track"></span><span class="isoft-tt-switch-label">' + __('Rounding on when the assistant opens') + '</span></label>' +
+					'</div>' +
+				'</div>' +
+			'</div>'
+		);
+		if (!can_write) { d.get_primary_btn().hide(); $w.find('.isoft-tt-seg-btn').prop('disabled', true); }
+
+		function preview() {
+			const next = rules_from_dom($w);
+			const err = validate_rules(next);
+			$w.find('.tt-rule-preview').text(err ? err : SAMPLES.map(function (v) {
+				return num(v, 0) + ' → ' + num(ns.math.round_rule(v, next), 0);
+			}).join('   ·   ')).toggleClass('is-err', !!err);
+		}
+		$w.on('input', '.tt-set-base, .tt-rule-upto, .tt-rule-to', preview);
+		$w.on('click', '.tt-rule-add', function () { $w.find('.tt-rules').append(row_html({ upto: 0, to: 0 })); $w.find('.tt-rule-row:last .tt-rule-upto').focus(); preview(); });
+		$w.on('click', '.tt-rule-del', function () { $(this).closest('.tt-rule-row').remove(); preview(); });
+		$w.on('click', '.isoft-tt-seg-btn', function () {
+			if (!can_write) return;
+			const $seg = $(this).closest('.isoft-tt-seg');
+			$seg.find('.isoft-tt-seg-btn').removeClass('is-on'); $(this).addClass('is-on');
+		});
+		preview();
+		d.show();
 		return d;
 	};
 })(isoft.target_total);

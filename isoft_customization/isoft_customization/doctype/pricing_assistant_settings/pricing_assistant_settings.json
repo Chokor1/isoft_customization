@@ -1,0 +1,106 @@
+{
+ "actions": [],
+ "creation": "2026-10-07 12:00:00.000000",
+ "description": "Rounding rule and defaults for the Pricing Assistant on Quotation, Delivery Note and Sales Invoice.",
+ "doctype": "DocType",
+ "document_type": "Other",
+ "engine": "InnoDB",
+ "field_order": [
+  "rounding_section",
+  "rounding_base",
+  "rounding_help",
+  "rounding_rules",
+  "defaults_section",
+  "default_target_kind",
+  "default_line_mode",
+  "apply_rounding_by_default"
+ ],
+ "fields": [
+  {
+   "fieldname": "rounding_section",
+   "fieldtype": "Section Break",
+   "label": "Rounding Rule"
+  },
+  {
+   "default": "100",
+   "description": "Prices are rounded inside blocks of this size. With 100 the rule looks at the last two digits of the price.",
+   "fieldname": "rounding_base",
+   "fieldtype": "Float",
+   "label": "Block size"
+  },
+  {
+   "fieldname": "rounding_help",
+   "fieldtype": "HTML",
+   "label": "Help",
+   "options": "<p class=\"text-muted small\">One row per threshold, lowest first. The part of the price inside the block (its remainder) is compared with <b>Remainder below</b>: the first row it is below decides the <b>Round to</b> value; above every threshold the price goes up to the next block. Example with block size 100: <i>below 20 &rarr; 0</i>, <i>below 70 &rarr; 50</i> turns 1&nbsp;030 into 1&nbsp;050, 1&nbsp;015 into 1&nbsp;000 and 22&nbsp;390 into 22&nbsp;400. Prices on multiples of 50 give whole-number IVA at 14%.</p>"
+  },
+  {
+   "fieldname": "rounding_rules",
+   "fieldtype": "Table",
+   "label": "Thresholds",
+   "options": "Pricing Assistant Rounding Rule"
+  },
+  {
+   "fieldname": "defaults_section",
+   "fieldtype": "Section Break",
+   "label": "Defaults when the assistant opens"
+  },
+  {
+   "default": "Grand Total",
+   "fieldname": "default_target_kind",
+   "fieldtype": "Select",
+   "label": "Target kind",
+   "options": "Grand Total\nNet Total"
+  },
+  {
+   "default": "Price List Rate",
+   "description": "Price List Rate rewrites the price list rate and keeps any existing discount. Rate keeps the price list rate and changes the discount (a margin when the price goes up, which the AGT rejects on invoices).",
+   "fieldname": "default_line_mode",
+   "fieldtype": "Select",
+   "label": "Free lines mode",
+   "options": "Price List Rate\nRate"
+  },
+  {
+   "default": "0",
+   "fieldname": "apply_rounding_by_default",
+   "fieldtype": "Check",
+   "label": "Rounding on when the assistant opens"
+  }
+ ],
+ "icon": "fa fa-cog",
+ "index_web_pages_for_search": 0,
+ "issingle": 1,
+ "links": [],
+ "modified": "2026-10-07 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "ISOFT Customization",
+ "name": "Pricing Assistant Settings",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "Sales Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "read": 1,
+   "role": "Sales User"
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "track_changes": 1
+}

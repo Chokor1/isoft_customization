@@ -13,26 +13,51 @@
 	}
 
 	const math = {
-		// Rounds value to a multiple of step. method: 'Nearest' | 'Up' | 'Down'
-		// ('Up' and 'Down' are away from / towards zero, so returns keep their sign).
-		// step 0 (or none) leaves the value untouched.
-		round_step: function (value, step, method) {
-			step = Number(step) || 0;
-			if (!step) return value;
-			const sign = value < 0 ? -1 : 1;
-			const q = Math.abs(value) / step + 1e-9;
-			let n;
-			if (method === 'Up') n = Math.ceil(q - 2e-9);
-			else if (method === 'Down') n = Math.floor(q);
-			else n = Math.floor(q + 0.5);
-			return sign * round(n * step, 6);
+		// Rule rounding. rule = {base, rules: [{upto, to}]}: the price is split into
+		// whole blocks of `base` plus a remainder; the remainder below the first
+		// matching threshold `upto` becomes `to`, above every threshold it goes up to
+		// the next block. Example base 100, [{20->0}, {70->50}]: 1030 -> 1050,
+		// 22390 -> 22400, 1015 -> 1000. Sign is kept (returns). No base = off.
+		round_rule: function (value, rule) {
+			const base = rule && Number(rule.base) || 0;
+			if (!base) return value;
+			const rules = (rule.rules || []).map(function (r) { return { upto: Number(r.upto) || 0, to: Number(r.to) || 0 }; })
+				.sort(function (a, b) { return a.upto - b.upto; });
+			const sign = value < 0 ? -1 : 1, v = Math.abs(value);
+			const q = Math.floor(v / base + 1e-9);
+			let r = v - q * base;
+			if (r < 1e-9) r = 0;
+			let to = base;
+			for (let i = 0; i < rules.length; i++) { if (r < rules[i].upto - 1e-9) { to = rules[i].to; break; } }
+			return sign * round(q * base + to, 6);
+		},
+
+		// Deltas from value to the `count` nearest rule landing points below and
+		// above it (never below zero), ascending. Used by the residue search when
+		// rounding is on, so every move lands on a valid rounded price.
+		landing_deltas: function (value, rule, count) {
+			const base = rule && Number(rule.base) || 0;
+			if (!base) return [];
+			const tos = {};
+			(rule.rules || []).forEach(function (r) { tos[Number(r.to) || 0] = 1; });
+			tos[base] = 1;
+			const q0 = Math.floor(Math.abs(value) / base);
+			const points = {};
+			for (let q = Math.max(0, q0 - count - 1); q <= q0 + count + 1; q++) {
+				Object.keys(tos).forEach(function (t) { points[round(q * base + Number(t), 6)] = 1; });
+			}
+			const sorted = Object.keys(points).map(Number).filter(function (p) { return p >= 0 && Math.abs(p - value) > 1e-9; })
+				.sort(function (a, b) { return a - b; });
+			const below = sorted.filter(function (p) { return p < value; }).slice(-count);
+			const above = sorted.filter(function (p) { return p > value; }).slice(0, count);
+			return below.concat(above).map(function (p) { return round(p - value, 6); });
 		},
 
 		// New rate for a free line at factor k: rounded to the rate precision, then
-		// to the price step when one is set, never negative.
-		scaled_rate: function (original_rate, k, precision, step, method) {
+		// by the rounding rule when one is given, never negative.
+		scaled_rate: function (original_rate, k, precision, rule) {
 			let r = round(original_rate * k, precision);
-			if (step) r = math.round_step(r, step, method);
+			if (rule && Number(rule.base)) r = math.round_rule(r, rule);
 			return r < 0 ? 0 : r;
 		},
 

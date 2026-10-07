@@ -570,3 +570,26 @@ Off by {0}: prices rounded to {1},Diferença de {0}: preços arredondados a {1}
 Closest total with every free line on the step,Total mais próximo com todas as linhas livres no passo
 Increase or decrease all free lines by this percentage,Aumenta ou reduz todas as linhas livres nesta percentagem
 Round every free line to a multiple of this step. Multiples of 50 give whole-number tax at 14%.,Arredonda cada linha livre a um múltiplo deste passo. Múltiplos de 50 dão IVA inteiro a 14%.
+Rounding,Arredondamento
+Pricing Assistant Settings,Definições do Assistente de Preços
+Rounding rule,Regra de arredondamento
+Block size,Tamanho do bloco
+Thresholds,Limiares
+Remainder below,Resto abaixo de
+round to,arredonda para
+Add threshold,Adicionar limiar
+Examples,Exemplos
+Defaults when the assistant opens,Predefinições ao abrir o assistente
+Free lines mode,Modo das linhas livres
+Rounding on when the assistant opens,Arredondamento ligado ao abrir o assistente
+rounded,arredondados
+Off by {0}: prices rounded,Diferença de {0}: preços arredondados
+Closest total with every free line rounded,Total mais próximo com todas as linhas livres arredondadas
+Only System Manager or Sales Manager can change these settings,Só o System Manager ou o Sales Manager podem alterar estas definições
+Block size must be greater than zero,O tamanho do bloco tem de ser maior que zero
+Thresholds must be between 0 and the block size,Os limiares têm de estar entre 0 e o tamanho do bloco
+Round every free line with the rule from the settings,Arredonda todas as linhas livres com a regra das definições
+Prices are split into blocks of the block size; the remainder decides where the price lands.,Os preços são divididos em blocos do tamanho indicado; o resto decide onde o preço cai.
+Above every threshold the price goes up to the next block. Prices on multiples of 50 give whole-number IVA at 14%.,Acima de todos os limiares o preço sobe para o bloco seguinte. Preços em múltiplos de 50 dão IVA inteiro a 14%.
+Remove,Remover
+Save,Guardar

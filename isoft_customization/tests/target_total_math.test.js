@@ -37,20 +37,30 @@ test('set_default_mode leaves Fixed rows alone', () => {
 	assert.deepEqual(m.set_default_mode(rows, 'Price List Rate').map(r => r.mode), ['Fixed', 'Price List Rate']);
 });
 
-test('round_step rounds to the step with the chosen method', () => {
-	assert.equal(m.round_step(1030, 50, 'Nearest'), 1050);
-	assert.equal(m.round_step(22390, 50, 'Nearest'), 22400);
-	assert.equal(m.round_step(22390, 100, 'Nearest'), 22400);
-	assert.equal(m.round_step(1020, 50, 'Nearest'), 1000);
-	assert.equal(m.round_step(1001, 50, 'Up'), 1050);
-	assert.equal(m.round_step(1049, 50, 'Down'), 1000);
-	assert.equal(m.round_step(1030.17, 0, 'Nearest'), 1030.17); // step 0 = off
-	assert.equal(m.round_step(-1030, 50, 'Nearest'), -1050);     // returns: sign kept
-	assert.equal(m.round_step(-1001, 50, 'Up'), -1050);          // Up means away from zero
+// Rule rounding: base 100, remainder below 20 -> 0, below 70 -> 50, otherwise -> 100.
+const RULES = { base: 100, rules: [{ upto: 20, to: 0 }, { upto: 70, to: 50 }] };
+
+test('round_rule follows the threshold table', () => {
+	assert.equal(m.round_rule(1030, RULES), 1050);
+	assert.equal(m.round_rule(22390, RULES), 22400);
+	assert.equal(m.round_rule(1015, RULES), 1000);
+	assert.equal(m.round_rule(1070, RULES), 1100);
+	assert.equal(m.round_rule(1069.99, RULES), 1050);
+	assert.equal(m.round_rule(1000, RULES), 1000);
+	assert.equal(m.round_rule(-1030, RULES), -1050);                 // returns keep their sign
+	assert.equal(m.round_rule(1030, { base: 0, rules: [] }), 1030);  // no base = off
+	assert.equal(m.round_rule(1030, { base: 100, rules: [] }), 1100); // no rules = always up to the base
+	// unsorted rules are sorted by threshold
+	assert.equal(m.round_rule(1030, { base: 100, rules: [{ upto: 70, to: 50 }, { upto: 20, to: 0 }] }), 1050);
 });
 
-test('scaled_rate applies the step after scaling', () => {
-	assert.equal(m.scaled_rate(1000, 1.03, 2, 50, 'Nearest'), 1050);
-	assert.equal(m.scaled_rate(1000, 1.03, 2, 0, 'Nearest'), 1030);
-	assert.equal(m.scaled_rate(10, 0.1, 2, 50, 'Down'), 0);
+test('landing_deltas gives the nearest rule landing points either side', () => {
+	// from 1050: below 1000, 950; above 1100, 1150
+	assert.deepEqual(m.landing_deltas(1050, RULES, 2), [-100, -50, 50, 100]);
+	assert.deepEqual(m.landing_deltas(0, RULES, 2), [50, 100]);     // never below zero
+});
+
+test('scaled_rate applies the rule after scaling', () => {
+	assert.equal(m.scaled_rate(1000, 1.03, 2, RULES), 1050);
+	assert.equal(m.scaled_rate(1000, 1.03, 2, null), 1030);
 });
