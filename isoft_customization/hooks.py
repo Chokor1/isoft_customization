@@ -30,6 +30,11 @@ app_include_js = [
 	# Keeps Delivery Note / Purchase Receipt prices on the invoices made from them, per
 	# Selling / Buying Settings. See linked_document_prices.py.
 	"/assets/isoft_customization/js/linked_document_prices.js",
+	# Target Total Assistant: fits the free item lines of a draft Quotation /
+	# Delivery Note / Sales Invoice to a typed Grand Total or Net Total. The
+	# math file is Frappe-free so Node can unit-test it; it must load first.
+	"/assets/isoft_customization/js/target_total_math.js",
+	"/assets/isoft_customization/js/target_total_assistant.js",
 ]
 
 app_include_css = [
