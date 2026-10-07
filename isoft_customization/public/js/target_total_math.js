@@ -13,9 +13,26 @@
 	}
 
 	const math = {
-		// New rate for a free line at factor k, rounded to the rate precision, never negative.
-		scaled_rate: function (original_rate, k, precision) {
-			const r = round(original_rate * k, precision);
+		// Rounds value to a multiple of step. method: 'Nearest' | 'Up' | 'Down'
+		// ('Up' and 'Down' are away from / towards zero, so returns keep their sign).
+		// step 0 (or none) leaves the value untouched.
+		round_step: function (value, step, method) {
+			step = Number(step) || 0;
+			if (!step) return value;
+			const sign = value < 0 ? -1 : 1;
+			const q = Math.abs(value) / step + 1e-9;
+			let n;
+			if (method === 'Up') n = Math.ceil(q - 2e-9);
+			else if (method === 'Down') n = Math.floor(q);
+			else n = Math.floor(q + 0.5);
+			return sign * round(n * step, 6);
+		},
+
+		// New rate for a free line at factor k: rounded to the rate precision, then
+		// to the price step when one is set, never negative.
+		scaled_rate: function (original_rate, k, precision, step, method) {
+			let r = round(original_rate * k, precision);
+			if (step) r = math.round_step(r, step, method);
 			return r < 0 ? 0 : r;
 		},
 

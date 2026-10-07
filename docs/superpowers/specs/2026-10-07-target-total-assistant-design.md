@@ -91,6 +91,21 @@ If there are no free lines the panel shows "All lines are fixed".
 If every free line has amount 0 the proportional split cannot move them; the
 panel says "Free lines have no amount; type a rate on at least one line".
 
+## Adjust by percent and price step rounding (added 2026-10-07, user request)
+
+- Bar switch "Target total | Adjust by %". In percent mode the target input is
+  replaced by a percent input with -/+ buttons; every free line becomes
+  `original_rate * (1 + p/100)` (never below 0); no target is solved. Status:
+  "Prices +5,00%".
+- "Round to" step (Off, 1, 5, 10, 50, 100, 500, 1000) with Nearest / Up / Down
+  (Up/Down are away from / towards zero so returns keep their sign). Applied to
+  every free line in both modes after scaling; Fixed and typed rows are never
+  rounded. Rationale: with 14% IVA a rate on a multiple of 50 gives a
+  whole-number tax (50 x 14% = 7), e.g. 1 030 -> 1 050, 22 390 -> 22 400.
+- In Target mode with a step the residue search moves whole steps, the result
+  is the closest reachable total; the status is an amber "Off by X: prices
+  rounded to S" and Apply stays enabled. Reset puts mode Target, 0 %, step Off.
+
 ## What each mode writes on a line
 
 Price List Rate (default)

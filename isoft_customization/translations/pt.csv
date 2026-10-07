@@ -557,3 +557,16 @@ Taxes,Impostos
 Current,Atual
 Difference,Diferença
 Pricing Assistant,Assistente de Preços
+Target total,Total alvo
+Adjust by %,Ajustar por %
+Round to,Arredondar a
+Off,Desligado
+Nearest,Mais próximo
+Up,Para cima
+Down,Para baixo
+Prices {0},Preços {0}
+rounded to {0},arredondados a {0}
+Off by {0}: prices rounded to {1},Diferença de {0}: preços arredondados a {1}
+Closest total with every free line on the step,Total mais próximo com todas as linhas livres no passo
+Increase or decrease all free lines by this percentage,Aumenta ou reduz todas as linhas livres nesta percentagem
+Round every free line to a multiple of this step. Multiples of 50 give whole-number tax at 14%.,Arredonda cada linha livre a um múltiplo deste passo. Múltiplos de 50 dão IVA inteiro a 14%.

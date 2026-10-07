@@ -36,3 +36,21 @@ test('set_default_mode leaves Fixed rows alone', () => {
 	const rows = [{mode: 'Fixed'}, {mode: 'Rate'}];
 	assert.deepEqual(m.set_default_mode(rows, 'Price List Rate').map(r => r.mode), ['Fixed', 'Price List Rate']);
 });
+
+test('round_step rounds to the step with the chosen method', () => {
+	assert.equal(m.round_step(1030, 50, 'Nearest'), 1050);
+	assert.equal(m.round_step(22390, 50, 'Nearest'), 22400);
+	assert.equal(m.round_step(22390, 100, 'Nearest'), 22400);
+	assert.equal(m.round_step(1020, 50, 'Nearest'), 1000);
+	assert.equal(m.round_step(1001, 50, 'Up'), 1050);
+	assert.equal(m.round_step(1049, 50, 'Down'), 1000);
+	assert.equal(m.round_step(1030.17, 0, 'Nearest'), 1030.17); // step 0 = off
+	assert.equal(m.round_step(-1030, 50, 'Nearest'), -1050);     // returns: sign kept
+	assert.equal(m.round_step(-1001, 50, 'Up'), -1050);          // Up means away from zero
+});
+
+test('scaled_rate applies the step after scaling', () => {
+	assert.equal(m.scaled_rate(1000, 1.03, 2, 50, 'Nearest'), 1050);
+	assert.equal(m.scaled_rate(1000, 1.03, 2, 0, 'Nearest'), 1030);
+	assert.equal(m.scaled_rate(10, 0.1, 2, 50, 'Down'), 0);
+});

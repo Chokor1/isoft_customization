@@ -421,7 +421,72 @@ def task5(page, log, args):
     log.check(st["rates"] == orig["rates"] and st["gt"] == orig["gt"], "no refit after Cancel within the debounce window", f"{st['rates']} vs {orig['rates']}")
 
 
-TASKS = {"2": task2, "3": task3, "4": task4, "5": task5}
+def task6(page, log, args):
+    """Adjust-by-percent mode and price step rounding. Nothing is saved."""
+    open_form(page, log, "Quotation", args.quotation)
+    orig = dialog_state(page)
+    page.click(".page-actions button:has-text('Pricing Assistant')")
+    page.wait_for_selector(".modal:visible .isoft-tt-table", timeout=10000)
+    page.wait_for_timeout(300)
+    api = "isoft.target_total._dialog.tt"
+
+    # Percent mode: +10% on every free line, target input hidden, percent input shown.
+    page.evaluate(f"() => {{ {api}.set_mode('Percent'); {api}.set_percent(10); }}")
+    page.wait_for_timeout(400)
+    st = dialog_state(page)
+    vis = page.evaluate("() => ({pct: $('.modal.show .isoft-tt-percent').is(':visible'), tgt: $('.modal.show .isoft-tt-target').is(':visible')})")
+    log("percent", json.dumps(st), json.dumps(vis))
+    exp = [round(r * 1.1, 2) for r in orig["rates"]]
+    log.check(st["rates"] == exp, "+10% scales every free line", f"{st['rates']} vs {exp}")
+    log.check(vis["pct"] and not vis["tgt"], "percent input shown, target hidden", json.dumps(vis))
+    log.check(st["ok"] and "+10" in (st["status"] or ""), "status shows the applied percent", st["status"])
+
+    # Rounding: step 50 nearest on top of +10%.
+    page.evaluate(f"() => {{ {api}.set_round(50, 'Nearest'); }}")
+    page.wait_for_timeout(400)
+    st = dialog_state(page)
+    exp = [round(round(r * 1.1, 2) / 50) * 50 for r in orig["rates"]]
+    log.check(st["rates"] == exp and all(r % 50 == 0 for r in st["rates"]), "step 50 nearest after +10%", f"{st['rates']} vs {exp}")
+
+    # 0% with step 50 Up rounds the original prices up: 56763.58 -> 56800, 41355.06 -> 41400.
+    page.evaluate(f"() => {{ {api}.set_percent(0); {api}.set_round(50, 'Up'); }}")
+    page.wait_for_timeout(400)
+    st = dialog_state(page)
+    exp = [__import__('math').ceil(r / 50) * 50 for r in orig["rates"]]
+    log.check(st["rates"] == exp, "0% with step 50 Up rounds up", f"{st['rates']} vs {exp}")
+
+    # A fixed row is never rounded.
+    page.select_option(".modal.show .isoft-tt-table tr:nth-child(1) select.tt-mode", "Fixed")
+    page.wait_for_timeout(400)
+    st = dialog_state(page)
+    log.check(st["rates"][0] == orig["rates"][0] and st["rates"][1] == exp[1], "fixed row keeps its exact rate under rounding", f"{st['rates']}")
+    page.select_option(".modal.show .isoft-tt-table tr:nth-child(1) select.tt-mode", "Price List Rate")
+    page.wait_for_timeout(300)
+
+    # Target mode with step 100: all free rates are multiples of 100 and the panel lands as close as the step allows.
+    page.evaluate(f"() => {{ {api}.set_mode('Target'); {api}.set_round(100, 'Nearest'); {api}.set_target(500000); }}")
+    page.wait_for_timeout(500)
+    st = dialog_state(page)
+    log("target+step", json.dumps(st))
+    log.check(all(r % 100 == 0 for r in st["rates"]), "target mode keeps rates on the 100 step", f"{st['rates']}")
+    log.check(abs(st["gt"] - 500000) <= 100 * 3 * 1.14 + 0.01 and st["gt"] != 500000 or abs(st["gt"] - 500000) <= 0.005,
+              "target mode with a step lands within one step of the target", f"{st['gt']}")
+    apply_enabled = page.evaluate("() => !isoft.target_total._dialog.get_primary_btn().prop('disabled')")
+    log.check(apply_enabled and (st["ok"] or page.evaluate("() => !!document.querySelector('.modal.show .isoft-tt-status.tt-warn')")), "Apply stays enabled with a step-rounded fit", st["status"])
+
+    # Round Off restores the exact fit.
+    page.evaluate(f"() => {{ {api}.set_round(0, 'Nearest'); }}")
+    page.wait_for_timeout(500)
+    st = dialog_state(page)
+    log.check(abs(st["gt"] - 500000) <= 0.005, "step Off: exact target again", f"{st['gt']}")
+
+    page.click(".modal:visible button:has-text('Cancel')")
+    page.wait_for_timeout(300)
+    st = dialog_state(page)
+    log.check(st["rates"] == orig["rates"] and st["gt"] == orig["gt"], "Cancel restores original values after percent/rounding")
+
+
+TASKS = {"2": task2, "3": task3, "4": task4, "5": task5, "6": task6}
 
 
 def main():

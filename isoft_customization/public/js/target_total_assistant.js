@@ -152,11 +152,21 @@ frappe.provide('isoft.target_total');
 			return finish(false, { reason: __('Free lines have no amount; type a rate on at least one line') });
 		}
 
+		const step = flt(state.step) || 0, method = state.method || 'Nearest';
+		function rate_at(r, k) {
+			return math.scaled_rate(r.original_rate, k, precision('rate', item_of(frm, r)), step, method);
+		}
+
+		// Adjust-by-percent mode: every free line moves by the same percentage (and
+		// is rounded to the step when one is set). No target to hit.
+		if (state.mode === 'Percent') {
+			const k = Math.max(0, 1 + flt(state.percent) / 100);
+			free.forEach(function (r) { ns.write_rate(item_of(frm, r), rate_at(r, k), r.mode); });
+			return finish(true, { percent: true });
+		}
+
 		function S(k) {
-			free.forEach(function (r) {
-				const it = item_of(frm, r);
-				ns.write_rate(it, math.scaled_rate(r.original_rate, k, precision('rate', it)), r.mode);
-			});
+			free.forEach(function (r) { ns.write_rate(item_of(frm, r), rate_at(r, k), r.mode); });
 			ns.recalc_silent(frm);
 			return ns.current(frm, state.kind);
 		}
@@ -194,7 +204,7 @@ frappe.provide('isoft.target_total');
 		const moves = [];
 		candidates.forEach(function (r) {
 			const it = item_of(frm, r);
-			const unit = 1 / Math.pow(10, precision('rate', it));
+			const unit = step || 1 / Math.pow(10, precision('rate', it));  // whole price steps when rounding
 			for (let n = -RESIDUE_STEPS; n <= RESIDUE_STEPS; n++) if (n) moves.push({ row: r, delta: n * unit });
 		});
 		function apply_moves(list, base_rates) {
@@ -227,6 +237,8 @@ frappe.provide('isoft.target_total');
 		}
 
 		const diff = flt(target - ns.current(frm, state.kind), 2);
+		// With a price step the user accepts landing one step away: still ok, flagged.
+		if (step && Math.abs(diff) > WARN) return finish(true, { stepped: true });
 		return finish(Math.abs(diff) <= WARN);
 	};
 
@@ -275,6 +287,10 @@ frappe.provide('isoft.target_total');
 		const state = {
 			kind: 'Grand Total',
 			target: ns.current(frm, 'Grand Total'),
+			mode: 'Target',          // 'Target' | 'Percent'
+			percent: 0,
+			step: 0,                 // price step: 0 = off
+			method: 'Nearest',       // 'Nearest' | 'Up' | 'Down'
 			default_mode: 'Price List Rate',
 			snap: ns.snapshot(frm),
 			rows: (frm.doc.items || []).map(function (it, i) {
@@ -295,6 +311,7 @@ frappe.provide('isoft.target_total');
 			secondary_action_label: __('Reset'),
 			secondary_action: function () {
 				state.rows.forEach(function (r) { r.typed_rate = null; r.typed_mode = null; r.mode = r.locked ? 'Fixed' : state.default_mode; });
+				state.mode = 'Target'; state.percent = 0; state.step = 0; state.method = 'Nearest';
 				ns.restore(frm, state.snap); ns.recalc_silent(frm);
 				state.target = ns.current(frm, state.kind);
 				build(); refit();
@@ -342,9 +359,27 @@ frappe.provide('isoft.target_total');
 			$body.html(
 				'<div class="isoft-tt">' +
 					'<div class="isoft-tt-bar">' +
-						seg('tt-kind', [{ value: 'Grand Total', label: __('Grand Total') }, { value: 'Net Total', label: __('Net Total') }], state.kind) +
-						'<div class="isoft-tt-target-wrap" title="' + __('Target') + '"><span class="isoft-tt-ccy">' + esc(frm.doc.currency) + '</span>' +
-							'<input type="text" class="isoft-tt-target" inputmode="decimal" value="' + num(state.target) + '"></div>' +
+						seg('tt-mode-switch', [{ value: 'Target', label: __('Target total') }, { value: 'Percent', label: __('Adjust by %') }], state.mode) +
+						'<div class="isoft-tt-only-target">' +
+							seg('tt-kind', [{ value: 'Grand Total', label: __('Grand Total') }, { value: 'Net Total', label: __('Net Total') }], state.kind) +
+							'<div class="isoft-tt-target-wrap" title="' + __('Target') + '"><span class="isoft-tt-ccy">' + esc(frm.doc.currency) + '</span>' +
+								'<input type="text" class="isoft-tt-target" inputmode="decimal" value="' + num(state.target) + '"></div>' +
+						'</div>' +
+						'<div class="isoft-tt-only-percent">' +
+							'<div class="isoft-tt-target-wrap isoft-tt-percent-wrap" title="' + __('Increase or decrease all free lines by this percentage') + '">' +
+								'<button type="button" class="isoft-tt-stepbtn tt-pct-minus" title="-1%">&minus;</button>' +
+								'<input type="text" class="isoft-tt-percent" inputmode="decimal" value="' + num(state.percent) + '">' +
+								'<span class="isoft-tt-ccy">%</span>' +
+								'<button type="button" class="isoft-tt-stepbtn tt-pct-plus" title="+1%">+</button>' +
+							'</div>' +
+						'</div>' +
+						'<div class="isoft-tt-bar-mode" title="' + __('Round every free line to a multiple of this step. Multiples of 50 give whole-number tax at 14%.') + '">' +
+							'<span class="isoft-tt-bar-label">' + __('Round to') + '</span>' +
+							'<select class="tt-round-step">' + [0, 1, 5, 10, 50, 100, 500, 1000].map(function (v) {
+								return '<option value="' + v + '"' + (v === flt(state.step) ? ' selected' : '') + '>' + (v ? num(v, 0) : __('Off')) + '</option>';
+							}).join('') + '</select>' +
+							seg('tt-round-method', [{ value: 'Nearest', label: __('Nearest') }, { value: 'Up', label: __('Up') }, { value: 'Down', label: __('Down') }], state.method) +
+						'</div>' +
 						'<div class="isoft-tt-bar-mode"><span class="isoft-tt-bar-label">' + __('Free lines') + '</span>' +
 							seg('tt-default-mode', [{ value: 'Price List Rate', label: __('Price List Rate') }, { value: 'Rate', label: __('Rate') }], state.default_mode) + '</div>' +
 						'<span class="isoft-tt-spacer"></span>' +
@@ -408,19 +443,31 @@ frappe.provide('isoft.target_total');
 			});
 			$body.find('.tt-free-count').text(__('{0} free of {1}', [free, state.rows.length]));
 
+			const percent_mode = state.mode === 'Percent';
+			$body.find('.isoft-tt-only-target').toggle(!percent_mode);
+			$body.find('.isoft-tt-only-percent').toggle(percent_mode);
+			$body.find('.tt-round-method').toggleClass('is-off', !flt(state.step));
+
 			const cur = ns.current(frm, state.kind);
 			const was = state.kind === 'Grand Total' ? open_totals.grand : open_totals.net;
 			$body.find('.tt-kpi-current').text(money(cur, frm)).attr('title', __('{0} when opened', [money(was, frm)]));
 			const diff = state.target - cur;
-			$body.find('.tt-kpi-diff').text(money(diff, frm)).toggleClass('is-zero', Math.abs(diff) <= TOL);
-			$body.find('.tt-kpi-diff-sub').text(__('{0} vs when opened', [signed(pct(state.target, was), 2) + '%']));
+			$body.find('.tt-kpi-diff').text(money(diff, frm)).toggleClass('is-zero', Math.abs(diff) <= TOL).parent().toggle(!percent_mode);
+			$body.find('.tt-kpi-diff-sub').text(__('{0} vs when opened', [signed(pct(percent_mode ? cur : state.target, was), 2) + '%']));
 
 			const $st = $body.find('.isoft-tt-status').removeClass('tt-ok tt-warn tt-bad');
 			const $sub = $body.find('.tt-kpi-status-sub').text('');
+			const step_note = flt(state.step) ? ' \u00b7 ' + __('rounded to {0}', [num(state.step, 0)]) : '';
 			if (result.reason) {
 				$st.addClass('tt-bad').text(result.reason);
+			} else if (result.percent) {
+				$st.addClass('tt-ok').text(__('Prices {0}', [signed(flt(state.percent), 2) + '%']) + step_note);
+				$sub.text(__('Apply to keep these prices'));
+			} else if (result.stepped) {
+				$st.addClass('tt-warn').text(__('Off by {0}: prices rounded to {1}', [money(result.diff, frm), num(state.step, 0)]));
+				$sub.text(__('Closest total with every free line on the step'));
 			} else if (Math.abs(result.diff) <= TOL) {
-				$st.addClass('tt-ok').text(__('On target'));
+				$st.addClass('tt-ok').text(__('On target') + step_note);
 				$sub.text(__('Apply to keep these prices'));
 			} else if (Math.abs(result.diff) <= WARN) {
 				$st.addClass('tt-warn').text(__('Off by {0} (rounding)', [money(result.diff, frm)]));
@@ -471,6 +518,14 @@ frappe.provide('isoft.target_total');
 		d.tt = {
 			set_target: function (v) { state.target = flt(v); $body.find('.isoft-tt-target').val(num(state.target)); refit(); },
 			set_kind: function (k) { state.kind = k; set_seg($body.find('.tt-kind'), k); d.tt.set_target(ns.current(frm, k)); },
+			set_mode: function (m) { state.mode = m; set_seg($body.find('.tt-mode-switch'), m); refit(); },
+			set_percent: function (p) { state.percent = flt(p); $body.find('.isoft-tt-percent').val(num(state.percent)); refit(); },
+			set_round: function (step, method) {
+				state.step = flt(step) || 0; state.method = method || state.method;
+				$body.find('.tt-round-step').val(String(flt(state.step)));
+				set_seg($body.find('.tt-round-method'), state.method);
+				refit();
+			},
 			set_default_mode: function (m) {
 				state.default_mode = m; set_seg($body.find('.tt-default-mode'), m);
 				state.rows = ns.math.set_default_mode(state.rows, m);
@@ -480,6 +535,14 @@ frappe.provide('isoft.target_total');
 			state: state
 		};
 
+		$body.on('click', '.tt-mode-switch .isoft-tt-seg-btn', function () { d.tt.set_mode($(this).data('value')); });
+		$body.on('change', '.isoft-tt-percent', function () { d.tt.set_percent(parse($(this).val())); });
+		$body.on('keydown', '.isoft-tt-percent', function (e) { if (e.key === 'Enter') { e.preventDefault(); $(this).blur(); } });
+		$body.on('focus', '.isoft-tt-percent', function () { $(this).select(); });
+		$body.on('click', '.tt-pct-minus', function () { d.tt.set_percent(flt(state.percent) - 1); });
+		$body.on('click', '.tt-pct-plus', function () { d.tt.set_percent(flt(state.percent) + 1); });
+		$body.on('change', '.tt-round-step', function () { d.tt.set_round($(this).val(), state.method); });
+		$body.on('click', '.tt-round-method .isoft-tt-seg-btn', function () { d.tt.set_round(state.step, $(this).data('value')); });
 		$body.on('click', '.tt-kind .isoft-tt-seg-btn', function () { d.tt.set_kind($(this).data('value')); });
 		$body.on('click', '.tt-default-mode .isoft-tt-seg-btn', function () { d.tt.set_default_mode($(this).data('value')); });
 		$body.on('change', '.isoft-tt-target', function () { d.tt.set_target(parse($(this).val())); });
