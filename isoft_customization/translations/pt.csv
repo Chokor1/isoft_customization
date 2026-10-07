@@ -521,3 +521,22 @@ Keep Purchase Receipt Prices on Purchase Invoice,Manter Preços da Guia de Recep
 Do Not Apply Pricing Rules on Rows from a Purchase Receipt,Não Aplicar Regras de Preço nas Linhas de uma Guia de Recepção
 "Purchase Invoice rows made from a Purchase Receipt keep the price they arrive with; pricing rules are not applied to them. The price can still be changed on the invoice. Not needed when the option above is on.","As linhas da Factura de Compra criadas a partir de uma Guia de Recepção mantêm o preço com que chegam; as regras de preço não lhes são aplicadas. O preço pode ainda ser alterado na factura. Desnecessário quando a opção acima está activa."
 Purchase Receipt prices kept on row(s) {0}.,Preços da Guia de Recepção mantidos na(s) linha(s) {0}.
+Target Total,Total Alvo
+Target Total Assistant,Assistente de Total Alvo
+Target kind,Tipo de alvo
+Target,Alvo
+Default mode for free lines,Modo padrão das linhas livres
+Price List Rate,Preço de Tabela
+Fixed,Fixo
+Mode,Modo
+Current rate,Preço atual
+Current amount,Valor atual
+New rate,Novo preço
+New amount,Novo valor
+On target,No alvo
+Off by {0} (rounding),Diferença de {0} (arredondamento)
+Could not reach the target exactly: off by {0},Não foi possível atingir o alvo exatamente: diferença de {0}
+All lines are fixed,Todas as linhas estão fixas
+Free lines have no amount; type a rate on at least one line,As linhas livres não têm valor; indique um preço em pelo menos uma linha
+Target too low: lowest reachable total is {0},Alvo demasiado baixo: o total mínimo alcançável é {0}
+Above price list rate: creates a margin (rejected by AGT on invoices). Use Price List Rate.,Acima do preço de tabela: cria uma margem (rejeitada pela AGT nas faturas). Use Preço de Tabela.

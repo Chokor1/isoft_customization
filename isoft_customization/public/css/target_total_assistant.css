@@ -1,0 +1,17 @@
+/* Target Total Assistant dialog (public/js/target_total_assistant.js) */
+.isoft-tt-wrap { overflow-x: auto; }
+.isoft-tt-table { width: 100%; margin-bottom: 8px; font-size: var(--text-sm, 12px); }
+.isoft-tt-table th { white-space: nowrap; }
+.isoft-tt-table td { vertical-align: middle; }
+.isoft-tt-table .tt-item { min-width: 180px; }
+.isoft-tt-table .tt-mode { min-width: 120px; }
+.isoft-tt-table .tt-rate { min-width: 110px; }
+.isoft-tt-table tr.tt-fixed td { background: var(--gray-50, #f8f9fa); }
+.isoft-tt-table tr.tt-margin td { background: var(--orange-50, #fff4e5); }
+.isoft-tt-footer { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; }
+.isoft-tt-totals span { margin-right: 16px; }
+.isoft-tt-status { font-weight: 600; }
+.isoft-tt-status.tt-ok { color: var(--green-600, #2e7d32); }
+.isoft-tt-status.tt-warn { color: var(--orange-600, #e65100); }
+.isoft-tt-status.tt-bad { color: var(--red-600, #c62828); }
+.isoft-tt-status .tt-margin-note { font-weight: 400; color: var(--orange-600, #e65100); }

@@ -39,6 +39,7 @@ app_include_js = [
 
 app_include_css = [
 	"/assets/isoft_customization/css/notification_attention.css",
+	"/assets/isoft_customization/css/target_total_assistant.css",
 ]
 
 # ISOFT favicon instead of Frappe's / ERPNext's when Website Settings has none.
