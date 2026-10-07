@@ -1,4 +1,4 @@
-// Target Total Assistant button on the Sales Invoice form.
+// Pricing Assistant button on the Sales Invoice form.
 //
 // Opens the panel from public/js/target_total_assistant.js, which fits the free
 // item lines so the Grand Total or Net Total lands on a typed target. Drafts

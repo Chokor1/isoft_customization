@@ -20,7 +20,8 @@
 .page-actions .isoft-tt-btn .isoft-tt-icon { width: 15px; height: 15px; }
 
 /* ---- modal shell */
-.isoft-tt-modal .modal-dialog { max-width: min(1360px, 96vw); }
+.isoft-tt-modal .modal-dialog { max-width: min(1360px, 96vw); margin: 20px auto; }
+.isoft-tt-modal.modal { overflow: hidden; }
 .isoft-tt-modal .modal-content { border-radius: 14px; border: 1px solid var(--tt-line); background: var(--tt-bg); overflow: hidden; }
 .isoft-tt-modal .modal-header { background: var(--tt-surface); border-bottom: 1px solid var(--tt-line); padding: 14px 20px; }
 .isoft-tt-modal .modal-header .modal-title { font-weight: 700; font-size: 16px; color: var(--tt-ink); }
@@ -36,36 +37,26 @@
 .isoft-tt-modal .modal-body .form-layout, .isoft-tt-modal .modal-body .form-page { padding: 0; }
 .isoft-tt { color: var(--tt-ink); font-size: 13px; }
 
-/* ---- intro */
-.isoft-tt-intro { display: flex; align-items: center; gap: 10px; color: var(--tt-ink-3); margin-bottom: 14px; font-size: 12.5px; }
-.isoft-tt-intro .isoft-tt-icon { flex: none; color: var(--tt-accent); width: 18px; height: 18px; }
-
-/* ---- control strip */
-.isoft-tt-controls { display: grid; grid-template-columns: 1fr 1.3fr 1fr; gap: 12px; margin-bottom: 12px; }
-.isoft-tt-ctl { background: var(--tt-surface); border: 1px solid var(--tt-line); border-radius: 10px; padding: 10px 12px; }
-.isoft-tt-ctl label { display: block; font-size: 11px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--tt-ink-3); margin: 0 0 8px; }
-.isoft-tt-seg { display: inline-flex; background: var(--tt-bg); border: 1px solid var(--tt-line); border-radius: 8px; padding: 3px; gap: 2px; }
-.isoft-tt-seg-btn { border: 0; background: transparent; color: var(--tt-ink-2); font-weight: 600; font-size: 12.5px; padding: 5px 12px; border-radius: 6px; cursor: pointer; transition: all .12s ease; }
+/* ---- compact control bar */
+.isoft-tt-bar { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; background: var(--tt-surface); border: 1px solid var(--tt-line); border-radius: 10px; padding: 8px 10px; margin-bottom: 6px; }
+.isoft-tt-seg { display: inline-flex; background: var(--tt-bg); border: 1px solid var(--tt-line); border-radius: 8px; padding: 2px; gap: 2px; }
+.isoft-tt-seg-btn { border: 0; background: transparent; color: var(--tt-ink-2); font-weight: 600; font-size: 12px; padding: 4px 10px; border-radius: 6px; cursor: pointer; transition: all .12s ease; white-space: nowrap; }
 .isoft-tt-seg-btn:hover { color: var(--tt-ink); }
 .isoft-tt-seg-btn.is-on { background: var(--tt-accent); color: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.15); }
-.isoft-tt-target-wrap { display: flex; align-items: center; border: 1px solid var(--tt-line-2); border-radius: 8px; background: var(--tt-surface); overflow: hidden; }
+.isoft-tt-bar-mode { display: inline-flex; align-items: center; gap: 6px; }
+.isoft-tt-bar-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--tt-ink-3); }
+.isoft-tt-target-wrap { display: flex; align-items: center; border: 1px solid var(--tt-line-2); border-radius: 8px; background: var(--tt-surface); overflow: hidden; width: 260px; }
 .isoft-tt-target-wrap:focus-within { border-color: var(--tt-accent); box-shadow: 0 0 0 3px var(--tt-accent-soft); }
-.isoft-tt-ccy { padding: 0 10px; color: var(--tt-ink-3); font-weight: 600; font-size: 12px; border-right: 1px solid var(--tt-line); align-self: stretch; display: flex; align-items: center; }
-.isoft-tt-target { flex: 1; border: 0; outline: 0; background: transparent; color: var(--tt-ink); font-family: var(--tt-mono); font-size: 22px; font-weight: 700; text-align: right; padding: 4px 12px; min-width: 0; }
-
-/* ---- KPI tiles */
-.isoft-tt-kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 12px; }
-.isoft-tt-kpi { background: var(--tt-surface); border: 1px solid var(--tt-line); border-radius: 10px; padding: 10px 14px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.isoft-tt-kpi .k { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--tt-ink-3); }
-.isoft-tt-kpi .v { font-size: 17px; font-weight: 700; color: var(--tt-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.isoft-tt-kpi .v.is-zero { color: var(--tt-ok); }
-.isoft-tt-kpi .s { font-size: 11.5px; color: var(--tt-ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.isoft-tt-kpi-status { border-left: 4px solid var(--tt-line-2); }
-.isoft-tt-kpi-status.is-ok { border-left-color: var(--tt-ok); background: var(--tt-ok-soft); }
-.isoft-tt-kpi-status.is-warn { border-left-color: var(--tt-warn); background: var(--tt-warn-soft); }
-.isoft-tt-kpi-status.is-bad { border-left-color: var(--tt-bad); background: var(--tt-bad-soft); }
-.isoft-tt-kpi-status .v { font-size: 14px; white-space: normal; line-height: 1.3; }
-.isoft-tt-status.tt-ok { color: var(--tt-ok); } .isoft-tt-status.tt-warn { color: var(--tt-warn); } .isoft-tt-status.tt-bad { color: var(--tt-bad); }
+.isoft-tt-ccy { padding: 0 8px; color: var(--tt-ink-3); font-weight: 600; font-size: 11px; border-right: 1px solid var(--tt-line); align-self: stretch; display: flex; align-items: center; }
+.isoft-tt-target { flex: 1; border: 0; outline: 0; background: transparent; color: var(--tt-ink); font-family: var(--tt-mono); font-size: 18px; font-weight: 700; text-align: right; padding: 2px 10px; min-width: 0; height: 30px; }
+.isoft-tt-pill { display: inline-flex; align-items: center; gap: 6px; border-radius: 999px; padding: 4px 12px; font-weight: 700; font-size: 12.5px; border: 1px solid var(--tt-line-2); color: var(--tt-ink-2); background: var(--tt-bg); max-width: 520px; }
+.isoft-tt-pill::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--tt-line-2); flex: none; }
+.isoft-tt-pill.tt-ok { color: var(--tt-ok); background: var(--tt-ok-soft); border-color: transparent; } .isoft-tt-pill.tt-ok::before { background: var(--tt-ok); }
+.isoft-tt-pill.tt-warn { color: var(--tt-warn); background: var(--tt-warn-soft); border-color: transparent; } .isoft-tt-pill.tt-warn::before { background: var(--tt-warn); }
+.isoft-tt-pill.tt-bad { color: var(--tt-bad); background: var(--tt-bad-soft); border-color: transparent; } .isoft-tt-pill.tt-bad::before { background: var(--tt-bad); }
+.isoft-tt-stats { display: flex; flex-wrap: wrap; gap: 4px 18px; padding: 0 4px; margin-bottom: 8px; font-size: 12px; color: var(--tt-ink-3); }
+.isoft-tt-stats b { color: var(--tt-ink); font-variant-numeric: tabular-nums; }
+.isoft-tt-stats b.is-zero { color: var(--tt-ok); }
 
 /* ---- lines card */
 .isoft-tt-card { background: var(--tt-surface); border: 1px solid var(--tt-line); border-radius: 10px; overflow: hidden; margin-bottom: 12px; }
@@ -75,7 +66,7 @@
 .isoft-tt-spacer { flex: 1; }
 .isoft-tt-chip { border: 1px solid var(--tt-line-2); background: transparent; color: var(--tt-ink-2); border-radius: 999px; padding: 3px 10px; font-size: 12px; font-weight: 600; cursor: pointer; }
 .isoft-tt-chip:hover { border-color: var(--tt-accent); color: var(--tt-accent-strong); background: var(--tt-accent-soft); }
-.isoft-tt-scroll { max-height: 46vh; overflow: auto; }
+.isoft-tt-scroll { overflow: auto; }
 .isoft-tt-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 12.5px; }
 .isoft-tt-table th { position: sticky; top: 0; z-index: 1; background: var(--tt-bg); color: var(--tt-ink-3); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; padding: 8px 10px; border-bottom: 1px solid var(--tt-line); white-space: nowrap; }
 .isoft-tt-table td { padding: 7px 10px; border-bottom: 1px solid var(--tt-line); vertical-align: middle; }
@@ -106,20 +97,17 @@
 .isoft-tt-table tr.tt-margin td { background: var(--tt-warn-soft); }
 .isoft-tt-table tr.tt-margin .tt-delta { color: var(--tt-warn); }
 
-/* ---- footer */
-.isoft-tt-footer { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 20px; padding: 2px 2px 8px; }
-.isoft-tt-totals { display: flex; gap: 22px; flex-wrap: wrap; }
-.isoft-tt-totals > div { display: flex; flex-direction: column; }
-.isoft-tt-totals span { font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--tt-ink-3); font-weight: 600; }
-.isoft-tt-totals b { font-size: 15px; font-variant-numeric: tabular-nums; }
-.isoft-tt-totals .is-grand b { font-size: 17px; color: var(--tt-accent-strong); }
-.isoft-tt-totals i { font-style: normal; font-size: 11px; color: var(--tt-ink-3); }
+/* ---- footer: one line */
+.isoft-tt-footer { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 20px; padding: 0 4px 6px; }
+.isoft-tt-totals { display: flex; gap: 18px; flex-wrap: wrap; font-size: 12px; color: var(--tt-ink-3); }
+.isoft-tt-totals b { color: var(--tt-ink); font-size: 13px; font-variant-numeric: tabular-nums; }
+.isoft-tt-totals .is-grand b { font-size: 15px; color: var(--tt-accent-strong); }
 .isoft-tt-note { font-size: 12px; color: var(--tt-warn); display: flex; align-items: center; gap: 6px; }
 .isoft-tt-badge { display: inline-block; border-radius: 999px; padding: 1px 8px; font-size: 11px; font-weight: 700; }
 .isoft-tt-badge.is-warn { background: var(--tt-warn-soft); color: var(--tt-warn); border: 1px solid currentColor; }
 
 @media (max-width: 900px) {
-	.isoft-tt-controls, .isoft-tt-kpis { grid-template-columns: 1fr 1fr; }
+	.isoft-tt-target-wrap { width: 100%; }
 }
 
 /* ---- no dark focus outlines: soft accent ring on keyboard focus only */
@@ -130,3 +118,19 @@
 .page-actions .isoft-tt-btn:focus-visible { box-shadow: 0 0 0 3px var(--tt-accent-soft); }
 .isoft-tt-table select.tt-mode:focus, .isoft-tt-table input.tt-rate:focus, .isoft-tt-target-wrap:focus-within { box-shadow: 0 0 0 3px var(--tt-accent-soft); }
 .isoft-tt-modal .modal-header .btn-modal-close:focus, .isoft-tt-modal .modal-header .close:focus { outline: 0; box-shadow: none; }
+
+/* ---- short screens: tighten everything so the modal still fits without page scroll */
+@media (max-height: 760px) {
+	.isoft-tt-modal .modal-dialog { margin: 8px auto; }
+	.isoft-tt-modal .modal-header { padding: 8px 16px; }
+	.isoft-tt-modal .modal-body { padding: 10px 16px 2px; }
+	.isoft-tt-modal .modal-footer { padding: 8px 16px; }
+	.isoft-tt-seg-btn { padding: 3px 10px; }
+	.isoft-tt-stats { display: none; }
+	.isoft-tt-card { margin-bottom: 8px; }
+	.isoft-tt-card-head { padding: 6px 12px; }
+	.isoft-tt-table td { padding: 4px 10px; }
+	.isoft-tt-table input.tt-rate { height: 26px; }
+	.isoft-tt-table .tt-delta { display: none; }
+	.isoft-tt-footer { padding: 0 2px 4px; }
+}

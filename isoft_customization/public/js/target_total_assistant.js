@@ -1,4 +1,4 @@
-// Target Total Assistant: fit the free item lines of a draft Quotation /
+// Pricing Assistant (internally target_total): fit the free item lines of a draft Quotation /
 // Delivery Note / Sales Invoice so the Grand Total or Net Total lands on a
 // typed target. Pure arithmetic lives in target_total_math.js; this file owns
 // the pieces that touch the form.
@@ -239,9 +239,9 @@ frappe.provide('isoft.target_total');
 
 	// Toolbar button with the target icon. Called from the three doctype_js files.
 	ns.add_button = function (frm) {
-		const $btn = frm.add_custom_button(__('Target Total'), function () { ns.open(frm); });
+		const $btn = frm.add_custom_button(__('Pricing Assistant'), function () { ns.open(frm); });
 		if ($btn && $btn.length && !$btn.hasClass('isoft-tt-btn')) {
-			$btn.addClass('isoft-tt-btn').html(ICON + '<span>' + __('Target Total') + '</span>');
+			$btn.addClass('isoft-tt-btn').html(ICON + '<span>' + __('Pricing Assistant') + '</span>');
 		}
 		return $btn;
 	};
@@ -287,7 +287,7 @@ frappe.provide('isoft.target_total');
 		let applied = false, closed = false, pending = null;
 
 		const d = new frappe.ui.Dialog({
-			title: __('Target Total Assistant'),
+			title: __('Pricing Assistant'),
 			size: 'extra-large',
 			fields: [{ fieldname: 'body', fieldtype: 'HTML' }],
 			primary_action_label: __('Apply'),
@@ -305,6 +305,7 @@ frappe.provide('isoft.target_total');
 		d.onhide = function () {
 			closed = true;
 			clearTimeout(pending);
+			$(window).off('resize.isoft-tt');
 			if (!applied) { ns.restore(frm, state.snap); }
 			frm.refresh_field('items');
 			frm.cscript.calculate_taxes_and_totals();
@@ -340,31 +341,21 @@ frappe.provide('isoft.target_total');
 
 			$body.html(
 				'<div class="isoft-tt">' +
-					'<div class="isoft-tt-intro">' + ICON + '<span>' + __('Type the total you want. Free lines move together, in proportion, until the document lands on it. Fix a line to keep it, or type its rate.') + '</span></div>' +
-
-					'<div class="isoft-tt-controls">' +
-						'<div class="isoft-tt-ctl">' +
-							'<label>' + __('Target kind') + '</label>' +
-							seg('tt-kind', [{ value: 'Grand Total', label: __('Grand Total') }, { value: 'Net Total', label: __('Net Total') }], state.kind) +
-						'</div>' +
-						'<div class="isoft-tt-ctl isoft-tt-ctl-target">' +
-							'<label>' + __('Target') + '</label>' +
-							'<div class="isoft-tt-target-wrap"><span class="isoft-tt-ccy">' + esc(frm.doc.currency) + '</span>' +
-								'<input type="text" class="isoft-tt-target" inputmode="decimal" value="' + num(state.target) + '"></div>' +
-						'</div>' +
-						'<div class="isoft-tt-ctl">' +
-							'<label>' + __('Default mode for free lines') + '</label>' +
-							seg('tt-default-mode', [{ value: 'Price List Rate', label: __('Price List Rate') }, { value: 'Rate', label: __('Rate') }], state.default_mode) +
-						'</div>' +
+					'<div class="isoft-tt-bar">' +
+						seg('tt-kind', [{ value: 'Grand Total', label: __('Grand Total') }, { value: 'Net Total', label: __('Net Total') }], state.kind) +
+						'<div class="isoft-tt-target-wrap" title="' + __('Target') + '"><span class="isoft-tt-ccy">' + esc(frm.doc.currency) + '</span>' +
+							'<input type="text" class="isoft-tt-target" inputmode="decimal" value="' + num(state.target) + '"></div>' +
+						'<div class="isoft-tt-bar-mode"><span class="isoft-tt-bar-label">' + __('Free lines') + '</span>' +
+							seg('tt-default-mode', [{ value: 'Price List Rate', label: __('Price List Rate') }, { value: 'Rate', label: __('Rate') }], state.default_mode) + '</div>' +
+						'<span class="isoft-tt-spacer"></span>' +
+						'<span class="isoft-tt-pill isoft-tt-status"></span>' +
 					'</div>' +
-
-					'<div class="isoft-tt-kpis">' +
-						'<div class="isoft-tt-kpi"><span class="k">' + __('Current') + '</span><b class="v tt-kpi-current"></b><span class="s tt-kpi-current-sub"></span></div>' +
-						'<div class="isoft-tt-kpi"><span class="k">' + __('Target') + '</span><b class="v tt-kpi-target"></b><span class="s tt-kpi-target-sub"></span></div>' +
-						'<div class="isoft-tt-kpi"><span class="k">' + __('Difference') + '</span><b class="v tt-kpi-diff"></b><span class="s tt-kpi-diff-sub"></span></div>' +
-						'<div class="isoft-tt-kpi isoft-tt-kpi-status"><span class="k">' + __('Status') + '</span><b class="v isoft-tt-status"></b><span class="s tt-kpi-status-sub"></span></div>' +
+					'<div class="isoft-tt-stats">' +
+						'<span>' + __('Current') + ' <b class="tt-kpi-current"></b></span>' +
+						'<span>' + __('Difference') + ' <b class="tt-kpi-diff"></b></span>' +
+						'<span class="tt-kpi-diff-sub"></span>' +
+						'<span class="tt-kpi-status-sub"></span>' +
 					'</div>' +
-
 					'<div class="isoft-tt-card">' +
 						'<div class="isoft-tt-card-head">' +
 							'<b>' + __('Lines') + '</b><span class="tt-free-count"></span>' +
@@ -382,9 +373,9 @@ frappe.provide('isoft.target_total');
 
 					'<div class="isoft-tt-footer">' +
 						'<div class="isoft-tt-totals">' +
-							'<div><span>' + __('Net Total') + '</span><b class="tt-net"></b><i class="tt-net-was"></i></div>' +
-							'<div><span>' + __('Taxes') + '</span><b class="tt-tax"></b><i class="tt-tax-was"></i></div>' +
-							'<div class="is-grand"><span>' + __('Grand Total') + '</span><b class="tt-grand"></b><i class="tt-grand-was"></i></div>' +
+							'<span>' + __('Net Total') + ' <b class="tt-net"></b></span>' +
+							'<span>' + __('Taxes') + ' <b class="tt-tax"></b></span>' +
+							'<span class="is-grand">' + __('Grand Total') + ' <b class="tt-grand"></b></span>' +
 						'</div>' +
 						'<div class="isoft-tt-note"></div>' +
 					'</div>' +
@@ -419,35 +410,28 @@ frappe.provide('isoft.target_total');
 
 			const cur = ns.current(frm, state.kind);
 			const was = state.kind === 'Grand Total' ? open_totals.grand : open_totals.net;
-			$body.find('.tt-kpi-current').text(money(cur, frm));
-			$body.find('.tt-kpi-current-sub').text(__('{0} when opened', [money(was, frm)]));
-			$body.find('.tt-kpi-target').text(money(state.target, frm));
-			$body.find('.tt-kpi-target-sub').text(__(state.kind));
+			$body.find('.tt-kpi-current').text(money(cur, frm)).attr('title', __('{0} when opened', [money(was, frm)]));
 			const diff = state.target - cur;
 			$body.find('.tt-kpi-diff').text(money(diff, frm)).toggleClass('is-zero', Math.abs(diff) <= TOL);
 			$body.find('.tt-kpi-diff-sub').text(__('{0} vs when opened', [signed(pct(state.target, was), 2) + '%']));
 
 			const $st = $body.find('.isoft-tt-status').removeClass('tt-ok tt-warn tt-bad');
 			const $sub = $body.find('.tt-kpi-status-sub').text('');
-			const $kpi = $body.find('.isoft-tt-kpi-status').removeClass('is-ok is-warn is-bad');
 			if (result.reason) {
-				$st.addClass('tt-bad').text(result.reason); $kpi.addClass('is-bad');
+				$st.addClass('tt-bad').text(result.reason);
 			} else if (Math.abs(result.diff) <= TOL) {
-				$st.addClass('tt-ok').text(__('On target')); $kpi.addClass('is-ok');
+				$st.addClass('tt-ok').text(__('On target'));
 				$sub.text(__('Apply to keep these prices'));
 			} else if (Math.abs(result.diff) <= WARN) {
-				$st.addClass('tt-warn').text(__('Off by {0} (rounding)', [money(result.diff, frm)])); $kpi.addClass('is-warn');
+				$st.addClass('tt-warn').text(__('Off by {0} (rounding)', [money(result.diff, frm)]));
 				$sub.text(__('No two-decimal rates reach this exact cent'));
 			} else {
-				$st.addClass('tt-bad').text(__('Could not reach the target exactly: off by {0}', [money(result.diff, frm)])); $kpi.addClass('is-bad');
+				$st.addClass('tt-bad').text(__('Could not reach the target exactly: off by {0}', [money(result.diff, frm)]));
 			}
 
-			$body.find('.tt-net').text(money(frm.doc.net_total, frm));
-			$body.find('.tt-tax').text(money(frm.doc.total_taxes_and_charges, frm));
-			$body.find('.tt-grand').text(money(frm.doc.grand_total, frm));
-			$body.find('.tt-net-was').text(__('was {0}', [money(open_totals.net, frm)]));
-			$body.find('.tt-tax-was').text(__('was {0}', [money(open_totals.tax, frm)]));
-			$body.find('.tt-grand-was').text(__('was {0}', [money(open_totals.grand, frm)]));
+			$body.find('.tt-net').text(money(frm.doc.net_total, frm)).attr('title', __('was {0}', [money(open_totals.net, frm)]));
+			$body.find('.tt-tax').text(money(frm.doc.total_taxes_and_charges, frm)).attr('title', __('was {0}', [money(open_totals.tax, frm)]));
+			$body.find('.tt-grand').text(money(frm.doc.grand_total, frm)).attr('title', __('was {0}', [money(open_totals.grand, frm)]));
 
 			const $note = $body.find('.isoft-tt-note').empty();
 			if (state.rows.some(function (r) { return r.margin; })) {
@@ -461,9 +445,23 @@ frappe.provide('isoft.target_total');
 			if (closed) return;
 			const result = ns.fit(frm, state);
 			render(result);
+			fit_height();
 			frm.refresh_field('items');
 			frm.cscript.calculate_taxes_and_totals();
 		}
+
+		// Keeps the whole modal inside the viewport: only the lines table scrolls,
+		// never the page. Re-run on every render and on window resize.
+		function fit_height() {
+			const $scroll = $body.find('.isoft-tt-scroll');
+			const $dialog = d.$wrapper.find('.modal-dialog');
+			if (!$scroll.length || !$dialog.length || !$dialog.is(':visible')) return;
+			$scroll.css('max-height', '');
+			const top = Math.max(0, $dialog[0].getBoundingClientRect().top);
+			const overflow = $dialog.outerHeight() + 2 * top - window.innerHeight + 2;  // +2: never a 1px page scroll from rounding
+			if (overflow > 0) $scroll.css('max-height', Math.max(110, $scroll.height() - overflow) + 'px');
+		}
+		$(window).on('resize.isoft-tt', fit_height);
 
 		function set_seg($seg, value) {
 			$seg.find('.isoft-tt-seg-btn').each(function () { $(this).toggleClass('is-on', $(this).data('value') === value); });
@@ -518,6 +516,7 @@ frappe.provide('isoft.target_total');
 		build();
 		d.show();
 		refit();
+		d.$wrapper.one('shown.bs.modal', fit_height);
 		setTimeout(function () { $body.find('.isoft-tt-target').focus().select(); }, 300);
 		return d;
 	};

@@ -12,7 +12,7 @@ frappe.ui.form.on('Quotation', {
 	refresh: function (frm) {
 		if (frm.doc.docstatus !== 0) return;
 
-		// Target Total Assistant (public/js/target_total_assistant.js).
+		// Pricing Assistant (public/js/target_total_assistant.js).
 		if ((frm.doc.items || []).length) {
 			isoft.target_total.add_button(frm);
 		}

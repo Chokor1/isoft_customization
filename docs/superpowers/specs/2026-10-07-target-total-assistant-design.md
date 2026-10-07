@@ -12,7 +12,7 @@ line is Fixed or free to move, choose how a free line is rewritten (Rate, i.e. a
 discount against the price list rate, or Price List Rate itself), and the panel
 rewrites the free lines so the document total equals the target exactly.
 
-Name: **Target Total Assistant** (pt: "Assistente de Total Alvo").
+Name: **Pricing Assistant** (pt: "Assistente de Preços"); first named Target Total Assistant, renamed by the user on 2026-10-07. Internal namespace and file names stay `target_total`.
 
 ## Scope
 
@@ -28,7 +28,7 @@ Name: **Target Total Assistant** (pt: "Assistente de Total Alvo").
 
 ## Entry point
 
-Toolbar button "Target Total" on the three forms, shown by the doctype_js
+Toolbar button "Pricing Assistant" (target icon) on the three forms, shown by the doctype_js
 `refresh` handler when `docstatus == 0` and `items.length > 0`. Opens a wide
 `frappe.ui.Dialog`.
 

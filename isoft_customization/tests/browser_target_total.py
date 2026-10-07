@@ -276,7 +276,7 @@ def drop_test_doc(doctype, name):
 
 
 def button_present(page):
-    return page.evaluate("() => !!Array.from(document.querySelectorAll('.page-actions button, .page-actions a')).find(b => b.textContent.trim() === __('Target Total') && b.offsetParent !== null)")
+    return page.evaluate("() => !!Array.from(document.querySelectorAll('.page-actions button, .page-actions a')).find(b => b.textContent.trim() === __('Pricing Assistant') && b.offsetParent !== null)")
 
 
 def task4(page, log, args):
@@ -287,7 +287,7 @@ def task4(page, log, args):
     try:
         # Button on drafts, not on submitted documents.
         open_form(page, log, "Quotation", q.name)
-        log.check(button_present(page), "Target Total button on draft Quotation")
+        log.check(button_present(page), "Pricing Assistant button on draft Quotation")
         for dt, name in (("Delivery Note", args.delivery_note), ("Sales Invoice", args.sales_invoice)):
             if not name:
                 log("skip submitted", dt)
@@ -296,12 +296,12 @@ def task4(page, log, args):
             log.check(not button_present(page), f"no button on submitted {dt}")
         if args.delivery_note_draft:
             open_form(page, log, "Delivery Note", args.delivery_note_draft)
-            log.check(button_present(page), "Target Total button on draft Delivery Note")
+            log.check(button_present(page), "Pricing Assistant button on draft Delivery Note")
 
         # Spec test 1: Grand Total fit, saved for real, persisted after reload.
         open_form(page, log, "Quotation", q.name)
         orig = dialog_state(page)
-        page.click(".page-actions button:has-text('Target Total')")
+        page.click(".page-actions button:has-text('Pricing Assistant')")
         page.wait_for_selector(".modal:visible .isoft-tt-table", timeout=10000)
         target = 500000.0
         dialog_set_target(page, target)
@@ -320,7 +320,7 @@ def task4(page, log, args):
         log.check(abs(gt - target) <= 0.005 and abs(db_gt - target) <= 0.005, "saved quotation keeps the target after reload", f"form {gt} db {db_gt}")
 
         # Spec test 2: Net Total target with the 5% document discount in force.
-        page.click(".page-actions button:has-text('Target Total')")
+        page.click(".page-actions button:has-text('Pricing Assistant')")
         page.wait_for_selector(".modal:visible .isoft-tt-table", timeout=10000)
         page.evaluate("() => { isoft.target_total._dialog.tt.set_kind('Net Total'); }")
         page.wait_for_timeout(300)
@@ -345,8 +345,8 @@ def task4(page, log, args):
         page.wait_for_function("() => cur_frm.doc.items.length && cur_frm.doc.items[0].price_list_rate > 0 && cur_frm.doc.grand_total > 0", timeout=30000)
         page.evaluate("() => { cur_frm.refresh(); }")
         page.wait_for_timeout(500)
-        log.check(button_present(page), "Target Total button on new Sales Invoice")
-        page.click(".page-actions button:has-text('Target Total')")
+        log.check(button_present(page), "Pricing Assistant button on new Sales Invoice")
+        page.click(".page-actions button:has-text('Pricing Assistant')")
         page.wait_for_selector(".modal:visible .isoft-tt-table", timeout=10000)
         page.evaluate("() => { isoft.target_total._dialog.tt.set_default_mode('Rate'); }")
         page.wait_for_timeout(300)
@@ -382,7 +382,7 @@ def task5(page, log, args):
     page.evaluate("() => { cur_frm.refresh(); }")
     page.wait_for_timeout(500)
     gt0 = page.evaluate("() => cur_frm.doc.grand_total")
-    page.click(".page-actions button:has-text('Target Total')")
+    page.click(".page-actions button:has-text('Pricing Assistant')")
     page.wait_for_selector(".modal:visible .isoft-tt-table", timeout=10000)
     page.wait_for_timeout(300)
     st = dialog_state(page)
@@ -406,7 +406,7 @@ def task5(page, log, args):
     # Debounce race: type a rate and hide the dialog in the same tick; the pending refit must not run.
     open_form(page, log, "Quotation", args.quotation)
     orig = dialog_state(page)
-    page.click(".page-actions button:has-text('Target Total')")
+    page.click(".page-actions button:has-text('Pricing Assistant')")
     page.wait_for_selector(".modal:visible .isoft-tt-table", timeout=10000)
     page.wait_for_timeout(300)
     page.evaluate("""() => {
