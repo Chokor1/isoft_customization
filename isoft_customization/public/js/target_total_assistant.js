@@ -232,11 +232,27 @@ frappe.provide('isoft.target_total');
 
 	// ---------------------------------------------------------------- dialog
 
+	const ICON = '<svg class="isoft-tt-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+		'<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/>' +
+		'<path d="M12 3v2M12 19v2M3 12h2M19 12h2"/></svg>';
+	const LOCK = '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>';
+
+	// Toolbar button with the target icon. Called from the three doctype_js files.
+	ns.add_button = function (frm) {
+		const $btn = frm.add_custom_button(__('Target Total'), function () { ns.open(frm); });
+		if ($btn && $btn.length && !$btn.hasClass('isoft-tt-btn')) {
+			$btn.addClass('isoft-tt-btn').html(ICON + '<span>' + __('Target Total') + '</span>');
+		}
+		return $btn;
+	};
+
+	function nf() { return frappe.boot.sysdefaults.number_format || '#,###.##'; }
 	function money(v, frm) { return format_currency(v, frm.doc.currency); }
-
+	function num(v, p) { return format_number(flt(v), nf(), p === undefined ? 2 : p); }
+	function parse(v) { return flt(v, 9, nf()); }
 	function rate_str(v, it) { return flt(v, precision('rate', it)).toString(); }
+	function esc(v) { return frappe.utils.escape_html(v || ''); }
 
-	// Debounce whose pending timer is handed to `track` so the caller can cancel it.
 	function debounce(fn, wait, track) {
 		let t;
 		return function () {
@@ -247,7 +263,15 @@ frappe.provide('isoft.target_total');
 		};
 	}
 
+	function seg(cls, options, value) {
+		return '<div class="isoft-tt-seg ' + cls + '">' + options.map(function (o) {
+			return '<button type="button" class="isoft-tt-seg-btn' + (o.value === value ? ' is-on' : '') +
+				'" data-value="' + o.value + '">' + o.label + '</button>';
+		}).join('') + '</div>';
+	}
+
 	ns.open = function (frm) {
+		if (ns._dialog) return ns._dialog;
 		const state = {
 			kind: 'Grand Total',
 			target: ns.current(frm, 'Grand Total'),
@@ -259,44 +283,25 @@ frappe.provide('isoft.target_total');
 					original_rate: flt(it.rate), typed_rate: null, typed_mode: null, margin: false };
 			})
 		};
+		const open_totals = { net: flt(frm.doc.net_total), tax: flt(frm.doc.total_taxes_and_charges), grand: flt(frm.doc.grand_total) };
 		let applied = false, closed = false, pending = null;
 
 		const d = new frappe.ui.Dialog({
 			title: __('Target Total Assistant'),
 			size: 'extra-large',
-			fields: [
-				{ fieldname: 'kind', fieldtype: 'Select', label: __('Target kind'),
-					options: ['Grand Total', 'Net Total'].map(function (o) { return { value: o, label: __(o) }; }),
-					default: 'Grand Total', change: function () { state.kind = d.get_value('kind'); state.target = ns.current(frm, state.kind); d.set_value('target', state.target); } },
-				{ fieldname: 'cb1', fieldtype: 'Column Break' },
-				{ fieldname: 'target', fieldtype: 'Currency', label: __('Target'), options: 'currency',
-					default: state.target, change: function () { state.target = flt(d.get_value('target')); refit(); } },
-				{ fieldname: 'cb2', fieldtype: 'Column Break' },
-				{ fieldname: 'default_mode', fieldtype: 'Select', label: __('Default mode for free lines'),
-					options: ['Price List Rate', 'Rate'].map(function (o) { return { value: o, label: __(o) }; }),
-					default: 'Price List Rate', change: function () {
-						state.default_mode = d.get_value('default_mode');
-						state.rows = ns.math.set_default_mode(state.rows, state.default_mode);
-						state.rows.forEach(function (r) { if (r.locked) r.mode = 'Fixed'; });
-						build_table(); refit();
-					} },
-				{ fieldname: 'sb', fieldtype: 'Section Break' },
-				{ fieldname: 'lines', fieldtype: 'HTML' }
-			],
+			fields: [{ fieldname: 'body', fieldtype: 'HTML' }],
 			primary_action_label: __('Apply'),
 			primary_action: function () { applied = true; frm.dirty(); d.hide(); },
 			secondary_action_label: __('Reset'),
 			secondary_action: function () {
 				state.rows.forEach(function (r) { r.typed_rate = null; r.typed_mode = null; r.mode = r.locked ? 'Fixed' : state.default_mode; });
-				state.target = ns.current(frm, state.kind);
-				// current() must read the original totals: restore first.
 				ns.restore(frm, state.snap); ns.recalc_silent(frm);
 				state.target = ns.current(frm, state.kind);
-				d.set_value('target', state.target);
-				build_table(); refit();
+				build(); refit();
 			}
 		});
-		d.add_custom_action(__('Cancel'), function () { d.hide(); });
+		d.add_custom_action(__('Cancel'), function () { d.hide(); }, 'isoft-tt-cancel');
+		d.$wrapper.addClass('isoft-tt-modal');
 		d.onhide = function () {
 			closed = true;
 			clearTimeout(pending);
@@ -308,9 +313,9 @@ frappe.provide('isoft.target_total');
 		};
 		ns._dialog = d;
 
-		const $body = $(d.fields_dict.lines.wrapper);
+		const $body = $(d.fields_dict.body.wrapper);
 
-		function build_table() {
+		function build() {
 			const rows_html = state.rows.map(function (r) {
 				const it = item_of(frm, r);
 				const options = MODES.map(function (m) {
@@ -319,68 +324,137 @@ frappe.provide('isoft.target_total');
 				const dis = r.locked ? ' disabled' : '';
 				return '<tr data-idx="' + r.idx + '">' +
 					'<td class="tt-idx">' + (r.idx + 1) + '</td>' +
-					'<td class="tt-item"><div>' + frappe.utils.escape_html(it.item_code || '') + '</div>' +
-						'<div class="text-muted small">' + frappe.utils.escape_html(it.item_name || '') + '</div></td>' +
-					'<td class="text-right">' + flt(it.qty) + '</td>' +
-					'<td class="text-right">' + money(state.snap[r.idx].rate, frm) + '</td>' +
-					'<td class="text-right tt-cur-amount">' + money(state.snap[r.idx].rate * flt(it.qty), frm) + '</td>' +
-					'<td><select class="form-control input-sm tt-mode"' + dis + '>' + options + '</select></td>' +
-					'<td><input type="number" step="any" class="form-control input-sm text-right tt-rate"' + dis + ' value="' + rate_str(it.rate, it) + '"></td>' +
-					'<td class="text-right tt-new-amount"></td>' +
-					'<td class="text-right tt-disc"></td>' +
+					'<td class="tt-item"><div class="tt-code">' + esc(it.item_code) + '</div>' +
+						'<div class="tt-name">' + esc(it.item_name) + '</div></td>' +
+					'<td class="tt-num">' + num(it.qty, precision('qty', it)) + '</td>' +
+					'<td class="tt-num tt-cur">' + num(state.snap[r.idx].rate) + '</td>' +
+					'<td class="tt-num tt-cur">' + num(state.snap[r.idx].rate * flt(it.qty)) + '</td>' +
+					'<td class="tt-mode-cell"><span class="tt-lock">' + LOCK + '</span>' +
+						'<select class="tt-mode"' + dis + ' title="' + __('Mode') + '">' + options + '</select></td>' +
+					'<td class="tt-rate-cell"><input type="number" step="any" class="tt-rate"' + dis + ' value="' + rate_str(it.rate, it) + '">' +
+						'<div class="tt-delta"></div></td>' +
+					'<td class="tt-num tt-new-amount"></td>' +
+					'<td class="tt-num tt-disc"></td>' +
 				'</tr>';
 			}).join('');
+
 			$body.html(
-				'<div class="isoft-tt-wrap">' +
-				'<table class="table table-bordered isoft-tt-table"><thead><tr>' +
-					'<th>#</th><th>' + __('Item') + '</th><th class="text-right">' + __('Qty') + '</th>' +
-					'<th class="text-right">' + __('Current rate') + '</th><th class="text-right">' + __('Current amount') + '</th>' +
-					'<th>' + __('Mode') + '</th><th class="text-right">' + __('New rate') + '</th>' +
-					'<th class="text-right">' + __('New amount') + '</th><th class="text-right">' + __('Discount %') + '</th>' +
-				'</tr></thead><tbody>' + rows_html + '</tbody></table>' +
-				'<div class="isoft-tt-footer">' +
-					'<div class="isoft-tt-totals"></div>' +
-					'<div class="isoft-tt-status"></div>' +
-				'</div></div>'
+				'<div class="isoft-tt">' +
+					'<div class="isoft-tt-intro">' + ICON + '<span>' + __('Type the total you want. Free lines move together, in proportion, until the document lands on it. Fix a line to keep it, or type its rate.') + '</span></div>' +
+
+					'<div class="isoft-tt-controls">' +
+						'<div class="isoft-tt-ctl">' +
+							'<label>' + __('Target kind') + '</label>' +
+							seg('tt-kind', [{ value: 'Grand Total', label: __('Grand Total') }, { value: 'Net Total', label: __('Net Total') }], state.kind) +
+						'</div>' +
+						'<div class="isoft-tt-ctl isoft-tt-ctl-target">' +
+							'<label>' + __('Target') + '</label>' +
+							'<div class="isoft-tt-target-wrap"><span class="isoft-tt-ccy">' + esc(frm.doc.currency) + '</span>' +
+								'<input type="text" class="isoft-tt-target" inputmode="decimal" value="' + num(state.target) + '"></div>' +
+						'</div>' +
+						'<div class="isoft-tt-ctl">' +
+							'<label>' + __('Default mode for free lines') + '</label>' +
+							seg('tt-default-mode', [{ value: 'Price List Rate', label: __('Price List Rate') }, { value: 'Rate', label: __('Rate') }], state.default_mode) +
+						'</div>' +
+					'</div>' +
+
+					'<div class="isoft-tt-kpis">' +
+						'<div class="isoft-tt-kpi"><span class="k">' + __('Current') + '</span><b class="v tt-kpi-current"></b><span class="s tt-kpi-current-sub"></span></div>' +
+						'<div class="isoft-tt-kpi"><span class="k">' + __('Target') + '</span><b class="v tt-kpi-target"></b><span class="s tt-kpi-target-sub"></span></div>' +
+						'<div class="isoft-tt-kpi"><span class="k">' + __('Difference') + '</span><b class="v tt-kpi-diff"></b><span class="s tt-kpi-diff-sub"></span></div>' +
+						'<div class="isoft-tt-kpi isoft-tt-kpi-status"><span class="k">' + __('Status') + '</span><b class="v isoft-tt-status"></b><span class="s tt-kpi-status-sub"></span></div>' +
+					'</div>' +
+
+					'<div class="isoft-tt-card">' +
+						'<div class="isoft-tt-card-head">' +
+							'<b>' + __('Lines') + '</b><span class="tt-free-count"></span>' +
+							'<span class="isoft-tt-spacer"></span>' +
+							'<button type="button" class="isoft-tt-chip tt-free-all">' + __('Free all') + '</button>' +
+							'<button type="button" class="isoft-tt-chip tt-fix-all">' + __('Fix all') + '</button>' +
+						'</div>' +
+						'<div class="isoft-tt-scroll"><table class="isoft-tt-table"><thead><tr>' +
+							'<th>#</th><th>' + __('Item') + '</th><th class="tt-num">' + __('Qty') + '</th>' +
+							'<th class="tt-num">' + __('Current rate') + '</th><th class="tt-num">' + __('Current amount') + '</th>' +
+							'<th>' + __('Mode') + '</th><th class="tt-num">' + __('New rate') + '</th>' +
+							'<th class="tt-num">' + __('New amount') + '</th><th class="tt-num">' + __('Discount %') + '</th>' +
+						'</tr></thead><tbody>' + rows_html + '</tbody></table></div>' +
+					'</div>' +
+
+					'<div class="isoft-tt-footer">' +
+						'<div class="isoft-tt-totals">' +
+							'<div><span>' + __('Net Total') + '</span><b class="tt-net"></b><i class="tt-net-was"></i></div>' +
+							'<div><span>' + __('Taxes') + '</span><b class="tt-tax"></b><i class="tt-tax-was"></i></div>' +
+							'<div class="is-grand"><span>' + __('Grand Total') + '</span><b class="tt-grand"></b><i class="tt-grand-was"></i></div>' +
+						'</div>' +
+						'<div class="isoft-tt-note"></div>' +
+					'</div>' +
+				'</div>'
 			);
 		}
+
+		function pct(a, b) { return b ? (a - b) / Math.abs(b) * 100 : 0; }
+		function signed(v, p) { return (v > 0 ? '+' : '') + num(v, p); }
 
 		// Updates cells in place so a rate the user is typing is never wiped.
 		function render(result) {
 			const active = document.activeElement;
+			let free = 0;
 			$body.find('tbody tr').each(function () {
 				const $tr = $(this), r = state.rows[cint($tr.attr('data-idx'))], it = item_of(frm, r);
+				const fixed = r.mode === 'Fixed';
+				if (!fixed) free++;
 				$tr.find('.tt-mode').val(r.mode);
 				const $rate = $tr.find('.tt-rate');
 				if ($rate[0] !== active) $rate.val(rate_str(it.rate, it));
-				$tr.find('.tt-new-amount').text(money(it.amount, frm));
-				$tr.find('.tt-disc').text(flt(it.discount_percentage) ? flt(it.discount_percentage, 2) + '%' : '');
-				$tr.toggleClass('tt-fixed', r.mode === 'Fixed');
+				const change = pct(flt(it.rate), state.snap[r.idx].rate);
+				$tr.find('.tt-delta').text(Math.abs(change) >= 0.005 ? signed(change, 2) + '%' : '')
+					.toggleClass('is-up', change > 0).toggleClass('is-down', change < 0);
+				$tr.find('.tt-new-amount').text(num(it.amount));
+				$tr.find('.tt-disc').text(flt(it.discount_percentage) ? num(it.discount_percentage, 2) + '%' : '');
+				$tr.toggleClass('tt-fixed', fixed).toggleClass('tt-typed', fixed && r.typed_rate !== null);
 				$tr.toggleClass('tt-margin', !!r.margin);
 				$tr.attr('title', r.margin ? __('Above price list rate: creates a margin (rejected by AGT on invoices). Use Price List Rate.') : '');
 			});
+			$body.find('.tt-free-count').text(__('{0} free of {1}', [free, state.rows.length]));
+
 			const cur = ns.current(frm, state.kind);
-			$body.find('.isoft-tt-totals').html(
-				'<span>' + __('Net Total') + ': <b>' + money(frm.doc.net_total, frm) + '</b></span>' +
-				'<span>' + __('Taxes') + ': <b>' + money(frm.doc.total_taxes_and_charges, frm) + '</b></span>' +
-				'<span>' + __('Grand Total') + ': <b>' + money(frm.doc.grand_total, frm) + '</b></span>' +
-				'<span>' + __('Target') + ' (' + __(state.kind) + '): <b>' + money(state.target, frm) + '</b></span>' +
-				'<span>' + __('Difference') + ': <b>' + money(state.target - cur, frm) + '</b></span>'
-			);
+			const was = state.kind === 'Grand Total' ? open_totals.grand : open_totals.net;
+			$body.find('.tt-kpi-current').text(money(cur, frm));
+			$body.find('.tt-kpi-current-sub').text(__('{0} when opened', [money(was, frm)]));
+			$body.find('.tt-kpi-target').text(money(state.target, frm));
+			$body.find('.tt-kpi-target-sub').text(__(state.kind));
+			const diff = state.target - cur;
+			$body.find('.tt-kpi-diff').text(money(diff, frm)).toggleClass('is-zero', Math.abs(diff) <= TOL);
+			$body.find('.tt-kpi-diff-sub').text(__('{0} vs when opened', [signed(pct(state.target, was), 2) + '%']));
+
 			const $st = $body.find('.isoft-tt-status').removeClass('tt-ok tt-warn tt-bad');
+			const $sub = $body.find('.tt-kpi-status-sub').text('');
+			const $kpi = $body.find('.isoft-tt-kpi-status').removeClass('is-ok is-warn is-bad');
 			if (result.reason) {
-				$st.addClass('tt-bad').text(result.reason);
+				$st.addClass('tt-bad').text(result.reason); $kpi.addClass('is-bad');
 			} else if (Math.abs(result.diff) <= TOL) {
-				$st.addClass('tt-ok').text(__('On target'));
+				$st.addClass('tt-ok').text(__('On target')); $kpi.addClass('is-ok');
+				$sub.text(__('Apply to keep these prices'));
 			} else if (Math.abs(result.diff) <= WARN) {
-				$st.addClass('tt-warn').text(__('Off by {0} (rounding)', [money(result.diff, frm)]));
+				$st.addClass('tt-warn').text(__('Off by {0} (rounding)', [money(result.diff, frm)])); $kpi.addClass('is-warn');
+				$sub.text(__('No two-decimal rates reach this exact cent'));
 			} else {
-				$st.addClass('tt-bad').text(__('Could not reach the target exactly: off by {0}', [money(result.diff, frm)]));
+				$st.addClass('tt-bad').text(__('Could not reach the target exactly: off by {0}', [money(result.diff, frm)])); $kpi.addClass('is-bad');
 			}
+
+			$body.find('.tt-net').text(money(frm.doc.net_total, frm));
+			$body.find('.tt-tax').text(money(frm.doc.total_taxes_and_charges, frm));
+			$body.find('.tt-grand').text(money(frm.doc.grand_total, frm));
+			$body.find('.tt-net-was').text(__('was {0}', [money(open_totals.net, frm)]));
+			$body.find('.tt-tax-was').text(__('was {0}', [money(open_totals.tax, frm)]));
+			$body.find('.tt-grand-was').text(__('was {0}', [money(open_totals.grand, frm)]));
+
+			const $note = $body.find('.isoft-tt-note').empty();
 			if (state.rows.some(function (r) { return r.margin; })) {
-				$st.append('<div class="tt-margin-note">' +
-					__('Above price list rate: creates a margin (rejected by AGT on invoices). Use Price List Rate.') + '</div>');
+				$note.append('<span class="isoft-tt-badge is-warn">' + __('Margin') + '</span> ' +
+					__('Above price list rate: creates a margin (rejected by AGT on invoices). Use Price List Rate.'));
 			}
+			d.get_primary_btn().prop('disabled', !!result.reason);
 		}
 
 		function refit() {
@@ -391,6 +465,33 @@ frappe.provide('isoft.target_total');
 			frm.cscript.calculate_taxes_and_totals();
 		}
 
+		function set_seg($seg, value) {
+			$seg.find('.isoft-tt-seg-btn').each(function () { $(this).toggleClass('is-on', $(this).data('value') === value); });
+		}
+
+		// Small API, also used by the browser checks.
+		d.tt = {
+			set_target: function (v) { state.target = flt(v); $body.find('.isoft-tt-target').val(num(state.target)); refit(); },
+			set_kind: function (k) { state.kind = k; set_seg($body.find('.tt-kind'), k); d.tt.set_target(ns.current(frm, k)); },
+			set_default_mode: function (m) {
+				state.default_mode = m; set_seg($body.find('.tt-default-mode'), m);
+				state.rows = ns.math.set_default_mode(state.rows, m);
+				state.rows.forEach(function (r) { if (r.locked) r.mode = 'Fixed'; });
+				refit();
+			},
+			state: state
+		};
+
+		$body.on('click', '.tt-kind .isoft-tt-seg-btn', function () { d.tt.set_kind($(this).data('value')); });
+		$body.on('click', '.tt-default-mode .isoft-tt-seg-btn', function () { d.tt.set_default_mode($(this).data('value')); });
+		$body.on('change', '.isoft-tt-target', function () { d.tt.set_target(parse($(this).val())); });
+		$body.on('keydown', '.isoft-tt-target', function (e) { if (e.key === 'Enter') { e.preventDefault(); $(this).blur(); } });
+		$body.on('focus', '.isoft-tt-target', function () { $(this).select(); });
+		$body.on('click', '.tt-fix-all', function () { state.rows.forEach(function (r) { r.mode = 'Fixed'; }); refit(); });
+		$body.on('click', '.tt-free-all', function () {
+			state.rows.forEach(function (r) { if (!r.locked) { r.mode = state.default_mode; r.typed_rate = null; r.typed_mode = null; } });
+			refit();
+		});
 		$body.on('change', '.tt-mode', function () {
 			const r = state.rows[cint($(this).closest('tr').attr('data-idx'))];
 			r.mode = $(this).val();
@@ -409,10 +510,15 @@ frappe.provide('isoft.target_total');
 			}
 			refit();
 		}, 150, function (t) { pending = t; }));
+		$body.on('keydown', '.tt-rate', function (e) {
+			// Enter moves to the next line's rate, like a grid.
+			if (e.key === 'Enter') { e.preventDefault(); $(this).closest('tr').next().find('.tt-rate:not(:disabled)').focus().select(); }
+		});
 
-		build_table();
+		build();
 		d.show();
 		refit();
+		setTimeout(function () { $body.find('.isoft-tt-target').focus().select(); }, 300);
 		return d;
 	};
 })(isoft.target_total);

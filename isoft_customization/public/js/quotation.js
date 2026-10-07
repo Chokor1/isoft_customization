@@ -14,7 +14,7 @@ frappe.ui.form.on('Quotation', {
 
 		// Target Total Assistant (public/js/target_total_assistant.js).
 		if ((frm.doc.items || []).length) {
-			frm.add_custom_button(__('Target Total'), function () { isoft.target_total.open(frm); });
+			isoft.target_total.add_button(frm);
 		}
 
 		frm.add_custom_button(__('Quotation'), function () {

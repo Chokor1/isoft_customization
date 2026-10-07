@@ -10,6 +10,6 @@
 frappe.ui.form.on('Sales Invoice', {
 	refresh: function (frm) {
 		if (frm.doc.docstatus !== 0 || !(frm.doc.items || []).length) return;
-		frm.add_custom_button(__('Target Total'), function () { isoft.target_total.open(frm); });
+		isoft.target_total.add_button(frm);
 	}
 });

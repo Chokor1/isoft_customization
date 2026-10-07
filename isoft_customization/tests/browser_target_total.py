@@ -146,7 +146,7 @@ def task2(page, log, args):
 
 
 def dialog_set_target(page, value):
-    page.evaluate("(v) => { const d = isoft.target_total._dialog; d.set_value('target', v); }", value)
+    page.evaluate("(v) => { isoft.target_total._dialog.tt.set_target(v); }", value)
     page.wait_for_timeout(400)
 
 
@@ -204,7 +204,7 @@ def task3(page, log, args):
     log.check(round(abs(st["gt"] - target), 2) <= 0.01 and warned, "typed: within one cent and status is ok/warn", f"{st['gt']} status={st['status']}")
 
     # Changing the default mode must not touch Fixed rows.
-    page.evaluate("() => { isoft.target_total._dialog.set_value('default_mode', 'Rate'); }")
+    page.evaluate("() => { isoft.target_total._dialog.tt.set_default_mode('Rate'); }")
     page.wait_for_timeout(400)
     st = dialog_state(page)
     log.check(st["modes"][0] == "Fixed" and st["modes"][1] == "Fixed" and st["modes"][2] == "Rate", "default mode leaves Fixed rows alone", json.dumps(st["modes"]))
@@ -322,7 +322,7 @@ def task4(page, log, args):
         # Spec test 2: Net Total target with the 5% document discount in force.
         page.click(".page-actions button:has-text('Target Total')")
         page.wait_for_selector(".modal:visible .isoft-tt-table", timeout=10000)
-        page.evaluate("() => { isoft.target_total._dialog.set_value('kind', 'Net Total'); }")
+        page.evaluate("() => { isoft.target_total._dialog.tt.set_kind('Net Total'); }")
         page.wait_for_timeout(300)
         nt_target = 400000.0
         dialog_set_target(page, nt_target)
@@ -348,7 +348,7 @@ def task4(page, log, args):
         log.check(button_present(page), "Target Total button on new Sales Invoice")
         page.click(".page-actions button:has-text('Target Total')")
         page.wait_for_selector(".modal:visible .isoft-tt-table", timeout=10000)
-        page.evaluate("() => { isoft.target_total._dialog.set_value('default_mode', 'Rate'); }")
+        page.evaluate("() => { isoft.target_total._dialog.tt.set_default_mode('Rate'); }")
         page.wait_for_timeout(300)
         gt0 = page.evaluate("() => cur_frm.doc.grand_total")
         dialog_set_target(page, round(gt0 * 1.2, 2))
