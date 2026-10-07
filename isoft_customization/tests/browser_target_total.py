@@ -99,16 +99,38 @@ def task2(page, log, args):
     }""")
     log("margin", json.dumps(m))
     log.check(m["ret"] == {"margin": True} and m["margin_type"] == "Amount" and abs(m["m"] - 10) < 1e-9 and m["disc"] == 0, "Rate above price list rate -> margin Amount")
-    # Price List Rate mode rewrites price_list_rate and clears discount + margin.
-    p = page.evaluate("""() => {
+    # Price List Rate mode keeps an existing discount: the price list rate is set
+    # so that rate = price_list_rate * (1 - discount%) lands on the new rate.
+    p = page.evaluate("""(orig) => {
         const it = cur_frm.doc.items[0];
+        it.price_list_rate = orig.plr; it.rate = orig.rate; it.margin_type = ''; it.margin_rate_or_amount = 0; it.rate_with_margin = 0;
+        it.discount_percentage = 10; it.discount_amount = orig.plr * 0.1;   // an existing 10% discount
         const r = isoft.target_total.write_rate(it, 200, 'Price List Rate');
         isoft.target_total.recalc_silent(cur_frm);
         return {ret: r, plr: it.price_list_rate, rate: it.rate, disc: it.discount_percentage, da: it.discount_amount, mt: it.margin_type, m: it.margin_rate_or_amount, rwm: it.rate_with_margin,
                 cur_gt: isoft.target_total.current(cur_frm, 'Grand Total'), gt: cur_frm.doc.grand_total, cur_nt: isoft.target_total.current(cur_frm, 'Net Total'), nt: cur_frm.doc.net_total};
-    }""")
+    }""", before)
     log("plr", json.dumps(p))
-    log.check(p["plr"] == 200 and p["rate"] == 200 and not p["disc"] and not p["da"] and not p["mt"] and not p["m"] and not p["rwm"], "Price List Rate mode clears discount and margin")
+    log.check(p["rate"] == 200 and p["disc"] == 10 and abs(p["plr"] - 222.22) < 0.006 and abs(p["da"] - (p["plr"] - 200)) < 0.011 and not p["mt"] and not p["m"] and not p["rwm"],
+              "Price List Rate mode keeps the existing 10% discount", json.dumps(p))
+    # ... and with no discount it simply rewrites the price list rate.
+    p0 = page.evaluate("""() => {
+        const it = cur_frm.doc.items[0];
+        it.discount_percentage = 0; it.discount_amount = 0;
+        const r = isoft.target_total.write_rate(it, 200, 'Price List Rate');
+        isoft.target_total.recalc_silent(cur_frm);
+        return {plr: it.price_list_rate, rate: it.rate, disc: it.discount_percentage, da: it.discount_amount};
+    }""")
+    log.check(p0["plr"] == 200 and p0["rate"] == 200 and not p0["disc"] and not p0["da"], "Price List Rate mode without a discount rewrites the price list rate", json.dumps(p0))
+    # A fixed discount amount (no percentage) is kept too.
+    p1 = page.evaluate("""() => {
+        const it = cur_frm.doc.items[0];
+        it.discount_percentage = 0; it.discount_amount = 15;
+        const r = isoft.target_total.write_rate(it, 200, 'Price List Rate');
+        isoft.target_total.recalc_silent(cur_frm);
+        return {plr: it.price_list_rate, rate: it.rate, disc: it.discount_percentage, da: it.discount_amount};
+    }""")
+    log.check(p1["plr"] == 215 and p1["rate"] == 200 and p1["da"] == 15, "Price List Rate mode keeps a fixed discount amount", json.dumps(p1))
     log.check(p["cur_gt"] == p["gt"] and p["cur_nt"] == p["nt"], "current() reads the form totals")
     # restore() brings the snapshot back.
     restored = page.evaluate("""(orig) => {

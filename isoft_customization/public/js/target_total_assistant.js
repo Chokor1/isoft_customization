@@ -64,10 +64,21 @@ frappe.provide('isoft.target_total');
 		}
 
 		// Price List Rate mode, and Rate mode on a row without a price list rate.
-		item.price_list_rate = new_rate;
-		item.rate = new_rate;
-		clear_discount(item);
+		// An existing discount (typed by hand or from a pricing rule) is kept: the
+		// price list rate is raised so that the same discount lands on new_rate.
+		const pct = flt(item.discount_percentage);
+		const amt = flt(item.discount_amount);
 		clear_margin(item);
+		item.rate = new_rate;
+		if (pct > 0 && pct < 100) {
+			item.price_list_rate = flt(new_rate / (1 - pct / 100), precision('price_list_rate', item));
+			item.discount_amount = flt(item.price_list_rate - new_rate, precision('discount_amount', item));
+		} else if (amt > 0) {
+			item.price_list_rate = flt(new_rate + amt, precision('price_list_rate', item));
+		} else {
+			item.price_list_rate = new_rate;
+			clear_discount(item);
+		}
 		return { margin: false };
 	};
 

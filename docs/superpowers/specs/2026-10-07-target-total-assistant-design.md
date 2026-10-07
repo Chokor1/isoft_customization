@@ -94,9 +94,12 @@ panel says "Free lines have no amount; type a rate on at least one line".
 ## What each mode writes on a line
 
 Price List Rate (default)
-- `price_list_rate = new_rate`, `rate = new_rate`, `discount_percentage = 0`,
-  `discount_amount = 0`, `margin_type = ""`, `margin_rate_or_amount = 0`,
-  `rate_with_margin = 0`.
+- `rate = new_rate`, margin cleared. An existing discount on the line (typed
+  by hand or from a pricing rule) is kept (user decision 2026-10-07): with
+  `discount_percentage` p in (0, 100), `price_list_rate = new_rate / (1 - p/100)`
+  and `discount_amount = price_list_rate - new_rate`; with only a
+  `discount_amount` a, `price_list_rate = new_rate + a`; with no discount,
+  `price_list_rate = new_rate` and both discount fields are 0.
 
 Rate
 - `price_list_rate` unchanged. `rate = new_rate`.
