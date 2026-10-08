@@ -64,9 +64,17 @@ doc_events = {
 	},
 	"Sales Invoice": {
 		# Keep Delivery Note prices, per Selling Settings. See linked_document_prices.py.
-		"set_missing_values": "isoft_customization.linked_document_prices.on_map",
+		# Tax Id from the Customer when a document made from a Quotation arrives
+		# without one (the quotation's tax_id is no_copy). See party_tax_id.py.
+		"set_missing_values": [
+			"isoft_customization.linked_document_prices.on_map",
+			"isoft_customization.party_tax_id.fill_from_customer",
+		],
 		"before_validate": "isoft_customization.linked_document_prices.keep_prices",
-		"validate": "isoft_customization.linked_document_prices.release",
+		"validate": [
+			"isoft_customization.linked_document_prices.release",
+			"isoft_customization.party_tax_id.fill_from_customer",
+		],
 		"on_submit": "isoft_customization.isoft_customization.doctype.invoice_payment_notification.invoice_payment_notification.trigger_notification_on_sales_invoice_submit",
 		# Mandatory reasons, per Selling Settings. See document_reasons.py.
 		# Batch ownership check runs first so a bad batch fails before docstatus is
@@ -95,6 +103,9 @@ doc_events = {
 	},
 	"Sales Order": {
 		"before_cancel": "isoft_customization.document_reasons.validate_cancel_reason",
+		# Tax Id from the Customer, same reason as Sales Invoice. See party_tax_id.py.
+		"set_missing_values": "isoft_customization.party_tax_id.fill_from_customer",
+		"validate": "isoft_customization.party_tax_id.fill_from_customer",
 	},
 	"Delivery Note": {
 		"before_submit": "isoft_customization.batch_integrity.validate_batch_belongs_to_item",
