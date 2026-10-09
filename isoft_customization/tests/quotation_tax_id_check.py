@@ -45,6 +45,15 @@ def server_checks():
     si.tax_id = "123456789"
     si.run_method("set_missing_values")
     check(si.tax_id == "123456789", "an existing tax_id on the document is kept", repr(si.tax_id))
+
+    # The desk's run_doc_method always passes one positional `args` to run_method, and
+    # frappe forwards it to every hook: hooks on set_missing_values must accept it.
+    # (Credit note from a POS invoice: "on_map() takes from 1 to 2 positional arguments but 3 were given")
+    try:
+        si.run_method("set_missing_values", "")
+        check(True, "hooks on set_missing_values accept the desk's extra positional argument")
+    except TypeError as e:
+        check(False, "hooks on set_missing_values accept the desk's extra positional argument", str(e))
     frappe.db.rollback()
     return q.name
 

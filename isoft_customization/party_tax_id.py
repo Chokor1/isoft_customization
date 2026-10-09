@@ -15,10 +15,14 @@ NIF than its customer (consumer invoices), and FE Angola reads
 """
 from __future__ import unicode_literals
 
+# Hook signatures take *args/**kwargs: Frappe forwards the hooked method's own
+# arguments to every hook, and the desk's run_doc_method always passes one
+# positional `args` (ERPNext's sales_invoice.js calls set_missing_values that way
+# when a POS return loads), so a plain (doc, method) hook raises TypeError.
 import frappe
 
 
-def fill_from_customer(doc, method=None):
+def fill_from_customer(doc, method=None, *args, **kwargs):
 	if doc.get("tax_id") or not doc.get("customer"):
 		return
 	if not doc.meta.has_field("tax_id"):

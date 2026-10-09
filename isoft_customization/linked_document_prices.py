@@ -36,6 +36,10 @@ A row is left alone when the invoice is in another currency than the source docu
 """
 from __future__ import unicode_literals
 
+# Hook signatures take *args/**kwargs: Frappe forwards the hooked method's own
+# arguments to every hook, and the desk's run_doc_method always passes one
+# positional `args` (ERPNext's sales_invoice.js calls set_missing_values that way
+# when a POS return loads), so a plain (doc, method) hook raises TypeError.
 import frappe
 from frappe import _
 from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
@@ -150,7 +154,7 @@ def clear_boot_cache(doc=None, method=None):
 	frappe.cache().delete_key("bootinfo")
 
 
-def on_map(doc, method=None):
+def on_map(doc, method=None, *args, **kwargs):
 	"""Invoice set_missing_values: during the mapper this is the moment the rows get
 	today's pricing rules; during validate keep_prices has already taken over."""
 	link = LINKS.get(doc.doctype)
@@ -163,7 +167,7 @@ def on_map(doc, method=None):
 		_restore(doc, link, prices)
 
 
-def keep_prices(doc, method=None):
+def keep_prices(doc, method=None, *args, **kwargs):
 	"""Invoice before_validate."""
 	link = LINKS.get(doc.doctype)
 	if not link or doc.docstatus != 0:
@@ -211,7 +215,7 @@ def keep_prices(doc, method=None):
 		)
 
 
-def release(doc, method=None):
+def release(doc, method=None, *args, **kwargs):
 	"""Invoice validate: runs after the controller's own, drops the wrapper."""
 	doc.__dict__.pop("calculate_taxes_and_totals", None)
 
