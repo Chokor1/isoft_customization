@@ -593,3 +593,12 @@ Prices are split into blocks of the block size; the remainder decides where the 
 Above every threshold the price goes up to the next block. Prices on multiples of 50 give whole-number IVA at 14%.,Acima de todos os limiares o preço sobe para o bloco seguinte. Preços em múltiplos de 50 dão IVA inteiro a 14%.
 Remove,Remover
 Save,Guardar
+Credit Note Register,Registo de Notas de Crédito,
+Credit Note,Nota de Crédito,
+Invoice Date,Data da Factura,
+Invoice Net Total,Total Líquido da Factura,
+Invoice Taxes,Impostos da Factura,
+Invoice Grand Total,Total Geral da Factura,
+Credited So Far,Creditado até Agora,
+Credited %,% Creditado,
+Include Cancelled,Incluir Anuladas,
