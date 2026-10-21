@@ -167,6 +167,13 @@ override_doctype_class = {
 	"Purchase Invoice": "isoft_customization.overrides.purchase_invoice.IsoftPurchaseInvoice",
 }
 
+# Stock Analytics opening-balance backport (erpnext 008f2a6b6). v13 cannot override a
+# report's functions, so they are reassigned at runtime: before_request covers report
+# runs from the desk, before_job covers prepared reports in the background workers.
+# Idempotent and a no-op once ERPNext has the fix. See overrides/stock_analytics.py.
+before_request = ["isoft_customization.overrides.stock_analytics.apply"]
+before_job = ["isoft_customization.overrides.stock_analytics.apply"]
+
 
 # Ships the company-wise naming series map to the desk (see company_naming_series.js).
 # Also the Keep Delivery Note / Purchase Receipt Prices switches (see linked_document_prices.js).

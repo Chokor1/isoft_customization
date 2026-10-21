@@ -16,5 +16,13 @@ def _install_runtime_patches():
 	except Exception:
 		pass
 
+	# Stock Analytics opening balance; hooks.py also applies it per request / job.
+	try:
+		from isoft_customization.overrides.stock_analytics import apply
+
+		apply()
+	except Exception:
+		pass
+
 
 _install_runtime_patches()
