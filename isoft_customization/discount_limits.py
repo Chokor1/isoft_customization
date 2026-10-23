@@ -44,7 +44,11 @@ TOL = 0.005
 
 
 def get_settings():
-	return frappe.get_cached_doc(SETTINGS, SETTINGS)
+	# Read, not cached: the document cache of a Single survives db.set_value
+	# writes (frappe.db.set_value clears the cache under the wrong key for
+	# Singles), and a stale "enabled = 0" would silently switch the checks off.
+	# One tabSingles read per validate is negligible.
+	return frappe.get_single(SETTINGS)
 
 
 def resolve_limit(doctype, settings, user_rows, role_rows, user_roles):

@@ -23,11 +23,14 @@ def check(cond, label, detail=""):
 
 
 def set_settings(**values):
+    """Through the document API, like the form does, so every cache is cleared."""
     import frappe
+    doc = frappe.get_single("Sales Discount Limit Settings")
     for k, v in values.items():
-        frappe.db.set_value("Sales Discount Limit Settings", None, k, v)
+        if v is not None:
+            doc.set(k, v)
+    doc.save(ignore_permissions=True)
     frappe.db.commit()
-    frappe.clear_cache(doctype="Sales Discount Limit Settings")
 
 
 def main():
@@ -35,6 +38,8 @@ def main():
     sid = h.mint_session()  # also connects frappe
     saved = frappe.db.get_singles_dict("Sales Discount Limit Settings")
     keep = {k: saved.get(k) for k in ("enabled", "users_without_limit", "limit_user", "check_sales_invoice", "check_quotation", "skip_pos")}
+    keep_roles = [dict(role=r.role, document_type=r.document_type, max_discount_stock=r.max_discount_stock, max_discount_service=r.max_discount_service)
+                  for r in frappe.get_single("Sales Discount Limit Settings").get("role_limits") or []]
     stock_item = frappe.db.get_value("Item", {"is_stock_item": 1, "disabled": 0, "has_variants": 0}, "name")
     service_item = frappe.db.get_value("Item", {"is_stock_item": 0, "disabled": 0, "has_variants": 0}, "name")
     customer = frappe.db.get_value("Customer", {"disabled": 0}, "name")
@@ -97,6 +102,9 @@ def main():
             check(not errors, "no page errors", json.dumps(errors))
             b.close()
     finally:
+        doc = frappe.get_single("Sales Discount Limit Settings")
+        doc.set("role_limits", keep_roles)
+        doc.save(ignore_permissions=True); frappe.db.commit()
         set_settings(**keep)
         if admin_has_record:
             frappe.db.set_value("Sales Discount Limit", "Administrator", "enabled", 1); frappe.db.commit()
