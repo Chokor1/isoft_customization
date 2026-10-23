@@ -602,3 +602,34 @@ Invoice Grand Total,Total Geral da Factura,
 Credited So Far,Creditado até Agora,
 Credited %,% Creditado,
 Include Cancelled,Incluir Anuladas,
+Sales Discount Limit,Limite de Desconto de Vendas
+Sales Discount Limit Settings,Definições de Limites de Desconto de Vendas
+Enable Sales Discount Limits,Ativar limites de desconto de vendas
+Users without a limit,Utilizadores sem limite
+No limit (100%),Sem limite (100%)
+No discount allowed (0%),Sem desconto permitido (0%)
+Limit applies to,O limite aplica-se a
+User saving the document,Utilizador que grava o documento
+Document owner,Criador do documento
+Check Quotation,Verificar Cotação
+Check Sales Order,Verificar Encomenda de Cliente
+Check Delivery Note,Verificar Guia de Remessa
+Check Sales Invoice,Verificar Fatura de Venda
+Exemptions,Exceções
+Skip POS invoices,Ignorar faturas POS
+Skip returns (credit notes),Ignorar devoluções (notas de crédito)
+Allow discounts coming from Pricing Rules,Permitir descontos vindos de Regras de Preço
+Limits by Role,Limites por Função
+Role Limits,Limites por Função
+Limits by Document Type,Limites por Tipo de Documento
+Limits,Limites
+Max Discount % (Stock Items),Desconto máx. % (artigos de stock)
+Max Discount % (Services),Desconto máx. % (serviços)
+Document Type,Tipo de Documento
+Row {0} ({1}): a discount of {2} is above the {3} allowed to {6} for {4} on a {5}.,Linha {0} ({1}): um desconto de {2} ultrapassa os {3} permitidos a {6} para {4} em {5}.
+Discount above your limit,Desconto acima do seu limite
+stock items,artigos de stock
+services,serviços
+Row {0}: {1} is listed twice.,Linha {0}: {1} está repetido.
+Row {0}: discounts must be between 0 and 100%.,Linha {0}: os descontos têm de estar entre 0 e 100%.
+Role limits row {0}: discounts must be between 0 and 100%.,Limites por função, linha {0}: os descontos têm de estar entre 0 e 100%.

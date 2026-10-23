@@ -74,6 +74,8 @@ doc_events = {
 		"validate": [
 			"isoft_customization.linked_document_prices.release",
 			"isoft_customization.party_tax_id.fill_from_customer",
+			# Per-user maximum line discounts. See discount_limits.py.
+			"isoft_customization.discount_limits.validate_discounts",
 		],
 		"on_submit": "isoft_customization.isoft_customization.doctype.invoice_payment_notification.invoice_payment_notification.trigger_notification_on_sales_invoice_submit",
 		# Mandatory reasons, per Selling Settings. See document_reasons.py.
@@ -99,15 +101,20 @@ doc_events = {
 		"on_update": "isoft_customization.linked_document_prices.clear_boot_cache",
 	},
 	"Quotation": {
+		"validate": "isoft_customization.discount_limits.validate_discounts",
 		"before_cancel": "isoft_customization.document_reasons.validate_cancel_reason",
 	},
 	"Sales Order": {
 		"before_cancel": "isoft_customization.document_reasons.validate_cancel_reason",
 		# Tax Id from the Customer, same reason as Sales Invoice. See party_tax_id.py.
 		"set_missing_values": "isoft_customization.party_tax_id.fill_from_customer",
-		"validate": "isoft_customization.party_tax_id.fill_from_customer",
+		"validate": [
+			"isoft_customization.party_tax_id.fill_from_customer",
+			"isoft_customization.discount_limits.validate_discounts",
+		],
 	},
 	"Delivery Note": {
+		"validate": "isoft_customization.discount_limits.validate_discounts",
 		"before_submit": "isoft_customization.batch_integrity.validate_batch_belongs_to_item",
 		"before_cancel": "isoft_customization.document_reasons.validate_cancel_reason",
 	},

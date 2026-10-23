@@ -1,0 +1,30 @@
+{
+ "actions": [], "creation": "2026-10-23 08:00:00.000000",
+ "description": "Per-user maximum line discounts on selling documents. Users get their own Sales Discount Limit, else the best limit of their roles below, else the fallback chosen here.",
+ "doctype": "DocType", "document_type": "Other", "engine": "InnoDB",
+ "field_order": ["enabled", "users_without_limit", "limit_user", "column_break_1", "check_quotation", "check_sales_order", "check_delivery_note", "check_sales_invoice", "section_rules", "skip_pos", "skip_returns", "allow_pricing_rule_discounts", "section_roles", "role_limits"],
+ "fields": [
+  {"default": "0", "fieldname": "enabled", "fieldtype": "Check", "label": "Enable Sales Discount Limits"},
+  {"default": "No limit (100%)", "depends_on": "enabled", "description": "What a user with no Sales Discount Limit record and no matching role limit may give.", "fieldname": "users_without_limit", "fieldtype": "Select", "label": "Users without a limit", "options": "No limit (100%)\nNo discount allowed (0%)"},
+  {"default": "User saving the document", "depends_on": "enabled", "description": "Whose limit applies: the user saving the document, or the user who created it (the old behaviour).", "fieldname": "limit_user", "fieldtype": "Select", "label": "Limit applies to", "options": "User saving the document\nDocument owner"},
+  {"fieldname": "column_break_1", "fieldtype": "Column Break"},
+  {"default": "1", "depends_on": "enabled", "fieldname": "check_quotation", "fieldtype": "Check", "label": "Check Quotation"},
+  {"default": "1", "depends_on": "enabled", "fieldname": "check_sales_order", "fieldtype": "Check", "label": "Check Sales Order"},
+  {"default": "0", "depends_on": "enabled", "fieldname": "check_delivery_note", "fieldtype": "Check", "label": "Check Delivery Note"},
+  {"default": "1", "depends_on": "enabled", "fieldname": "check_sales_invoice", "fieldtype": "Check", "label": "Check Sales Invoice"},
+  {"depends_on": "enabled", "fieldname": "section_rules", "fieldtype": "Section Break", "label": "Exemptions"},
+  {"default": "1", "fieldname": "skip_pos", "fieldtype": "Check", "label": "Skip POS invoices"},
+  {"default": "1", "fieldname": "skip_returns", "fieldtype": "Check", "label": "Skip returns (credit notes)"},
+  {"default": "1", "description": "A discount granted by a Pricing Rule is allowed even when it is above the user's limit.", "fieldname": "allow_pricing_rule_discounts", "fieldtype": "Check", "label": "Allow discounts coming from Pricing Rules"},
+  {"depends_on": "enabled", "fieldname": "section_roles", "fieldtype": "Section Break", "label": "Limits by Role"},
+  {"description": "Used for users without their own record. When several roles match, the highest limit wins. A row for a specific document type beats the 'All' row.", "fieldname": "role_limits", "fieldtype": "Table", "label": "Role Limits", "options": "Sales Discount Role Limit"}
+ ],
+ "icon": "fa fa-cog", "index_web_pages_for_search": 0, "issingle": 1, "links": [], "modified": "2026-10-23 08:00:00.000000", "modified_by": "Administrator",
+ "module": "ISOFT Customization", "name": "Sales Discount Limit Settings", "owner": "Administrator",
+ "permissions": [
+  {"create": 1, "email": 1, "print": 1, "read": 1, "role": "System Manager", "share": 1, "write": 1},
+  {"create": 1, "email": 1, "print": 1, "read": 1, "role": "Sales Manager", "share": 1, "write": 1},
+  {"create": 1, "email": 1, "print": 1, "read": 1, "role": "Sales Master Manager", "share": 1, "write": 1}
+ ],
+ "sort_field": "modified", "sort_order": "DESC", "track_changes": 1
+}
