@@ -131,3 +131,30 @@ def validate_discounts(doc, method=None, *args, **kwargs):
 				_("stock items") if is_stock else _("services"), _(doc.doctype), user),
 			title=_("Discount above your limit"),
 		)
+
+
+@frappe.whitelist()
+def get_form_limits(doctype, owner=None, item_codes=None):
+	"""What the form needs to lock discount fields: the effective limits of the user
+	whose limit applies (session user, or the document owner per settings) and
+	which of the given items are stock items. `applies` is False when the
+	settings do not check this document type at all (the form then locks nothing;
+	POS / return exemptions are decided on the form from the document flags)."""
+	settings = get_settings()
+	out = {"applies": False, "max_stock": 100.0, "max_service": 100.0, "stock_items": {},
+		"skip_pos": cint(settings.skip_pos), "skip_returns": cint(settings.skip_returns)}
+	if not cint(settings.enabled) or not cint(settings.get(CHECK_FLAG.get(doctype, ""))):
+		return out
+	user = owner if settings.limit_user == "Document owner" and owner else frappe.session.user
+	user_rows = user_limit_rows(user)
+	role_rows = settings.get("role_limits") or []
+	roles = set(frappe.get_roles(user)) if role_rows else set()
+	max_stock, max_service = resolve_limit(doctype, settings, user_rows, role_rows, roles)
+	codes = frappe.parse_json(item_codes) if isinstance(item_codes, str) else (item_codes or [])
+	codes = [c for c in set(codes) if c]
+	stock = {}
+	if codes:
+		for r in frappe.get_all("Item", filters={"name": ["in", codes]}, fields=["name", "is_stock_item"]):
+			stock[r.name] = cint(r.is_stock_item)
+	out.update({"applies": True, "max_stock": max_stock, "max_service": max_service, "stock_items": stock, "user": user})
+	return out

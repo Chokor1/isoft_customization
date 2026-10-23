@@ -35,6 +35,9 @@ app_include_js = [
 	# math file is Frappe-free so Node can unit-test it; it must load first.
 	"/assets/isoft_customization/js/target_total_math.js",
 	"/assets/isoft_customization/js/target_total_assistant.js",
+	# Sales discount limits: locks the discount fields of lines whose limit is
+	# 0% for the current user. See discount_limits.py / discount_limits.js.
+	"/assets/isoft_customization/js/discount_limits.js",
 ]
 
 app_include_css = [
