@@ -24,13 +24,5 @@ def _install_runtime_patches():
 	except Exception:
 		pass
 
-	# Pricing Rule Apply On "Item Group and Brand"; hooks.py also applies it per request / job.
-	try:
-		from isoft_customization.item_group_and_brand import apply
-
-		apply()
-	except Exception:
-		pass
-
 
 _install_runtime_patches()

@@ -13,9 +13,6 @@ pair that really would collide:
   * same Apply On (Item Code / Item Group / Brand) sharing a value -- ERPNext
     looks at item-code rules first and only falls back to group/brand rules when
     none match, so an item-code rule never collides with a group rule;
-  * an "Item Group and Brand" rule is weighed with the Item Group rules (see
-    item_group_and_brand.py): it meets an Item Group rule on a shared group, and
-    another of its kind on a shared group when they also share a brand;
   * both selling, or both buying;
   * the parties overlap: either rule is for everyone, or the same party, or one
     customer group / territory / supplier group sits under the other, or a
@@ -39,21 +36,11 @@ from frappe import _
 from frappe.model.document import Document
 from frappe.utils import cint, flt, getdate, nowdate
 
-from isoft_customization.item_group_and_brand import ITEM_GROUP_AND_BRAND
-
 APPLY_ON = {
 	"Item Code": ("items", "item_code", "Pricing Rule Item Code"),
 	"Item Group": ("item_groups", "item_group", "Pricing Rule Item Group"),
 	"Brand": ("brands", "brand", "Pricing Rule Brand"),
-	ITEM_GROUP_AND_BRAND: ("item_groups", "item_group", "Pricing Rule Item Group"),
 }
-# Apply On values ERPNext weighs against each other at the same lookup stage.
-SAME_STAGE = {
-	"Item Group": ("Item Group", ITEM_GROUP_AND_BRAND),
-	ITEM_GROUP_AND_BRAND: ("Item Group", ITEM_GROUP_AND_BRAND),
-}
-# Translated where used: _() at import time would fix the language of the first request.
-UNIT = {"Item Code": "item", "Item Group": "item group", "Brand": "brand", ITEM_GROUP_AND_BRAND: "item group"}
 TREES = {"Customer Group", "Territory", "Supplier Group"}
 PARTY_IN_TREE = (
 	("Customer", "Customer Group", "customer_group"),
@@ -228,9 +215,9 @@ def find_conflicts(doc, priority=None, include_shadowed=False):
 		from `tab{child_dt}` c
 		inner join `tabPricing Rule` pr on pr.name = c.parent
 		where c.parenttype = 'Pricing Rule' and c.`{field}` in %(targets)s
-			and pr.name != %(me)s and pr.disable = 0 and pr.apply_on in %(apply_on)s
+			and pr.name != %(me)s and pr.disable = 0 and pr.apply_on = %(apply_on)s
 		""".format(field=field, child_dt=child_dt, uom="ifnull(c.uom, '')" if has_uom else "''"),
-		{"targets": list(mine), "me": d.name or "", "apply_on": SAME_STAGE.get(d.apply_on, (d.apply_on,))},
+		{"targets": list(mine), "me": d.name or "", "apply_on": d.apply_on},
 		as_dict=True,
 	)
 	if not hits:
@@ -252,22 +239,6 @@ def find_conflicts(doc, priority=None, include_shadowed=False):
 		"select parent, count(*) from `tab{0}` where parent in %(n)s group by parent".format(child_dt),
 		{"n": list(shared)},
 	))
-
-	# Two "Item Group and Brand" rules only meet on an item of a brand both list.
-	my_brands = brand_rules = None
-	if d.apply_on == ITEM_GROUP_AND_BRAND:
-		my_brands = {frappe._dict(r).get("brand") for r in d.get("brands") or []}
-		brand_rules = [b.name for b in headers if b.apply_on == ITEM_GROUP_AND_BRAND]
-	if brand_rules:
-		their_brands = {}
-		for parent, brand in frappe.db.sql(
-			"select parent, brand from `tabPricing Rule Brand` where parent in %(n)s", {"n": brand_rules}
-		):
-			their_brands.setdefault(parent, set()).add(brand)
-		headers = [
-			b for b in headers
-			if b.apply_on != ITEM_GROUP_AND_BRAND or my_brands & their_brands.get(b.name, set())
-		]
 
 	out = []
 	for b in headers:
@@ -319,7 +290,7 @@ def validate_no_conflicts(doc, method=None):
 	conflicts = find_conflicts(doc)
 	if not conflicts:
 		return
-	unit = _(UNIT[doc.apply_on])
+	unit = {"Item Code": _("item"), "Item Group": _("item group"), "Brand": _("brand")}[doc.apply_on]
 	lines = "".join(
 		"<li><b>{0}</b> {1} ({2}, {3}, priority {4}): {5} {6}</li>".format(
 			c["rule"], frappe.utils.escape_html(c["title"] or ""), c["discount"], c["parties"],
