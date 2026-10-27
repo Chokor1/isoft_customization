@@ -175,14 +175,24 @@ doctype_js = {
 # Threshold: site_config `background_submit_min_rows` (default 200, 0 = off).
 override_doctype_class = {
 	"Purchase Invoice": "isoft_customization.overrides.purchase_invoice.IsoftPurchaseInvoice",
+	# Apply On "Item Group and Brand": keeps both tables on save. See item_group_and_brand.py.
+	"Pricing Rule": "isoft_customization.overrides.pricing_rule.IsoftPricingRule",
 }
 
 # Stock Analytics opening-balance backport (erpnext 008f2a6b6). v13 cannot override a
 # report's functions, so they are reassigned at runtime: before_request covers report
 # runs from the desk, before_job covers prepared reports in the background workers.
 # Idempotent and a no-op once ERPNext has the fix. See overrides/stock_analytics.py.
-before_request = ["isoft_customization.overrides.stock_analytics.apply"]
-before_job = ["isoft_customization.overrides.stock_analytics.apply"]
+# Pricing Rule "Item Group and Brand" matching is reassigned the same way, for the
+# same reason: v13 has no hook into how rules are looked up. See item_group_and_brand.py.
+before_request = [
+	"isoft_customization.overrides.stock_analytics.apply",
+	"isoft_customization.item_group_and_brand.apply",
+]
+before_job = [
+	"isoft_customization.overrides.stock_analytics.apply",
+	"isoft_customization.item_group_and_brand.apply",
+]
 
 
 # Ships the company-wise naming series map to the desk (see company_naming_series.js).
@@ -208,4 +218,6 @@ after_migrate = [
 	# imported under: Frappe then looks for its .js in the wrong app and shows a
 	# blank page. See page_modules.py.
 	"isoft_customization.page_modules.sync_page_modules",
+	# Pricing Rule Apply On "Item Group and Brand". See item_group_and_brand.py.
+	"isoft_customization.item_group_and_brand.setup_property_setters",
 ]

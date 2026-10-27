@@ -633,3 +633,5 @@ services,serviços
 Row {0}: {1} is listed twice.,Linha {0}: {1} está repetido.
 Row {0}: discounts must be between 0 and 100%.,Linha {0}: os descontos têm de estar entre 0 e 100%.
 Role limits row {0}: discounts must be between 0 and 100%.,Limites por função, linha {0}: os descontos têm de estar entre 0 e 100%.
+Item Group and Brand,Grupo do Item e Marca
+{0} cannot be used with Apply On {1}.,{0} não pode ser usado com Aplicar Em {1}.

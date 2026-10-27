@@ -11,8 +11,31 @@
 //   - give it the lowest priority that wins over all of them
 
 const PRC_API = "isoft_customization.pricing_rule_conflicts.";
+// Fifth Apply On choice, added by isoft_customization/item_group_and_brand.py:
+// the rule needs both the Item Groups and the Brands table.
+const PRC_GROUP_AND_BRAND = "Item Group and Brand";
 
 frappe.ui.form.on("Pricing Rule", {
+	setup(frm) {
+		// ERPNext's UOM query looks the row up by the Apply On field, which this
+		// Apply On does not name; give each table its own field.
+		[["item_groups", "Item Group"], ["brands", "Brand"]].forEach(([table, apply_on]) => {
+			const query = frm.fields_dict[table].grid.get_field("uom").get_query;
+			frm.fields_dict[table].grid.get_field("uom").get_query = function (doc, cdt, cdn) {
+				if (doc.apply_on !== PRC_GROUP_AND_BRAND) return query(doc, cdt, cdn);
+				return {
+					query: "erpnext.accounts.doctype.pricing_rule.pricing_rule.get_item_uoms",
+					filters: { value: locals[cdt][cdn][frappe.scrub(apply_on)], apply_on },
+				};
+			};
+		});
+	},
+	// Runs after ERPNext's handler of the same name, which leaves both tables optional.
+	toggle_reqd_apply_on(frm) {
+		if (frm.doc.apply_on !== PRC_GROUP_AND_BRAND) return;
+		frm.toggle_reqd("item_groups", 1);
+		frm.toggle_reqd("brands", 1);
+	},
 	validate(frm) {
 		if (frm.doc.disable) return;
 		// frappe waits for this promise and aborts the save if frappe.validated is false
@@ -36,7 +59,7 @@ frappe.ui.form.on("Pricing Rule", {
 });
 
 function prc_unit(apply_on, n) {
-	const u = { "Item Code": [__("item"), __("items")], "Item Group": [__("item group"), __("item groups")], "Brand": [__("brand"), __("brands")] }[apply_on] || [__("item"), __("items")];
+	const u = { "Item Code": [__("item"), __("items")], "Item Group": [__("item group"), __("item groups")], "Brand": [__("brand"), __("brands")], [PRC_GROUP_AND_BRAND]: [__("item group"), __("item groups")] }[apply_on] || [__("item"), __("items")];
 	return n === 1 ? u[0] : u[1];
 }
 
