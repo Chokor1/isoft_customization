@@ -18,7 +18,9 @@ No ERPNext file is edited; four pieces make it work:
      item's group matches and again at the Brand stage whenever its brand matches.
      The wrapper keeps it at the Item Group stage only when the brand matches too,
      and drops it at the Brand stage, so it is applied once and ranks with the Item
-     Group rules, ahead of brand-only ones.
+     Group rules, ahead of brand-only ones. It also keeps one row per rule: a rule
+     listing a group and its own subgroup otherwise comes back twice and ERPNext
+     refuses the line as a conflict with itself.
    - pricing_rule.update_pricing_rule_uom and utils.get_pricing_rule_items look up
      the rule's table by Apply On in a fixed list and crash on any other value
      (on invoice validate). For this kind they read the Item Groups table.
@@ -52,10 +54,33 @@ _original = {}
 def _get_pricing_rules(apply_on, args, values):
 	rules = _original["_get_pricing_rules"](apply_on, args, values)
 	if apply_on == "Item Group":
-		return [r for r in rules if r.get("apply_on") != ITEM_GROUP_AND_BRAND or _brand_matches(r, args)]
-	if apply_on == "Brand":
-		return [r for r in rules if r.get("apply_on") != ITEM_GROUP_AND_BRAND]
-	return rules
+		rules = [r for r in rules if r.get("apply_on") != ITEM_GROUP_AND_BRAND or _brand_matches(r, args)]
+	elif apply_on == "Brand":
+		rules = [r for r in rules if r.get("apply_on") != ITEM_GROUP_AND_BRAND]
+	return _one_row_per_rule(rules, apply_on)
+
+
+def _one_row_per_rule(rules, apply_on):
+	"""ERPNext's query returns a rule once per child row that matches. A rule listing
+	a group and one of its subgroups (ACCESSORIOS and ACCESSORIOS HP) therefore comes
+	back twice for an item of the subgroup, and filter_pricing_rules refuses the line:
+	"Multiple Price Rules exists with same criteria ... PRLE-0245 PRLE-0245". Keep one
+	row per rule; at the Item Group stage the row of the deepest (most specific) group,
+	since its UOM is the one meant for the item."""
+	kept = {}
+	for r in rules:
+		seen = kept.get(r.name)
+		if seen is None or (apply_on == "Item Group" and _depth(r) > _depth(seen)):
+			kept[r.name] = r
+	if len(kept) == len(rules):
+		return rules
+	return [r for r in rules if kept.get(r.name) is r]
+
+
+def _depth(row):
+	if not row.get("item_group"):
+		return 0
+	return frappe.get_cached_value("Item Group", row.get("item_group"), "lft") or 0
 
 
 def _brand_matches(rule, args):
