@@ -541,7 +541,7 @@ Free lines have no amount; type a rate on at least one line,As linhas livres nã
 Target too low: lowest reachable total is {0},Alvo demasiado baixo: o total mínimo alcançável é {0}
 Above price list rate: creates a margin (rejected by AGT on invoices). Use Price List Rate.,Acima do preço de tabela: cria uma margem (rejeitada pela AGT nas faturas). Use Preço de Tabela.
 Target too high: highest reachable total is {0},Alvo demasiado alto: o total máximo alcançável é {0}
-Type the total you want. Free lines move together, in proportion, until the document lands on it. Fix a line to keep it, or type its rate.,Indique o total pretendido. As linhas livres movem-se em conjunto, proporcionalmente, até o documento atingir esse valor. Fixe uma linha para a manter, ou escreva o seu preço.
+"Type the total you want. Free lines move together, in proportion, until the document lands on it. Fix a line to keep it, or type its rate.","Indique o total pretendido. As linhas livres movem-se em conjunto, proporcionalmente, até o documento atingir esse valor. Fixe uma linha para a manter, ou escreva o seu preço."
 Status,Estado
 Lines,Linhas
 Free all,Libertar todas
