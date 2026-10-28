@@ -124,6 +124,10 @@ doc_events = {
 	"Payment Entry": {
 		"on_submit": "isoft_customization.isoft_customization.doctype.invoice_payment_notification.invoice_payment_notification.trigger_notification_on_payment_submit",
 	},
+	# Item Group parents may not loop (hung every sales document in the loop). See item_group_guard.py.
+	"Item Group": {
+		"validate": "isoft_customization.item_group_guard.validate_parent",
+	},
 	# Batch <-> Item integrity. See batch_integrity.py.
 	# Guard 1: Batch.item cannot be re-pointed once the ledger has stock under it.
 	"Batch": {
