@@ -38,6 +38,9 @@ app_include_js = [
 	# Sales discount limits: locks the discount fields of lines whose limit is
 	# 0% for the current user. See discount_limits.py / discount_limits.js.
 	"/assets/isoft_customization/js/discount_limits.js",
+	# List view bulk Print posts the selection: the GET URL core builds hits
+	# gunicorn's 4094-byte request-line limit at ~140 documents.
+	"/assets/isoft_customization/js/bulk_print_post.js",
 ]
 
 app_include_css = [

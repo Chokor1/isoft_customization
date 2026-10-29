@@ -106,6 +106,20 @@ def main():
     finally:
         dl.pricing_rule_discount = orig
     check(msg is None, "discount coming from a pricing rule is allowed", msg)
+    # a line made from an order keeps the order line's discount, but no more
+    d = make("Sales Invoice", 10, 0)
+    d.items[0].so_detail = "__fake_so_line__"
+    orig = frappe.db.get_value
+    frappe.db.get_value = lambda dt, name, *a, **k: (frappe._dict(discount_percentage=10, discount_amount=0, price_list_rate=1000)
+                                                     if dt == "Sales Order Item" else orig(dt, name, *a, **k))
+    try:
+        msg = raises(lambda: dl.validate_discounts(d))
+        check(msg is None, "invoice line keeps its Sales Order line's 10% above the 3% limit", msg)
+        d.items[0].discount_percentage = 12
+        msg = raises(lambda: dl.validate_discounts(d))
+        check(msg and "12" in msg, "... but not more than the order gave", msg)
+    finally:
+        frappe.db.get_value = orig
     # discount_amount without a percentage counts too
     d = make("Sales Invoice", 0, 0)
     d.items[0].discount_percentage = 0; d.items[0].discount_amount = 100; d.items[0].rate = 900

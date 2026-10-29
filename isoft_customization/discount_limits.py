@@ -17,7 +17,8 @@ role row for the doctype > highest role "All" row > fallback setting.
 Each line's discount % (discount_percentage, or discount_amount over the price
 list rate when only an amount was typed) must not exceed the limit for the
 item's kind (Item.is_stock_item). A discount granted by an applied Pricing Rule
-is allowed when that setting is on. Over-limit saves are blocked with the line,
+is allowed when that setting is on, and so is the discount of the line a line was
+made from (Sales Order / Delivery Note / Quotation item). Over-limit saves are blocked with the line,
 the discount and the limit named.
 
 Hooked on validate of Quotation, Sales Order, Delivery Note and Sales Invoice.
@@ -94,6 +95,26 @@ def pricing_rule_discount(item):
 	return best
 
 
+# A line made from an earlier document (an invoice from a Sales Order or Delivery Note, a
+# delivery from an order, an order from a quotation) may keep that line's discount: it was
+# checked when that document was saved, and refusing it makes the order impossible to bill.
+SOURCE_LINES = (
+	("so_detail", "Sales Order Item"),
+	("dn_detail", "Delivery Note Item"),
+	("quotation_item", "Quotation Item"),
+)
+
+
+def source_line_discount(item):
+	"""Discount % of the line this one was made from (0 when it was not made from one)."""
+	for field, dt in SOURCE_LINES:
+		name = item.get(field)
+		if name:
+			src = frappe.db.get_value(dt, name, ["discount_percentage", "discount_amount", "price_list_rate"], as_dict=True)
+			return line_discount(frappe._dict(src)) if src else 0.0
+	return 0.0
+
+
 def line_discount(item):
 	pct = flt(item.get("discount_percentage"))
 	if not pct and flt(item.get("discount_amount")) and flt(item.get("price_list_rate")):
@@ -128,6 +149,8 @@ def validate_discounts(doc, method=None, *args, **kwargs):
 		if pct <= limit + TOL:
 			continue
 		if allow_rules and item.get("pricing_rules") and pct <= pricing_rule_discount(item) + TOL:
+			continue
+		if pct <= source_line_discount(item) + TOL:
 			continue
 		frappe.throw(
 			_("Row {0} ({1}): a discount of {2} is above the {3} allowed to {6} for {4} on a {5}.").format(
