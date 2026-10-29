@@ -12,7 +12,9 @@ pair that really would collide:
 
   * same Apply On (Item Code / Item Group / Brand) sharing a value -- ERPNext
     looks at item-code rules first and only falls back to group/brand rules when
-    none match, so an item-code rule never collides with a group rule;
+    none match, so an item-code rule never collides with a group rule. Item
+    groups are compared through the tree, as ERPNext matches them: a rule on
+    "All Item Groups" meets a rule on INK, since an INK item matches both;
   * an "Item Group and Brand" rule is weighed with the Item Group rules (see
     item_group_and_brand.py): it meets an Item Group rule on a shared group, and
     another of its kind on a shared group when they also share a brand;
@@ -222,6 +224,25 @@ def find_conflicts(doc, priority=None, include_shadowed=False):
 		d.valid_from = nowdate()
 	prio = cint(d.priority) if priority is None else cint(priority)
 
+	# The other rule's values that meet mine: the same value, or for item groups
+	# any ancestor or descendant (both rules then match the items underneath).
+	related = {t: {t} for t in mine}
+	ancestors = {}  # their group -> my groups it strictly contains
+	if field == "item_group":
+		related = {}
+		for g in mine:
+			lft, rgt = frappe.db.get_value("Item Group", g, ["lft", "rgt"]) or (None, None)
+			if lft is None:
+				related.setdefault(g, set()).add(g)
+				continue
+			for name, glft, grgt in frappe.db.sql(
+				"select name, lft, rgt from `tabItem Group` where (lft <= %s and rgt >= %s) or (lft >= %s and rgt <= %s)",
+				(lft, rgt, lft, rgt),
+			):
+				related.setdefault(name, set()).add(g)
+				if glft < lft and grgt > rgt:
+					ancestors.setdefault(name, set()).add(g)
+
 	hits = frappe.db.sql(
 		"""
 		select c.parent, c.`{field}` as target, {uom} as uom
@@ -230,13 +251,15 @@ def find_conflicts(doc, priority=None, include_shadowed=False):
 		where c.parenttype = 'Pricing Rule' and c.`{field}` in %(targets)s
 			and pr.name != %(me)s and pr.disable = 0 and pr.apply_on in %(apply_on)s
 		""".format(field=field, child_dt=child_dt, uom="ifnull(c.uom, '')" if has_uom else "''"),
-		{"targets": list(mine), "me": d.name or "", "apply_on": SAME_STAGE.get(d.apply_on, (d.apply_on,))},
+		{"targets": list(related), "me": d.name or "", "apply_on": SAME_STAGE.get(d.apply_on, (d.apply_on,))},
 		as_dict=True,
 	)
 	if not hits:
 		return []
 
 	shared = {}
+	nested = {}  # rule -> ["INK in All Item Groups", ...] for matches through the tree
+	broader = set()  # rules whose shared group also covers items outside mine
 	for h in hits:
 		mu = mine.get(h.target) or ""
 		if mu and h.uom and mu != h.uom:
@@ -244,6 +267,12 @@ def find_conflicts(doc, priority=None, include_shadowed=False):
 		shared.setdefault(h.parent, [])
 		if h.target not in shared[h.parent]:
 			shared[h.parent].append(h.target)
+		for g in sorted(related.get(h.target, ())):
+			if g != h.target:
+				inner, outer = (g, h.target) if g in ancestors.get(h.target, ()) else (h.target, g)
+				nested.setdefault(h.parent, []).append(_("{0} is inside {1}").format(inner, outer))
+		if h.target in ancestors:
+			broader.add(h.parent)
 	if not shared:
 		return []
 
@@ -286,6 +315,10 @@ def find_conflicts(doc, priority=None, include_shadowed=False):
 			"price_list": b.for_price_list or "",
 			"apply_on": b.apply_on,
 			"shared": sorted(shared[b.name]),
+			"nested": sorted(set(nested.get(b.name, []))),
+			# Removing a group wider than this rule's would take items this rule
+			# does not cover out of the other one.
+			"removable": b.name not in broader,
 			"total": cint(totals.get(b.name)),
 			"promotional_scheme": b.promotional_scheme or "",
 			"applicable_for": b.applicable_for or "",
@@ -324,7 +357,8 @@ def validate_no_conflicts(doc, method=None):
 		"<li><b>{0}</b> {1} ({2}, {3}, priority {4}): {5} {6}</li>".format(
 			c["rule"], frappe.utils.escape_html(c["title"] or ""), c["discount"], c["parties"],
 			c["priority"] or 0, unit, ", ".join(frappe.utils.escape_html(s) for s in c["shared"][:10])
-			+ (" …" if len(c["shared"]) > 10 else ""),
+			+ (" …" if len(c["shared"]) > 10 else "")
+			+ (" ({0})".format(frappe.utils.escape_html("; ".join(c["nested"][:5]))) if c.get("nested") else ""),
 		)
 		for c in conflicts
 	)
@@ -358,7 +392,7 @@ def check_conflicts(doc):
 
 
 @frappe.whitelist()
-def resolve_conflict(rule, action, targets=None):
+def resolve_conflict(rule, action, targets=None, removable=1):
 	"""Apply one fix to the OTHER rule.
 
 	remove  - take `targets` (the shared items/groups/brands) out of it
@@ -383,6 +417,9 @@ def resolve_conflict(rule, action, targets=None):
 	if doc.apply_on not in APPLY_ON:
 		frappe.throw(_("{0} applies on {1}; nothing to remove.").format(doc.name, doc.apply_on))
 	targets = set(frappe.parse_json(targets) if isinstance(targets, str) else (targets or []))
+	if not cint(removable):
+		frappe.throw(_("{0} holds a wider item group than the rule you are saving; removing it would also "
+			"take other items out of {0}. Disable it or give this rule a higher priority instead.").format(doc.name))
 	table, field, _child = APPLY_ON[doc.apply_on]
 	keep = [r for r in doc.get(table) if r.get(field) not in targets]
 	removed = len(doc.get(table)) - len(keep)

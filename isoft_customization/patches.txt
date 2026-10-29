@@ -5,3 +5,4 @@ isoft_customization.patches.bump_purchase_invoice_meta
 isoft_customization.patches.bump_purchase_invoice_meta #2 form script: stale-lock notice
 isoft_customization.patches.bump_target_total_meta
 isoft_customization.patches.migrate_user_sales_discount
+isoft_customization.patches.bump_pricing_rule_meta
