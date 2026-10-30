@@ -652,3 +652,7 @@ Row {0}: choose the Item Group.,Linha {0}: escolha o Grupo de Artigos.
 Row {0}: choose the Brand.,Linha {0}: escolha a Marca.
 Row {0}: set at least one default.,Linha {0}: defina pelo menos um valor padrão.
 Row {0}: {1} does not belong to {2}.,Linha {0}: {1} não pertence a {2}.
+Default Difference Account by Company,Conta de Diferença Padrão por Empresa
+Default Difference Account,Conta de Diferença Padrão
+Stock Entry Type Account,Conta do Tipo de Entrada de Stock
+Row {0}: {1} is a group account.,Linha {0}: {1} é uma conta de grupo.

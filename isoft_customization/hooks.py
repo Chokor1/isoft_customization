@@ -131,6 +131,9 @@ doc_events = {
 	"Item": {
 		"validate": "isoft_customization.item_default_rules.apply_to_item",
 	},
+	"Stock Entry Type": {
+		"validate": "isoft_customization.stock_entry_type_accounts.validate_type_accounts",
+	},
 	# Item Group parents may not loop (hung every sales document in the loop). See item_group_guard.py.
 	"Item Group": {
 		"validate": "isoft_customization.item_group_guard.validate_parent",
@@ -153,6 +156,8 @@ doc_events = {
 		"validate": "isoft_customization.linked_document_prices.release",
 	},
 	"Stock Entry": {
+		# Difference Account from the Stock Entry Type, before ERPNext refuses an empty one.
+		"before_validate": "isoft_customization.stock_entry_type_accounts.apply_to_stock_entry",
 		"before_submit": "isoft_customization.batch_integrity.validate_batch_belongs_to_item",
 	},
 	"Stock Reconciliation": {
@@ -177,6 +182,9 @@ doctype_js = {
 	# Target Total Assistant button (Quotation gets it inside quotation.js).
 	"Sales Invoice": "public/js/sales_invoice.js",
 	"Delivery Note": "public/js/delivery_note.js",
+	# Default Difference Account per Stock Entry Type. See stock_entry_type_accounts.py.
+	"Stock Entry": "public/js/stock_entry.js",
+	"Stock Entry Type": "public/js/stock_entry_type.js",
 	"Purchase Invoice": "public/js/purchase_invoice.js",
 	"Pricing Rule": "public/js/pricing_rule.js",
 }
@@ -221,6 +229,8 @@ after_migrate = [
 	"isoft_customization.translations_override.sync_translations",
 	# Selling Settings "Document Reasons" switches and the reason fields they fill.
 	"isoft_customization.document_reasons.setup_custom_fields",
+	# Default Difference Account table on Stock Entry Type.
+	"isoft_customization.stock_entry_type_accounts.setup_custom_fields",
 	# Selling / Buying Settings switches that keep Delivery Note / Purchase Receipt
 	# prices on invoices. After the line above: the selling section sits below the
 	# Document Reasons checkboxes.
