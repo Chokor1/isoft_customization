@@ -1,20 +1,83 @@
 {
- "actions": [], "creation": "2026-10-30 08:00:00.000000",
+ "actions": [],
+ "creation": "2026-10-30 08:00:00.000000",
  "description": "Default accounts for items by condition (for example: items that do not maintain stock get the services income account). Rules are checked top to bottom per company; the first match wins. They fill empty Item Defaults when an item is saved and, when enabled, replace the company default on Sales Invoice lines of items that have no account of their own.",
- "doctype": "DocType", "document_type": "Other", "engine": "InnoDB",
- "field_order": ["enabled", "apply_on_sales_invoice", "section_rules", "rules"],
+ "doctype": "DocType",
+ "document_type": "Other",
+ "engine": "InnoDB",
+ "field_order": [
+  "enabled",
+  "apply_on_sales_invoice",
+  "section_rules",
+  "rules"
+ ],
  "fields": [
-  {"default": "0", "fieldname": "enabled", "fieldtype": "Check", "label": "Enable Item Default Rules"},
-  {"default": "1", "depends_on": "enabled", "description": "On a Sales Invoice line whose item has no income account of its own, the company default is replaced by the matching rule's income account.", "fieldname": "apply_on_sales_invoice", "fieldtype": "Check", "label": "Also apply on Sales Invoice lines"},
-  {"depends_on": "enabled", "fieldname": "section_rules", "fieldtype": "Section Break", "label": "Rules"},
-  {"fieldname": "rules", "fieldtype": "Table", "label": "Rules", "options": "Item Default Rule"}
+  {
+   "default": "0",
+   "fieldname": "enabled",
+   "fieldtype": "Check",
+   "label": "Enable Item Default Rules"
+  },
+  {
+   "default": "1",
+   "depends_on": "enabled",
+   "description": "On a Sales Invoice line whose item has no income account of its own, the company default is replaced by the matching rule's income account.",
+   "fieldname": "apply_on_sales_invoice",
+   "fieldtype": "Check",
+   "label": "Also apply on Sales Invoice lines"
+  },
+  {
+   "depends_on": "enabled",
+   "fieldname": "section_rules",
+   "fieldtype": "Section Break",
+   "label": "Rules"
+  },
+  {
+   "fieldname": "rules",
+   "fieldtype": "Table",
+   "label": "Rules",
+   "options": "Item Default Rule"
+  }
  ],
- "icon": "fa fa-cog", "index_web_pages_for_search": 0, "issingle": 1, "links": [], "modified": "2026-10-30 08:00:00.000000", "modified_by": "Administrator",
- "module": "ISOFT Customization", "name": "Item Default Rules", "owner": "Administrator",
+ "icon": "fa fa-cog",
+ "index_web_pages_for_search": 0,
+ "issingle": 1,
+ "links": [],
+ "modified": "2026-10-30 09:30:00.000000",
+ "modified_by": "Administrator",
+ "module": "ISOFT Customization",
+ "name": "Item Default Rules",
+ "owner": "Administrator",
  "permissions": [
-  {"create": 1, "email": 1, "print": 1, "read": 1, "role": "System Manager", "share": 1, "write": 1},
-  {"create": 1, "email": 1, "print": 1, "read": 1, "role": "Accounts Manager", "share": 1, "write": 1},
-  {"create": 1, "email": 1, "print": 1, "read": 1, "role": "Stock Manager", "share": 1, "write": 1}
+  {
+   "create": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "Accounts Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "Stock Manager",
+   "share": 1,
+   "write": 1
+  }
  ],
- "sort_field": "modified", "sort_order": "DESC", "track_changes": 1
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "track_changes": 1
 }

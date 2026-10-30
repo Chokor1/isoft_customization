@@ -1,4 +1,18 @@
 frappe.ui.form.on('Item Default Rules', {
+	setup(frm) {
+		// Only leaf records of the row's company: no group accounts, warehouses or cost centres.
+		const by_company = (extra) => (doc, cdt, cdn) => {
+			const row = locals[cdt][cdn] || {};
+			const filters = Object.assign({ is_group: 0 }, extra || {});
+			if (row.company) filters.company = row.company;
+			return { filters };
+		};
+		frm.set_query('income_account', 'rules', by_company({ root_type: 'Income' }));
+		frm.set_query('expense_account', 'rules', by_company({ root_type: 'Expense' }));
+		frm.set_query('default_warehouse', 'rules', by_company());
+		frm.set_query('selling_cost_center', 'rules', by_company());
+		frm.set_query('item_group', 'rules', () => ({ filters: { is_group: 0 } }));
+	},
 	refresh(frm) {
 		if (!frm.doc.enabled) return;
 		frm.add_custom_button(__('Apply to existing items'), () => {
