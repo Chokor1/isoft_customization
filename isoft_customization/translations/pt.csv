@@ -635,3 +635,20 @@ Row {0}: discounts must be between 0 and 100%.,Linha {0}: os descontos têm de e
 Role limits row {0}: discounts must be between 0 and 100%.,Limites por função, linha {0}: os descontos têm de estar entre 0 e 100%.
 Item Group and Brand,Grupo do Item e Marca
 {0} cannot be used with Apply On {1}.,{0} não pode ser usado com Aplicar Em {1}.
+Item Default Rules,Regras de Contas Padrão de Artigos
+Item Default Rule,Regra de Conta Padrão de Artigo
+Enable Item Default Rules,Ativar regras de contas padrão de artigos
+Also apply on Sales Invoice lines,Aplicar também nas linhas da Fatura de Venda
+Rules,Regras
+Condition,Condição
+Always,Sempre
+Maintain Stock is No,Não mantém stock
+Maintain Stock is Yes,Mantém stock
+Apply to existing items,Aplicar aos artigos existentes
+No item needs a change: every matching item already has its defaults.,Nenhum artigo precisa de alteração: todos os artigos abrangidos já têm as suas contas.
+{0} item(s) have an empty default that a rule would fill. Fill them now?,{0} artigo(s) têm uma conta padrão vazia que uma regra preencheria. Preencher agora?
+{0} item(s) updated.,{0} artigo(s) atualizado(s).
+Row {0}: choose the Item Group.,Linha {0}: escolha o Grupo de Artigos.
+Row {0}: choose the Brand.,Linha {0}: escolha a Marca.
+Row {0}: set at least one default.,Linha {0}: defina pelo menos um valor padrão.
+Row {0}: {1} does not belong to {2}.,Linha {0}: {1} não pertence a {2}.

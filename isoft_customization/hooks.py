@@ -72,6 +72,7 @@ doc_events = {
 		"set_missing_values": [
 			"isoft_customization.linked_document_prices.on_map",
 			"isoft_customization.party_tax_id.fill_from_customer",
+			"isoft_customization.item_default_rules.apply_on_transaction",
 		],
 		"before_validate": "isoft_customization.linked_document_prices.keep_prices",
 		"validate": [
@@ -79,6 +80,8 @@ doc_events = {
 			"isoft_customization.party_tax_id.fill_from_customer",
 			# Per-user maximum line discounts. See discount_limits.py.
 			"isoft_customization.discount_limits.validate_discounts",
+			# Income account by item condition. See item_default_rules.py.
+			"isoft_customization.item_default_rules.apply_on_transaction",
 		],
 		"on_submit": "isoft_customization.isoft_customization.doctype.invoice_payment_notification.invoice_payment_notification.trigger_notification_on_sales_invoice_submit",
 		# Mandatory reasons, per Selling Settings. See document_reasons.py.
@@ -123,6 +126,10 @@ doc_events = {
 	},
 	"Payment Entry": {
 		"on_submit": "isoft_customization.isoft_customization.doctype.invoice_payment_notification.invoice_payment_notification.trigger_notification_on_payment_submit",
+	},
+	# Default accounts by condition (e.g. non-stock items -> services income). See item_default_rules.py.
+	"Item": {
+		"validate": "isoft_customization.item_default_rules.apply_to_item",
 	},
 	# Item Group parents may not loop (hung every sales document in the loop). See item_group_guard.py.
 	"Item Group": {
