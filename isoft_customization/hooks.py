@@ -38,7 +38,16 @@ app_include_js = [
 	# Sales discount limits: locks the discount fields of lines whose limit is
 	# 0% for the current user. See discount_limits.py / discount_limits.js.
 	"/assets/isoft_customization/js/discount_limits.js",
+	# Scan Barcode on selling documents applies the barcode's UOM. See barcode_uom.py.
+	"/assets/isoft_customization/js/barcode_uom_scan.js",
 ]
+
+# Scan Barcode lookup also returns the barcode's UOM (Item Barcode.posa_uom); every
+# other answer is ERPNext's own. See barcode_uom.py.
+override_whitelisted_methods = {
+	"erpnext.selling.page.point_of_sale.point_of_sale.search_for_serial_or_batch_or_barcode_number":
+		"isoft_customization.barcode_uom.search_for_serial_or_batch_or_barcode_number",
+}
 
 app_include_css = [
 	"/assets/isoft_customization/css/notification_attention.css",
