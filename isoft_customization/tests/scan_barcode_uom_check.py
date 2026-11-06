@@ -141,6 +141,29 @@ def pos(page):
     check(len(c) == 0, "POS: scan while the payment screen shows adds nothing", json.dumps(c))
     clear()
 
+    # 5. the tester's case: barcode typed by hand (too slow to count as a scan), then the
+    #    item clicked with the mouse, in the list view and in the tile view
+    def type_and_click(text, view):
+        clear()
+        page.evaluate("(v) => {" + FIND + " sel.items_view = v; }", view)
+        page.wait_for_timeout(500)
+        page.evaluate("() => {" + FIND + " sel.$refs.debounce_search.$el.querySelector('input').focus(); }")
+        page.keyboard.type(text, delay=80)
+        page.wait_for_timeout(1200)
+        target = (".pos-tiles .pos-tile" if view == "card" else ".items table tbody tr") + " >> visible=true"
+        page.locator(target).first.click()
+        page.wait_for_timeout(3500)
+        return cart()
+
+    for view in ("list", "card"):
+        c = type_and_click(TB, view)
+        check(len(c) == 1 and c[0]["uom"] == "TESTE-B" and abs(c[0]["plr"] - 2000) < 0.01,
+              f"POS: barcode typed by hand + item clicked ({view} view) -> TESTE-B at 2000", json.dumps(c))
+    c = type_and_click("Test-05-11-2026", "list")
+    check(len(c) == 1 and c[0]["uom"] == "PCS", "POS: item found by its code + clicked keeps the default UOM", json.dumps(c))
+    page.evaluate("() => {" + FIND + " sel.items_view = 'list'; }")
+    clear()
+
 
 def main(parts):
     sid = h.mint_session()
