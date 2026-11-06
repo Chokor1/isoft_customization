@@ -7,3 +7,4 @@ isoft_customization.patches.bump_target_total_meta
 isoft_customization.patches.migrate_user_sales_discount
 isoft_customization.patches.bump_pricing_rule_meta
 isoft_customization.patches.bump_stock_entry_meta
+isoft_customization.patches.remove_advance_tools_module
