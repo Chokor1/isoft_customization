@@ -18,7 +18,11 @@ ROOT_TERRITORY = "All Territories"
 
 def _root(doctype, fallback):
 	field = "parent_" + frappe.scrub(doctype)
-	return frappe.db.get_value(doctype, {"is_group": 1, field: ("in", ("", None))}, "name") or fallback
+	# plain SQL: get_value with ("is", "not set") finds nothing on this v13 for a NULL parent
+	root = frappe.db.sql(
+		"select name from `tab{0}` where is_group=1 and ifnull(`{1}`, '')='' order by lft limit 1".format(doctype, field)
+	)
+	return root[0][0] if root else fallback
 
 
 def _barcode_row(barcode, item_code):
@@ -38,7 +42,9 @@ def _conversion_factor(item_code, uom, stock_uom):
 	return flt(frappe.db.get_value("UOM Conversion Detail", {"parent": item_code, "uom": uom}, "conversion_factor")) or 1.0
 
 
-def _rules_have_warehouse(pricing_rules):
+def _rules_store_scoped(pricing_rules):
+	"""True when an applied rule is limited to some stores. A rule on a warehouse tree root
+	("All Warehouses - ITEC") covers every store, so it is not store-scoped."""
 	if not pricing_rules:
 		return False
 	if isinstance(pricing_rules, str):
@@ -49,7 +55,10 @@ def _rules_have_warehouse(pricing_rules):
 	else:
 		names = list(pricing_rules)
 	names = [n for n in names if n]
-	return bool(names) and bool(frappe.get_all("Pricing Rule", filters={"name": ["in", names], "warehouse": ["is", "set"]}, limit=1))
+	if not names:
+		return False
+	warehouses = set(frappe.get_all("Pricing Rule", filters={"name": ["in", names], "warehouse": ["is", "set"]}, pluck="warehouse"))
+	return any(frappe.db.get_value("Warehouse", w, "parent_warehouse") for w in warehouses)
 
 
 def _tax_rate(out, opts, company):
@@ -123,7 +132,25 @@ def price_rows(rows, opts):
 			"is_pos": 0,
 			"update_stock": 0,
 		})
-		out = frappe._dict(get_item_details(args) or {})
+		log_len = len(frappe.local.message_log or [])
+		try:
+			out = frappe._dict(get_item_details(args) or {})
+			store_only = not opts.warehouse and _rules_store_scoped(out.pricing_rules)
+			if store_only:
+				# the winning rule belongs to some stores and no store is picked: none of its
+				# effects (discount, promo rate, margin) may reach every store's labels
+				out = frappe._dict(get_item_details(frappe._dict(args, ignore_pricing_rule=1)) or {})
+				out.discount_percentage = out.discount_amount = out.margin_rate_or_amount = 0
+				out.margin_type = None
+		except Exception as e:  # noqa: BLE001 - one bad row (disabled item, rule conflict) must not sink the list
+			del frappe.local.message_log[log_len:]  # no error popup on the page for a row we flag ourselves
+			out_rows.append({
+				"item_code": row.item_code, "item_name": item.item_name, "barcode": row.barcode or None, "uom": uom,
+				"price_list_rate": None, "discount_percentage": 0, "rate": None, "tax_rate": 0, "final_price": None,
+				"currency": currency, "has_price": False, "discount_source": None,
+				"error": frappe.utils.strip_html(str(e)) or e.__class__.__name__,
+			})
+			continue
 		plr = flt(out.price_list_rate)
 		has_price = plr > 0
 
@@ -134,8 +161,6 @@ def price_rows(rows, opts):
 			base += flt(out.margin_rate_or_amount)
 
 		disc_pct, disc_amt, source = flt(out.discount_percentage), flt(out.discount_amount), None
-		if (disc_pct or disc_amt) and not opts.warehouse and _rules_have_warehouse(out.pricing_rules):
-			disc_pct = disc_amt = 0  # store-only rule, and no store picked
 		if disc_pct or disc_amt:
 			source = "rule"
 		if flt(bc.get("discount")):

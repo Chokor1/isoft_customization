@@ -197,6 +197,10 @@
 			$(this).val('');
 			frappe.call({ method: API + 'resolve_scan', args: { code } }).then((r) => {
 				const hit = r.message || {};
+				if (hit.error) {
+					frappe.show_alert({ message: esc(hit.error), indicator: 'red' });
+					return;
+				}
 				if (!hit.item_code) {
 					frappe.show_alert({ message: __('Nothing found for {0}', [esc(code)]), indicator: 'orange' });
 					return;
@@ -315,23 +319,25 @@
 	function reprice(only) {
 		const rows = only || S.rows;
 		if (!rows.length || !S.opts.price_list) { render_rows(); preview(); return Promise.resolve(); }
+		// each row remembers the request that priced it last: a slow full reprice and a quick
+		// single-row one can overlap, and only the newest answer for a row may land
 		const token = ++price_token;
-		rows.forEach((r) => { r.loading = true; });
+		rows.forEach((r) => { r.loading = true; r.price_seq = token; });
 		render_rows();
 		return frappe.call({
 			method: API + 'price',
 			args: { rows: JSON.stringify(rows.map((r) => ({ item_code: r.item_code, barcode: r.barcode, uom: r.uom }))), opts: JSON.stringify(api_opts()) },
 		}).then((res) => {
 			const out = res.message || [];
-			if (!only && token !== price_token) return; // a newer full reprice is on its way
 			rows.forEach((r, i) => {
+				if (r.price_seq !== token) return;
 				r.loading = false;
 				r.priced = out[i] || null;
 				if (r.priced) r.item_name = r.priced.item_name;
 			});
 			render_rows();
 			preview();
-		}, () => { rows.forEach((r) => { r.loading = false; }); render_rows(); });
+		}, () => { rows.forEach((r) => { if (r.price_seq === token) r.loading = false; }); render_rows(); });
 	}
 
 	function money(v) {
@@ -356,7 +362,9 @@
 				<td><div class="bls-code">${esc(r.item_code)}</div><div class="bls-name">${esc(r.item_name || (p && p.item_name) || '')}</div></td>
 				<td class="bls-bc">${r.barcode ? `<code>${esc(r.barcode)}</code>` : gen}</td>
 				<td class="bls-uom">${esc((p && p.uom) || r.uom || '')}</td>
-				<td class="num">${r.loading ? '<span class="bls-muted">…</span>' : (p && p.has_price ? money(p.price_list_rate) : (no_price ? `<span class="bls-warn" title="${__('No price in this price list')}">${__('no price')}</span>` : ''))}</td>
+				<td class="num">${r.loading ? '<span class="bls-muted">…</span>' : (p && p.has_price ? money(p.price_list_rate) : (no_price ? (p.error
+					? `<span class="bls-warn" title="${esc(p.error)}"><i class="fa fa-exclamation-triangle"></i> ${esc(p.error)}</span>`
+					: `<span class="bls-warn" title="${__('No price in this price list')}">${__('no price')}</span>`) : ''))}</td>
 				<td class="num">${pct}${src}</td>
 				<td class="num bls-final">${p && p.has_price ? `<b>${money(p.final_price)}</b> ${sym}` : ''}</td>
 				<td class="num"><input type="number" min="1" class="form-control input-xs bls-copies" value="${r.copies}"></td>

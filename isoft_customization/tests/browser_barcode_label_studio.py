@@ -100,6 +100,22 @@ try:
 		check("gear_opens_settings", "Barcode Label Settings" in page.locator(".modal:visible .modal-title").first.inner_text())
 		page.keyboard.press("Escape")
 
+		# race: a slow full reprice (new price list) must survive a quick single-row add (I-2)
+		page.evaluate("""() => { const orig = frappe.call; window.__bls_orig_call = orig;
+			frappe.call = function (o) { const p = orig.apply(this, arguments);
+				if (o && o.method && o.method.endsWith('.price') && JSON.parse(o.args.rows).length > 1)
+					{ const d = $.Deferred(); p.then((r) => setTimeout(() => d.resolve(r), 2500), (e) => d.reject(e)); return d.promise(); }
+				return p; }; }""")
+		page.evaluate("() => frappe.pages['barcode-label-studio'].bls.ctl.price_list.set_value('TEST price generate')")
+		page.wait_for_timeout(300)
+		page.evaluate("() => frappe.pages['barcode-label-studio'].bls.add_items(['MSE-LOG-M185'])")
+		page.wait_for_timeout(5000)
+		settle(page)
+		state = page.evaluate("""() => frappe.pages['barcode-label-studio'].bls.rows.map(r => [r.item_code, r.barcode, !!r.loading, r.priced && r.priced.price_list_rate])""")
+		box = [x for x in state if x[1] == "5602024006119"]  # PAP-A4 Box, in the list since the scan above
+		check("race_full_reprice_survives", not any(x[2] for x in state) and box and abs((box[0][3] or 0) - 22306.35) < 0.01, state)
+		page.evaluate("() => { frappe.call = window.__bls_orig_call; }")
+
 		check("no_page_errors", not errors, errors)
 		b.close()
 finally:

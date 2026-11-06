@@ -2,11 +2,28 @@
 
 import frappe
 from frappe import _
-from frappe.utils import cint, cstr
+from frappe.utils import cint, cstr, getdate, nowdate
 
 from isoft_customization.barcode_labels import encoder, pricing, render, settings
 
 MAX_FILTER_ITEMS = 500
+
+
+def _alive_or_filters():
+	"""Items not past their end of life (combined with AND filters)."""
+	return [["Item", "end_of_life", "is", "not set"], ["Item", "end_of_life", ">", nowdate()]]
+
+
+def _unusable(item_code):
+	"""Why an item can't get a label (disabled / end of life), or None."""
+	d = frappe.db.get_value("Item", item_code, ["disabled", "end_of_life"], as_dict=True)
+	if not d:
+		return _("Item {0} not found").format(item_code)
+	if cint(d.disabled):
+		return _("Item {0} is disabled").format(item_code)
+	if d.end_of_life and getdate(d.end_of_life) <= getdate(nowdate()):
+		return _("Item {0} has reached its end of life").format(item_code)
+	return None
 
 
 def _check_read():
@@ -20,6 +37,8 @@ def _merged_opts(opts):
 	show = dict(s["show"])
 	show.update({k: cint(v) for k, v in (opts.get("show") or {}).items()})
 	opts.show = show
+	company = opts.get("company") or frappe.defaults.get_user_default("Company") or frappe.db.get_default("company")
+	opts._base_currency = frappe.get_cached_value("Company", company, "default_currency") if company else None
 	for k in ("currency_symbol", "symbol_position", "price_decimals"):
 		if opts.get(k) is None:
 			opts[k] = s[k]
@@ -89,13 +108,17 @@ def resolve_scan(code=""):
 	fields = ["parent as item_code", "barcode"]
 	if frappe.get_meta("Item Barcode").has_field("posa_uom"):
 		fields.append("posa_uom as uom")
-	hit = frappe.db.get_value("Item Barcode", {"barcode": code}, fields, as_dict=True)
+	hit = frappe.db.get_value("Item Barcode", {"barcode": code, "parenttype": "Item"}, fields, as_dict=True)
+	item_code = hit.item_code if hit else (code if frappe.db.exists("Item", code) else None)
+	if not item_code:
+		return {}
+	why = _unusable(item_code)
+	if why:
+		return {"error": why}
 	if hit:
 		hit.setdefault("uom", None)
 		return hit
-	if frappe.db.exists("Item", code):
-		return {"item_code": code, "barcode": None, "uom": None}
-	return {}
+	return {"item_code": code, "barcode": None, "uom": None}
 
 
 def _rows_for(item_codes):
@@ -121,7 +144,7 @@ def _rows_for(item_codes):
 def rows_for_items(item_codes):
 	_check_read()
 	codes = [c for c in (frappe.parse_json(item_codes) or []) if c]
-	allowed = set(frappe.get_list("Item", filters={"name": ["in", codes]}, pluck="name")) if codes else set()
+	allowed = set(frappe.get_list("Item", filters={"name": ["in", codes], "disabled": 0}, or_filters=_alive_or_filters(), pluck="name")) if codes else set()
 	return _rows_for([c for c in codes if c in allowed])
 
 
@@ -137,7 +160,7 @@ def rows_for_filter(item_group=None, brand=None):
 		filters["brand"] = brand
 	if not item_group and not brand:
 		frappe.throw(_("Pick an Item Group or a Brand"))
-	codes = frappe.get_list("Item", filters=filters, pluck="name", order_by="item_name asc", limit_page_length=MAX_FILTER_ITEMS)
+	codes = frappe.get_list("Item", filters=filters, or_filters=_alive_or_filters(), pluck="name", order_by="item_name asc", limit_page_length=MAX_FILTER_ITEMS)
 	return _rows_for(codes)
 
 

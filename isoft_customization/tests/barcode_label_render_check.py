@@ -90,6 +90,23 @@ try:
 	else:
 		print("INFO pdftotext missing: accents checked in HTML only")
 
+	size_5030 = {"width_mm": 50, "height_mm": 30, "padding_mm": 1.5, "font_size_pt": 7}
+	base_row = {"item_code": "X1", "barcode": "5901234123457", "has_price": True, "final_price": 100, "price_list_rate": 100,
+		"discount_percentage": 0, "currency": "AKZ", "copies": 1}
+	show_all = {"item_name": 1, "item_code": 1, "barcode": 1, "barcode_digits": 1, "price": 1}
+	ctx2 = render.label_context([dict(base_row, item_name="CABO HDMI 2.0 4K PREMIUM BLINDADO 3M")], {"show": show_all}, size_5030)
+	check("name_two_lines", ctx2["labels"][0]["name_lines"] == 2, ctx2["labels"][0]["name_lines"])
+	esc_html = render.document_html([dict(base_row, item_name="Cabo <2m> & A")], {"show": show_all}, size_5030)
+	check("escapes_name", "&lt;2m&gt;" in esc_html and "<2m>" not in esc_html, esc_html[-600:])
+	usd = render.label_context([dict(base_row, item_name="x", currency="USD")],
+		{"show": show_all, "currency_symbol": "Kz", "_base_currency": "AKZ", "price_decimals": 2}, size_5030)
+	usd_price = str(usd["labels"][0]["price_html"])
+	check("foreign_currency_symbol", "Kz" not in usd_price and ("USD" in usd_price or "$" in usd_price), usd_price)
+
+	dis_scan = api.resolve_scan("6955914606104")
+	check("resolve_scan_disabled", not dis_scan.get("item_code") and dis_scan.get("error"), dis_scan)
+	check("rows_for_items_skips_disabled", api.rows_for_items(json.dumps(["7EH98AA"])) == [])
+
 	# cap
 	import frappe.utils.pdf as fpdf
 
@@ -155,6 +172,7 @@ except Exception as e:  # noqa: BLE001
 finally:
 	frappe.set_user("Administrator")
 	frappe.db.rollback()
+	frappe.clear_document_cache("Item", ITEM)  # the item_name edit above must not survive in redis
 	frappe.destroy()
 
 print("FAILURES:", fails)

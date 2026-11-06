@@ -723,3 +723,6 @@ Not permitted to change Item {0},Sem permissão para alterar o Artigo {0}
 No free EAN-13 left under prefix {0},Não há EAN-13 livres com o prefixo {0}
 Not permitted to change Barcode Label Settings,Sem permissão para alterar as Definições das Etiquetas
 The EAN-13 prefix must be 2 to 7 digits,O prefixo EAN-13 deve ter de 2 a 7 dígitos
+Item {0} is disabled,O artigo {0} está desativado
+Item {0} has reached its end of life,O artigo {0} chegou ao fim de vida
+Item {0} not found,Artigo {0} não encontrado

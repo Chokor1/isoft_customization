@@ -22,9 +22,12 @@ def format_amount(value, decimals=2):
 	return text.replace(",", " ").replace(".", ",")
 
 
-def _money(value, opts):
+def _money(value, opts, currency=None):
 	amount = format_amount(value, opts.get("price_decimals", 2))
 	symbol = opts.get("currency_symbol") or ""
+	if currency and opts.get("_base_currency") and currency != opts["_base_currency"]:
+		# the configured symbol is the company currency's; a foreign price list shows its own
+		symbol = frappe.db.get_value("Currency", currency, "symbol") or currency
 	if not symbol:
 		return amount
 	return (symbol + " " + amount) if opts.get("symbol_position") == "Before" else (amount + " " + symbol)
@@ -70,7 +73,8 @@ def label_context(rows, opts, size):
 	labels = []
 	for r in rows:
 		name = r.get("item_name") or r.get("item_code") if show.get("item_name") else None
-		name_lines = 1 if not name or len(name) <= chars_per_line else 2
+		# the width estimate is optimistic for bold capitals: keep a second line from ~60% of it
+		name_lines = 1 if not name or len(name) <= chars_per_line * 0.6 else 2
 		code_bits = []
 		if show.get("item_code"):
 			code_bits.append(r.get("item_code"))
@@ -83,11 +87,11 @@ def label_context(rows, opts, size):
 		price_html = was_html = None
 		price_pt = was_pt = 0
 		if show.get("price") and r.get("has_price"):
-			final = _money(r["final_price"], opts)
+			final = _money(r["final_price"], opts, r.get("currency"))
 			price_html = escape(final)
 			price_pt = _fit_pt(final, fs["price"], inner_w, bold=True)
 			if show.get("discount") and flt(r.get("discount_percentage")):
-				old = _money(r["price_list_rate"], opts)
+				old = _money(r["price_list_rate"], opts, r.get("currency"))
 				pct = "-%s%%" % ("{:g}".format(flt(r["discount_percentage"], 2)))
 				was_pt = _fit_pt(old + "  " + pct, fs["small"], inner_w)
 				was_html = Markup('<s>%s</s> <span class="off">%s</span>' % (escape(old), escape(pct)))

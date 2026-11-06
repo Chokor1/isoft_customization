@@ -89,6 +89,25 @@ try:
 
 	nb = price_rows([{"item_code": ITEM, "barcode": None, "uom": None}], {"price_list": PL, "company": COMPANY})[0]
 	check("no_barcode_row_uses_stock_uom", nb["uom"] == "PCS", nb)
+	from isoft_customization.barcode_labels import pricing as pr
+
+	check("root_lookup", pr._root("Customer Group", "X") == "All Customer Groups" and pr._root("Territory", "X") == "All Territories",
+		(pr._root("Customer Group", "X"), pr._root("Territory", "X")))
+
+	dis = price_rows([{"item_code": "7EH98AA", "barcode": "6955914606104", "uom": None}, {"item_code": ITEM, "barcode": BC_B, "uom": None}],
+		{"price_list": PL, "company": COMPANY, "warehouse": OTHER_STORE})
+	check("disabled_row_does_not_break_batch", len(dis) == 2 and dis[0]["has_price"] is False and dis[0].get("error") and dis[1]["price_list_rate"] == 2000, dis)
+
+	rate = rule("BLS test store rate 500", 0, 17, applicable_for="Customer Group", customer_group="All Customer Groups", warehouse=STORE)
+	rate.rate_or_discount, rate.rate = "Rate", 500
+	rate.save()
+	check("store_rate_rule_with_store", one(warehouse=STORE)["final_price"] == 500, one(warehouse=STORE))
+	nr = one()
+	check("store_rate_rule_needs_store", nr["price_list_rate"] == 1000 and nr["final_price"] == 1000, nr)
+
+	rule("BLS test all stores 25", 25, 18, applicable_for="Customer Group", customer_group="All Customer Groups", warehouse="All Warehouses - ITEC")
+	check("all_stores_root_rule_kept", one()["final_price"] == 750, one())
+
 	check("nothing_written", counts() == before, (before, counts()))
 except Exception as e:  # noqa: BLE001
 	import traceback
