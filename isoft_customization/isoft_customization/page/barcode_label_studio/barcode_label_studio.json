@@ -1,0 +1,27 @@
+{
+ "content": null,
+ "creation": "2026-11-06 12:00:00.000000",
+ "docstatus": 0,
+ "doctype": "Page",
+ "icon": "fa fa-barcode",
+ "idx": 0,
+ "modified": "2026-11-06 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "ISOFT Customization",
+ "name": "barcode-label-studio",
+ "owner": "Administrator",
+ "page_name": "barcode-label-studio",
+ "roles": [
+  {"role": "System Manager"},
+  {"role": "Stock Manager"},
+  {"role": "Stock User"},
+  {"role": "Sales Manager"},
+  {"role": "Sales User"},
+  {"role": "Item Manager"}
+ ],
+ "script": null,
+ "standard": "Yes",
+ "style": null,
+ "system_page": 0,
+ "title": "Barcode Label Studio"
+}

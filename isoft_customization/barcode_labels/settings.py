@@ -75,7 +75,7 @@ def save_settings(settings):
 			"label_name": cstr(z.get("label_name")).strip(),
 			"width_mm": flt(z.get("width_mm")),
 			"height_mm": flt(z.get("height_mm")),
-			"padding_mm": flt(z.get("padding_mm")),
+			"padding_mm": 1.5 if z.get("padding_mm") in (None, "") else flt(z.get("padding_mm")),
 			"font_size_pt": flt(z.get("font_size_pt")) or 7,
 			"is_default": cint(z.get("is_default")),
 		})

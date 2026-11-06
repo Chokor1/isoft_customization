@@ -656,3 +656,70 @@ Default Difference Account by Company,Conta de Diferença Padrão por Empresa
 Default Difference Account,Conta de Diferença Padrão
 Stock Entry Type Account,Conta do Tipo de Entrada de Stock
 Row {0}: {1} is a group account.,Linha {0}: {1} é uma conta de grupo.
+Barcode Label Studio,Estúdio de Etiquetas
+One label per page · prices from today's price list and pricing rules,Uma etiqueta por página · preços da lista de preços e regras de preço de hoje
+Print PDF,Imprimir PDF
+Label size,Tamanho da etiqueta
+Store,Loja
+Store-only pricing rules apply to this store,Regras de preço por loja aplicam-se a esta loja
+Customer group,Grupo de clientes
+Everyone,Todos
+Add IVA,Somar IVA
+Tax category,Categoria de imposto
+On the label,Na etiqueta
+{0} of {1} fields,{0} de {1} campos
+Item name,Nome do artigo
+Item code,Código do artigo
+Barcode bars,Barras do código
+Barcode digits,Dígitos do código
+"Scan a barcode or type an item code, then Enter",Leia um código de barras ou escreva o código do artigo e prima Enter
+Search an item…,Procurar um artigo…
+Add by group / brand,Adicionar por grupo / marca
+Copies for all,Cópias para todos
+Remove all rows,Remover todas as linhas
+Copies,Cópias
+Final,Final
+"Scan a barcode, search an item, or add a whole item group or brand.","Leia um código de barras, procure um artigo ou adicione um grupo de artigos ou uma marca inteira."
+Preview,Pré-visualização
+Label preview,Pré-visualização da etiqueta
+Click a row to preview its label.,Clique numa linha para ver a etiqueta.
+Nothing found for {0},Nada encontrado para {0}
+Remove all {0} rows?,Remover todas as {0} linhas?
+Create a new EAN-13 barcode for {0} and save it on the item?,Criar um novo código EAN-13 para {0} e guardá-lo no artigo?
+Barcode {0} saved on {1},Código {0} guardado em {1}
+Already in the list: one more copy,Já está na lista: mais uma cópia
+Add items by group or brand,Adicionar artigos por grupo ou marca
+"Sales items only, up to 500 items; one row per barcode.","Só artigos de venda, até 500 artigos; uma linha por código de barras."
+Pick an Item Group or a Brand,Escolha um Grupo de Artigos ou uma Marca
+Finding items…,A procurar artigos…
+No items found,Nenhum artigo encontrado
+Generate EAN-13,Gerar EAN-13
+No barcode,Sem código
+Discount set on this barcode,Desconto definido neste código de barras
+no price,sem preço
+No price in this price list,Sem preço nesta lista de preços
+Pick a Price List first,Escolha primeiro uma Lista de Preços
+{0} labels: one PDF holds at most 2000. Split the list.,{0} etiquetas: um PDF leva no máximo 2000. Divida a lista.
+{0} labels requested; one PDF holds at most {1}. Split the list.,{0} etiquetas pedidas; um PDF leva no máximo {1}. Divida a lista.
+Add at least one label,Adicione pelo menos uma etiqueta
+Barcode Label Settings,Definições das Etiquetas
+Label sizes,Tamanhos de etiqueta
+Width (mm),Largura (mm)
+Height (mm),Altura (mm)
+Padding (mm),Margem interna (mm)
+Font (pt),Letra (pt)
+Default price list,Lista de preços predefinida
+Prefix for generated EAN-13,Prefixo dos EAN-13 gerados
+200–299 is the GS1 in-store range: it never collides with a manufacturer barcode.,200–299 é a gama GS1 para uso interno: nunca colide com o código de um fabricante.
+Currency symbol,Símbolo da moeda
+Symbol position,Posição do símbolo
+Decimals,Casas decimais
+Add IVA by default,Somar IVA por predefinição
+Default tax category,Categoria de imposto predefinida
+"The fields chosen in ""On the label"" are saved as the default for everyone.","Os campos escolhidos em ""Na etiqueta"" ficam como predefinição para todos."
+Settings saved,Definições guardadas
+Not permitted to read Items,Sem permissão para ler Artigos
+Not permitted to change Item {0},Sem permissão para alterar o Artigo {0}
+No free EAN-13 left under prefix {0},Não há EAN-13 livres com o prefixo {0}
+Not permitted to change Barcode Label Settings,Sem permissão para alterar as Definições das Etiquetas
+The EAN-13 prefix must be 2 to 7 digits,O prefixo EAN-13 deve ter de 2 a 7 dígitos
