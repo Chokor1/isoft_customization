@@ -3,8 +3,9 @@ condition, e.g. "items that do not maintain stock -> services income account".
 
 ERPNext only knows defaults per Item, Item Group, Brand and Company; nothing can
 hang off a field of the item. The Single "Item Default Rules" holds rows
-(company, condition, defaults); per company the rows are checked top to bottom
-and the first match wins.
+(company, maintain-stock condition, item group, brand, defaults); a row applies when
+every filter it sets matches. Per company the rows are checked top to bottom and the
+first match wins.
 
 Applied in three places:
 * Item validate: for each company with a matching rule, the item's Item Defaults
@@ -29,18 +30,25 @@ def get_settings():
 
 
 def rule_matches(rule, item):
-	c = rule.condition
-	if c == "Always":
-		return True
-	if c == "Maintain Stock is No":
-		return not cint(item.get("is_stock_item"))
-	if c == "Maintain Stock is Yes":
-		return bool(cint(item.get("is_stock_item")))
-	if c == "Item Group":
-		return bool(rule.item_group) and item.get("item_group") == rule.item_group
-	if c == "Brand":
-		return bool(rule.brand) and item.get("brand") == rule.brand
-	return False
+	"""Every filter set on the rule must match: the maintain-stock condition AND the
+	item group AND the brand (an empty item group / brand matches any item)."""
+	c = rule.condition or "Always"
+	if c == "Maintain Stock is No" and cint(item.get("is_stock_item")):
+		return False
+	if c == "Maintain Stock is Yes" and not cint(item.get("is_stock_item")):
+		return False
+	# rows saved before 2026-11-06 used "Item Group" / "Brand" as the condition itself
+	if c == "Item Group" and not rule.item_group:
+		return False
+	if c == "Brand" and not rule.brand:
+		return False
+	if c not in ("Always", "Maintain Stock is No", "Maintain Stock is Yes", "Item Group", "Brand"):
+		return False
+	if rule.item_group and item.get("item_group") != rule.item_group:
+		return False
+	if rule.brand and item.get("brand") != rule.brand:
+		return False
+	return True
 
 
 def matching_rules(item, settings=None):

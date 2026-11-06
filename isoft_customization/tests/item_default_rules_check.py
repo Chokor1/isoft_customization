@@ -26,7 +26,7 @@ def main():
     s = frappe.get_single("Item Default Rules")
     s.enabled = 1; s.apply_on_sales_invoice = 1
     s.set("rules", [
-        {"company": company, "condition": "Item Group", "item_group": group, "income_account": group_income},
+        {"company": company, "condition": "Always", "item_group": group, "income_account": group_income},
         {"company": company, "condition": "Maintain Stock is No", "income_account": service_income},
     ])
     s.save(ignore_permissions=True)
@@ -67,6 +67,34 @@ def main():
     d = new_item("_IDR-OFF", 0)
     check(not {r.company: r.income_account for r in d.item_defaults}.get(company), "disabled: nothing filled")
     s.enabled = 1; s.save(ignore_permissions=True)
+
+    # 6b. condition AND item group AND brand: every filter that is set must match
+    other_group = frappe.db.get_value("Item Group", {"is_group": 0, "name": ["not in", [group, "Acessórios"]]}, "name")
+    brand = frappe.db.get_value("Brand", {}, "name")
+    s.set("rules", [{"company": company, "condition": "Maintain Stock is No", "item_group": group, "income_account": group_income}])
+    s.save(ignore_permissions=True)
+    acc = lambda d: {r.company: r.income_account for r in d.item_defaults}.get(company)
+    check(acc(new_item("_IDR-AND-1", 0, item_group=group)) == group_income, "AND: service item of the group gets the account")
+    check(not acc(new_item("_IDR-AND-2", 0, item_group=other_group)), "AND: service item of another group does not")
+    check(not acc(new_item("_IDR-AND-3", 1, item_group=group)), "AND: stock item of the group does not")
+    s.set("rules", [{"company": company, "condition": "Always", "item_group": group, "brand": brand, "income_account": group_income}])
+    s.save(ignore_permissions=True)
+    d = new_item("_IDR-AND-4", 1, item_group=group); d.brand = brand; d.set("item_defaults", []); d.run_method("validate")
+    check(acc(d) == group_income, "AND: group + brand both match")
+    d = new_item("_IDR-AND-5", 1, item_group=group)
+    check(not acc(d), "AND: group matches but brand missing -> no match")
+    # legacy rows saved with condition "Item Group" still work as "group only"
+    legacy = frappe._dict(company=company, condition="Item Group", item_group=group, brand=None)
+    check(idr.rule_matches(legacy, {"item_group": group, "is_stock_item": 1}) and not idr.rule_matches(legacy, {"item_group": other_group}),
+          "legacy 'Item Group' condition still matches by group")
+    meta = frappe.get_meta("Item Default Rule")
+    check("Item Group" not in (meta.get_field("condition").options or "").split("\n"), "condition no longer offers Item Group / Brand")
+    check(not meta.get_field("item_group").depends_on and not meta.get_field("brand").depends_on, "item group and brand always visible")
+    s.set("rules", [
+        {"company": company, "condition": "Always", "item_group": group, "income_account": group_income},
+        {"company": company, "condition": "Maintain Stock is No", "income_account": service_income},
+    ])
+    s.save(ignore_permissions=True)
 
     # 7. Sales Invoice line for an EXISTING service item with no own default: company default -> service account
     svc = frappe.db.get_value("Item", {"is_stock_item": 0, "disabled": 0, "has_variants": 0, "item_group": ["!=", group]}, "name")

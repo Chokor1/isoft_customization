@@ -1,17 +1,101 @@
 {
- "actions": [], "creation": "2026-10-30 08:00:00.000000", "doctype": "DocType", "editable_grid": 1, "engine": "InnoDB",
- "field_order": ["company", "condition", "item_group", "brand", "column_break_1", "income_account", "expense_account", "default_warehouse", "selling_cost_center"],
- "fields": [
-  {"columns": 2, "fieldname": "company", "fieldtype": "Link", "in_list_view": 1, "label": "Company", "options": "Company", "reqd": 1},
-  {"columns": 2, "default": "Maintain Stock is No", "fieldname": "condition", "fieldtype": "Select", "in_list_view": 1, "label": "Condition", "options": "Always\nMaintain Stock is No\nMaintain Stock is Yes\nItem Group\nBrand", "reqd": 1},
-  {"columns": 2, "depends_on": "eval:doc.condition=='Item Group'", "fieldname": "item_group", "fieldtype": "Link", "in_list_view": 1, "label": "Item Group", "options": "Item Group", "mandatory_depends_on": "eval:doc.condition=='Item Group'"},
-  {"depends_on": "eval:doc.condition=='Brand'", "fieldname": "brand", "fieldtype": "Link", "label": "Brand", "options": "Brand", "mandatory_depends_on": "eval:doc.condition=='Brand'"},
-  {"fieldname": "column_break_1", "fieldtype": "Column Break"},
-  {"columns": 2, "fieldname": "income_account", "fieldtype": "Link", "in_list_view": 1, "label": "Income Account", "options": "Account"},
-  {"columns": 2, "fieldname": "expense_account", "fieldtype": "Link", "in_list_view": 1, "label": "Expense Account", "options": "Account"},
-  {"fieldname": "default_warehouse", "fieldtype": "Link", "label": "Default Warehouse", "options": "Warehouse"},
-  {"fieldname": "selling_cost_center", "fieldtype": "Link", "label": "Selling Cost Center", "options": "Cost Center"}
+ "actions": [],
+ "creation": "2026-10-30 08:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "company",
+  "condition",
+  "item_group",
+  "brand",
+  "column_break_1",
+  "income_account",
+  "expense_account",
+  "default_warehouse",
+  "selling_cost_center"
  ],
- "index_web_pages_for_search": 0, "istable": 1, "links": [], "modified": "2026-10-30 08:00:00.000000", "modified_by": "Administrator",
- "module": "ISOFT Customization", "name": "Item Default Rule", "owner": "Administrator", "permissions": [], "sort_field": "modified", "sort_order": "DESC"
+ "fields": [
+  {
+   "columns": 2,
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Company",
+   "options": "Company",
+   "reqd": 1
+  },
+  {
+   "columns": 2,
+   "default": "Maintain Stock is No",
+   "description": "Combined with the item group and brand: every filter that is filled must match.",
+   "fieldname": "condition",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Maintain stock",
+   "options": "Always\nMaintain Stock is No\nMaintain Stock is Yes",
+   "reqd": 1
+  },
+  {
+   "columns": 2,
+   "description": "Optional. Leave empty for any item group.",
+   "fieldname": "item_group",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Item Group",
+   "options": "Item Group"
+  },
+  {
+   "columns": 1,
+   "description": "Optional. Leave empty for any brand.",
+   "fieldname": "brand",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Brand",
+   "options": "Brand"
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "columns": 2,
+   "fieldname": "income_account",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Income Account",
+   "options": "Account"
+  },
+  {
+   "columns": 1,
+   "fieldname": "expense_account",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Expense Account",
+   "options": "Account"
+  },
+  {
+   "fieldname": "default_warehouse",
+   "fieldtype": "Link",
+   "label": "Default Warehouse",
+   "options": "Warehouse"
+  },
+  {
+   "fieldname": "selling_cost_center",
+   "fieldtype": "Link",
+   "label": "Selling Cost Center",
+   "options": "Cost Center"
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-11-06 15:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "ISOFT Customization",
+ "name": "Item Default Rule",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC"
 }
