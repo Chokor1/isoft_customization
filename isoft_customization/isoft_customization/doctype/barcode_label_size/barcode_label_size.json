@@ -1,0 +1,77 @@
+{
+ "actions": [],
+ "creation": "2026-11-06 12:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "label_name",
+  "width_mm",
+  "height_mm",
+  "padding_mm",
+  "font_size_pt",
+  "is_default"
+ ],
+ "fields": [
+  {
+   "columns": 2,
+   "fieldname": "label_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Name",
+   "reqd": 1
+  },
+  {
+   "columns": 2,
+   "fieldname": "width_mm",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Width (mm)",
+   "reqd": 1
+  },
+  {
+   "columns": 2,
+   "fieldname": "height_mm",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Height (mm)",
+   "reqd": 1
+  },
+  {
+   "columns": 1,
+   "default": "1.5",
+   "fieldname": "padding_mm",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Padding (mm)"
+  },
+  {
+   "columns": 1,
+   "default": "7",
+   "fieldname": "font_size_pt",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Font size (pt)"
+  },
+  {
+   "columns": 1,
+   "default": "0",
+   "fieldname": "is_default",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Default"
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-11-06 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "ISOFT Customization",
+ "name": "Barcode Label Size",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "track_changes": 0
+}

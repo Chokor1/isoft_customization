@@ -1,0 +1,210 @@
+{
+ "actions": [],
+ "creation": "2026-11-06 12:00:00.000000",
+ "description": "Label sizes and defaults for the Barcode Label Studio page.",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "sizes_section",
+  "sizes",
+  "defaults_section",
+  "default_price_list",
+  "ean_prefix",
+  "cb1",
+  "currency_symbol",
+  "symbol_position",
+  "price_decimals",
+  "tax_section",
+  "include_tax",
+  "tax_category",
+  "fields_section",
+  "show_company",
+  "show_item_name",
+  "show_item_code",
+  "show_barcode",
+  "cb2",
+  "show_barcode_digits",
+  "show_uom",
+  "show_price",
+  "show_discount"
+ ],
+ "fields": [
+  {
+   "fieldname": "sizes_section",
+   "fieldtype": "Section Break",
+   "label": "Label sizes"
+  },
+  {
+   "description": "One label is one PDF page of this size. Mark one as the default.",
+   "fieldname": "sizes",
+   "fieldtype": "Table",
+   "label": "Sizes",
+   "options": "Barcode Label Size"
+  },
+  {
+   "fieldname": "defaults_section",
+   "fieldtype": "Section Break",
+   "label": "Defaults"
+  },
+  {
+   "fieldname": "default_price_list",
+   "fieldtype": "Link",
+   "label": "Default price list",
+   "options": "Price List"
+  },
+  {
+   "default": "200",
+   "description": "200–299 is the GS1 in-store range: it never collides with a manufacturer's barcode.",
+   "fieldname": "ean_prefix",
+   "fieldtype": "Data",
+   "label": "Prefix for generated EAN-13"
+  },
+  {
+   "fieldname": "cb1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "Kz",
+   "fieldname": "currency_symbol",
+   "fieldtype": "Data",
+   "label": "Currency symbol"
+  },
+  {
+   "default": "After",
+   "fieldname": "symbol_position",
+   "fieldtype": "Select",
+   "label": "Symbol position",
+   "options": "After\nBefore"
+  },
+  {
+   "default": "2",
+   "fieldname": "price_decimals",
+   "fieldtype": "Select",
+   "label": "Decimals",
+   "options": "0\n2"
+  },
+  {
+   "fieldname": "tax_section",
+   "fieldtype": "Section Break",
+   "label": "IVA"
+  },
+  {
+   "default": "0",
+   "description": "Adds the item's IVA rate on top of the price list price (use it when the price list is without IVA).",
+   "fieldname": "include_tax",
+   "fieldtype": "Check",
+   "label": "Add IVA to the printed price"
+  },
+  {
+   "depends_on": "include_tax",
+   "fieldname": "tax_category",
+   "fieldtype": "Link",
+   "label": "Tax category",
+   "options": "Tax Category"
+  },
+  {
+   "fieldname": "fields_section",
+   "fieldtype": "Section Break",
+   "label": "Shown on the label by default"
+  },
+  {
+   "default": "0",
+   "fieldname": "show_company",
+   "fieldtype": "Check",
+   "label": "Company name / logo"
+  },
+  {
+   "default": "1",
+   "fieldname": "show_item_name",
+   "fieldtype": "Check",
+   "label": "Item name"
+  },
+  {
+   "default": "1",
+   "fieldname": "show_item_code",
+   "fieldtype": "Check",
+   "label": "Item code"
+  },
+  {
+   "default": "1",
+   "fieldname": "show_barcode",
+   "fieldtype": "Check",
+   "label": "Barcode bars"
+  },
+  {
+   "fieldname": "cb2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "1",
+   "fieldname": "show_barcode_digits",
+   "fieldtype": "Check",
+   "label": "Barcode digits"
+  },
+  {
+   "default": "0",
+   "fieldname": "show_uom",
+   "fieldtype": "Check",
+   "label": "UOM"
+  },
+  {
+   "default": "1",
+   "fieldname": "show_price",
+   "fieldtype": "Check",
+   "label": "Price"
+  },
+  {
+   "default": "1",
+   "fieldname": "show_discount",
+   "fieldtype": "Check",
+   "label": "Discount"
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "issingle": 1,
+ "links": [],
+ "modified": "2026-11-06 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "ISOFT Customization",
+ "name": "Barcode Label Settings",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "Stock Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "read": 1,
+   "role": "Stock User"
+  },
+  {
+   "read": 1,
+   "role": "Sales User"
+  },
+  {
+   "read": 1,
+   "role": "Sales Manager"
+  },
+  {
+   "read": 1,
+   "role": "Item Manager"
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "track_changes": 0
+}
