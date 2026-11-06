@@ -29,7 +29,8 @@ try:
 	z = {x["label_name"]: x for x in s["sizes"]}
 	check("size_dims", z.get("30×50", {}).get("width_mm") == 30 and z.get("30×50", {}).get("height_mm") == 50, z.get("30×50"))
 	check("ean_prefix_default", s["ean_prefix"] == "200", s["ean_prefix"])
-	check("show_defaults", s["show"]["price"] == 1 and s["show"]["company"] == 0 and s["show"]["uom"] == 0, s["show"])
+	off = ("company", "item_name", "uom", "price", "discount")
+	check("show_defaults", all(s["show"][k] == 0 for k in off) and all(s["show"][k] == 1 for k in ("item_code", "barcode", "barcode_digits")), s["show"])
 	check("currency_defaults", s["currency_symbol"] == "Kz" and s["symbol_position"] == "After" and s["price_decimals"] == 2, s)
 
 	s["sizes"].append({"label_name": "40×25", "width_mm": 40, "height_mm": 25, "padding_mm": 1, "font_size_pt": 6, "is_default": 0})

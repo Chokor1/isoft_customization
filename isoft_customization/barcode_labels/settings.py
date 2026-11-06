@@ -6,7 +6,8 @@ from frappe.utils import cint, cstr, flt
 
 DOCTYPE = "Barcode Label Settings"
 SHOW_FIELDS = ("company", "item_name", "item_code", "barcode", "barcode_digits", "uom", "price", "discount")
-SHOW_DEFAULTS = {"company": 0, "uom": 0}  # everything else on
+# off unless switched on (user request 2026-11-06: no name, price or discount by default)
+SHOW_DEFAULTS = {"company": 0, "item_name": 0, "uom": 0, "price": 0, "discount": 0}
 DEFAULT_SIZES = (
 	{"label_name": "50×30", "width_mm": 50, "height_mm": 30, "padding_mm": 1.5, "font_size_pt": 7, "is_default": 1},
 	{"label_name": "30×50", "width_mm": 30, "height_mm": 50, "padding_mm": 1.5, "font_size_pt": 6.5, "is_default": 0},

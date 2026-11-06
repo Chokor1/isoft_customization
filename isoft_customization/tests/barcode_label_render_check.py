@@ -37,7 +37,7 @@ try:
 
 	from isoft_customization.barcode_labels import api, encoder, render
 
-	opts = {"price_list": PL, "company": COMPANY, "size": "50×30"}
+	opts = {"price_list": PL, "company": COMPANY, "size": "50×30", "show": {"item_name": 1, "price": 1, "discount": 1}}
 	rows = [
 		{"item_code": ITEM, "barcode": "1691828500001", "uom": None, "copies": 2},
 		{"item_code": "PAP-A4", "barcode": "5602024006119", "uom": None, "copies": 1},
@@ -55,6 +55,8 @@ try:
 
 	html = api.preview_html(json.dumps(rows[0]), json.dumps(opts))
 	check("preview_has_svg", "<svg" in html and "Kz" in html and ITEM in html and "1691828500001" in html, html)
+	dflt = api.preview_html(json.dumps(rows[0]), json.dumps({"price_list": PL, "company": COMPANY, "size": "50×30"}))
+	check("defaults_hide_name_price", "Kz" not in dflt and "Test_05112026" not in dflt and ITEM in dflt and "<svg" in dflt, dflt)
 	off = api.preview_html(json.dumps(rows[0]), json.dumps(dict(opts, show={"price": 0, "discount": 0, "item_code": 0})))
 	check("toggles_respected", "Kz" not in off and ITEM not in off and "<svg" in off, off)
 	nob = api.preview_html(json.dumps(rows[0]), json.dumps(dict(opts, show={"barcode": 0, "barcode_digits": 0})))

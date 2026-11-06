@@ -114,7 +114,7 @@
    "label": "Company name / logo"
   },
   {
-   "default": "1",
+   "default": "0",
    "fieldname": "show_item_name",
    "fieldtype": "Check",
    "label": "Item name"
@@ -148,13 +148,13 @@
    "label": "UOM"
   },
   {
-   "default": "1",
+   "default": "0",
    "fieldname": "show_price",
    "fieldtype": "Check",
    "label": "Price"
   },
   {
-   "default": "1",
+   "default": "0",
    "fieldname": "show_discount",
    "fieldtype": "Check",
    "label": "Discount"
@@ -163,7 +163,7 @@
  "index_web_pages_for_search": 0,
  "issingle": 1,
  "links": [],
- "modified": "2026-11-06 12:00:00.000000",
+ "modified": "2026-11-06 16:00:00.000000",
  "modified_by": "Administrator",
  "module": "ISOFT Customization",
  "name": "Barcode Label Settings",
