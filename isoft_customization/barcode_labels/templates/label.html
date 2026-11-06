@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+	/* read by frappe.utils.pdf.read_options_from_html: without these it forces 15mm top/bottom margins */
+	.print-format {
+		margin-top: 0mm;
+		margin-bottom: 0mm;
+		margin-left: 0mm;
+		margin-right: 0mm;
+	}
+	@page { size: {{ w }}mm {{ h }}mm; margin: 0; }
+	html, body { margin: 0; padding: 0; background: #fff; }
+	body { font-family: "Helvetica Neue", Helvetica, Arial, "DejaVu Sans", sans-serif; color: #000; }
+	.lbl { width: {{ w }}mm; height: {{ h - 0.3 }}mm; overflow: hidden; page-break-inside: avoid; }
+	.lbl > .in { display: table; width: 100%; height: 100%; }
+	.lbl > .in > .c { display: table-cell; vertical-align: middle; text-align: center; padding: {{ p }}mm; }
+	.lbl + .lbl { page-break-before: always; }
+	.ln { white-space: nowrap; overflow: hidden; text-overflow: clip; }
+	.co { font-weight: 700; letter-spacing: 0.02em; }
+	.co img { vertical-align: middle; }
+	.nm { font-weight: 600; overflow: hidden; word-wrap: break-word; }
+	.cd { color: #222; }
+	.bc { display: block; margin: 0 auto; }
+	.bc svg { display: block; }
+	.dg { letter-spacing: 0.08em; }
+	.pr { font-weight: 800; }
+	.was { color: #333; }
+	.was .off { display: inline-block; background: #000; color: #fff; font-weight: 700; padding: 0 0.6mm; border-radius: 0.4mm; }
+</style>
+</head>
+<body>
+{%- for l in labels %}
+<div class="lbl"><div class="in"><div class="c">
+	{%- if l.company_html %}<div class="ln co" style="font-size:{{ fs.small }}pt;line-height:{{ lh.small }}mm;height:{{ lh.small }}mm">{{ l.company_html }}</div>{% endif %}
+	{%- if l.name %}<div class="nm" style="font-size:{{ fs.base }}pt;line-height:{{ lh.base }}mm;max-height:{{ l.name_lines * lh.base }}mm">{{ l.name }}</div>{% endif %}
+	{%- if l.code_line %}<div class="ln cd" style="font-size:{{ fs.small }}pt;line-height:{{ lh.small }}mm;height:{{ lh.small }}mm">{{ l.code_line }}</div>{% endif %}
+	{%- if l.svg %}<div class="bc" style="width:{{ bw }}mm;height:{{ l.bar_h }}mm;margin-top:{{ gap }}mm">{{ l.svg }}</div>{% endif %}
+	{%- if l.digits %}<div class="ln dg" style="font-size:{{ fs.small }}pt;line-height:{{ lh.small }}mm;height:{{ lh.small }}mm">{{ l.digits }}</div>{% endif %}
+	{%- if l.was_html %}<div class="ln was" style="font-size:{{ l.was_pt }}pt;line-height:{{ l.was_lh }}mm;height:{{ l.was_lh }}mm;margin-top:{{ gap }}mm">{{ l.was_html }}</div>{% endif %}
+	{%- if l.price_html %}<div class="ln pr" style="font-size:{{ l.price_pt }}pt;line-height:{{ l.price_lh }}mm;height:{{ l.price_lh }}mm{% if not l.was_html %};margin-top:{{ gap }}mm{% endif %}">{{ l.price_html }}</div>{% endif %}
+</div></div></div>
+{%- endfor %}
+</body>
+</html>
