@@ -118,6 +118,21 @@ def pos(page):
 	check("pos_same_item_4", shape(lines()) == [(2, 0), (2, 50)], lines())
 	srv3 = page.evaluate("() => {" + FIND + " return inv.update_invoice(inv.get_invoice_doc()).then(d => d && d.items.map(i => [i.item_code, +i.qty, Math.round(i.discount_percentage * 100) / 100])); }")
 	check("pos_split_server_matches", srv3 and sorted((q, d) for _c, q, d in srv3) == [(2, 0), (2, 50)], srv3)
+	# Isoft Location Manager: each line's pick plan must add up to that line (the server refuses
+	# "the locations add up to 4 but the line is for 2"), and together they keep the original plan
+	if page.evaluate("() => {" + FIND + " return !!inv.picking_enabled; }"):
+		page.wait_for_timeout(1500)
+		plans = page.evaluate("() => {" + FIND + """ return inv.items.map(i => ({qty: +i.stock_qty || +i.qty,
+			plan: i.custom_location_allocation ? JSON.parse(i.custom_location_allocation) : []})); }""")
+		ok = all(p["plan"] and abs(sum(float(x["qty"]) for x in p["plan"]) - p["qty"]) < 0.001 for p in plans)
+		check("pos_split_location_plans_match_lines", ok, plans)
+		err = page.evaluate("() => new Promise((res) => { " + FIND + """ const d = inv.get_invoice_doc();
+			frappe.call({method: 'posawesome.posawesome.api.posapp.update_invoice', args: {data: d},
+				callback: () => res(null), error: (e) => res('error'), always: () => setTimeout(() => res(null), 0)}); })""")
+		msgs = page.evaluate("() => (frappe.last_response && frappe.last_response._server_messages) || ''")
+		check("pos_split_server_accepts_locations", not err and "locations add up" not in msgs, (err, msgs[:300]))
+	else:
+		print("INFO location manager off for this POS profile: location checks skipped")
 	# down to one unit: the lines merge back, no discount
 	page.evaluate("(c) => {" + FIND + " inv.items.filter(i => i.item_code === c).forEach(i => inv.remove_item(i)); }", dear["item"])
 	page.wait_for_timeout(1500)
