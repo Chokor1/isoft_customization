@@ -726,3 +726,25 @@ The EAN-13 prefix must be 2 to 7 digits,O prefixo EAN-13 deve ter de 2 a 7 dígi
 Item {0} is disabled,O artigo {0} está desativado
 Item {0} has reached its end of life,O artigo {0} chegou ao fim de vida
 Item {0} not found,Artigo {0} não encontrado
+Multi-buy (Buy X get Y),Multi-compra (Leve X e ganhe Y)
+Multi-buy,Multi-compra
+Buy,Leve
+Get,Ganhe
+Discount on the Get units (%),Desconto nas unidades oferecidas (%)
+Max discounted units per document,Máximo de unidades com desconto por documento
+0 = no limit,0 = sem limite
+Allow partial return,Permitir devolução parcial
+"Pools the eligible units of the whole document: for every Buy + Get units, the Get cheapest units get the discount.","Junta as unidades elegíveis de todo o documento: por cada Leve + Ganhe unidades, as Ganhe unidades mais baratas recebem o desconto."
+Off: a return may not leave the customer with a discount the remaining items no longer earn.,Desligado: uma devolução não pode deixar ao cliente um desconto que os artigos restantes já não ganham.
+Multi-buy Rule,Regra Multi-compra
+Multi-buy Discounted Units,Unidades com desconto (Multi-compra)
+Multi-buy Discount (%),Desconto Multi-compra (%)
+Buy {0} get {1} −{2}%,Leve {0} ganhe {1} −{2}%
+{0} discounted unit(s),{0} unidade(s) com desconto
+"A Multi-buy rule applies to items, item groups or brands, not to the whole transaction.","Uma regra Multi-compra aplica-se a artigos, grupos de artigos ou marcas, não à transação inteira."
+Multi-buy: Buy and Get must both be at least 1.,Multi-compra: Leve e Ganhe têm de ser pelo menos 1.
+Multi-buy: the discount must be above 0% and at most 100%.,Multi-compra: o desconto tem de ser acima de 0% e no máximo 100%.
+Multi-buy: the maximum discounted units cannot be negative.,Multi-compra: o máximo de unidades com desconto não pode ser negativo.
+Partial return not allowed,Devolução parcial não permitida
+This return breaks the offer {0}: the items kept would still carry {1} of discount but only earn {2}. Return the discounted item(s) too: {3}.,Esta devolução quebra a oferta {0}: os artigos que ficam teriam ainda {1} de desconto mas só ganham {2}. Devolva também o(s) artigo(s) com desconto: {3}.
+"Multi-buy preview is for Quotation, Sales Order, Delivery Note and Sales Invoice","A pré-visualização Multi-compra é para Cotação, Encomenda de Venda, Guia de Remessa e Fatura de Venda"

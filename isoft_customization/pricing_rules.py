@@ -76,6 +76,8 @@ def _is_simple(rule):
 		and not rule.get("mixed_conditions")
 		and not rule.get("apply_rule_on_other")
 		and not rule.get("condition")
+		# Multi-buy rules have their own fields: edited in the desk form only
+		and not cint(rule.get("isoft_multibuy"))
 	)
 
 
@@ -111,6 +113,9 @@ def _fmt_pct(value):
 
 
 def _describe_discount(rule):
+	if cint(rule.get("isoft_multibuy")):
+		return _("Buy {0} get {1} −{2}%").format(
+			cint(rule.get("isoft_buy_qty")), cint(rule.get("isoft_get_qty")), _fmt_pct(rule.get("isoft_multibuy_discount")))
 	rod = rule.get("rate_or_discount")
 	if rule.get("price_or_product_discount") == "Product":
 		return _("Free item")
@@ -121,6 +126,13 @@ def _describe_discount(rule):
 	if rod == "Rate":
 		return _("Rate {0}").format(frappe.format_value(rule.get("rate"), {"fieldtype": "Currency"}))
 	return rod or ""
+
+
+def _multibuy_columns():
+	"""The Multi-buy fields, when this site has them (multi_buy_rule.setup_custom_fields)."""
+	if not frappe.db.has_column("Pricing Rule", "isoft_multibuy"):
+		return ""
+	return ", pr.isoft_multibuy, pr.isoft_buy_qty, pr.isoft_get_qty, pr.isoft_multibuy_discount"
 
 
 def _has_max_field():
@@ -152,11 +164,11 @@ def get_rules(company=None):
 			pr.selling, pr.buying, pr.applicable_for, pr.customer_group, pr.customer,
 			pr.territory, pr.sales_partner, pr.campaign, pr.for_price_list, pr.priority,
 			pr.valid_from, pr.valid_upto, pr.company, pr.mixed_conditions,
-			pr.apply_rule_on_other, pr.condition, pr.modified, pr.owner
+			pr.apply_rule_on_other, pr.condition, pr.modified, pr.owner{1}
 		from `tabPricing Rule` pr
 		where {0}
 		order by pr.modified desc
-		""".format(" and ".join(conditions)),
+		""".format(" and ".join(conditions), _multibuy_columns()),
 		values,
 		as_dict=True,
 	)
@@ -188,6 +200,7 @@ def get_rules(company=None):
 			"simple": 1 if _is_simple(r) else 0,
 			"apply_on": r.apply_on,
 			"discount": _describe_discount(r),
+			"multibuy": cint(r.get("isoft_multibuy")),
 			"discount_percentage": flt(r.discount_percentage),
 			"scope": _scope_label(r, root),
 			"everyone": 1 if _same_scope(r, root) else 0,

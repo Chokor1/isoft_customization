@@ -223,3 +223,39 @@ function prc_show_dialog(frm, res) {
 	render();
 	d.show();
 }
+
+// Multi-buy (Buy X get Y), see isoft_customization/multi_buy_rule.py: the engine owns the
+// discount, so ERPNext's own discount / rate / margin / free-item fields are hidden while
+// the box is ticked (the server forces them to 0 on save anyway).
+const PRC_MULTIBUY_HIDE = [
+	"rate_or_discount", "discount_percentage", "discount_amount", "rate", "apply_discount_on", "apply_discount_on_rate",
+	"margin_type", "margin_rate_or_amount", "price_or_product_discount", "mixed_conditions", "is_cumulative",
+	"apply_multiple_pricing_rules", "same_item", "free_item", "free_qty", "free_item_uom", "free_item_rate",
+	"is_recursive", "threshold_percentage", "for_price_list_section",
+];
+
+function prc_multibuy_toggle(frm) {
+	if (!frm.fields_dict.isoft_multibuy) return;
+	const on = !!frm.doc.isoft_multibuy;
+	PRC_MULTIBUY_HIDE.forEach((f) => {
+		if (!frm.fields_dict[f] || f === "for_price_list_section") return;
+		// only hide; when off, ERPNext's own depends_on decides again
+		if (on) frm.toggle_display(f, false);
+		else frm.toggle_display(f, frm.fields_dict[f].df.hidden ? false : true);
+	});
+	if (!on) frm.refresh_fields();
+}
+
+frappe.ui.form.on("Pricing Rule", {
+	refresh: prc_multibuy_toggle,
+	isoft_multibuy(frm) {
+		if (frm.doc.isoft_multibuy) {
+			frm.set_value("rate_or_discount", "Discount Percentage");
+			frm.set_value("price_or_product_discount", "Price");
+			frm.set_value("discount_percentage", 0);
+		}
+		prc_multibuy_toggle(frm);
+	},
+	selling: prc_multibuy_toggle,
+	apply_on: prc_multibuy_toggle,
+});

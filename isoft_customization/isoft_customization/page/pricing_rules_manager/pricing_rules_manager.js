@@ -390,7 +390,7 @@ function renderTable() {
                     ${conf ? `<a href="#" class="pr-hit is-bad" onclick="return false" data-s-conf title="Also in another rule with the same priority"><i class="fa fa-exclamation-triangle"></i> conflicts on ${conf.slice(0, 3).map(esc).join(', ')}${conf.length > 3 ? '…' : ''}</a>` : ''}
                     ${hits.length ? `<span class="pr-hit"><i class="fa fa-search"></i> ${hits.map(esc).join(', ')}</span>` : ''}
                 </td>
-                <td class="num"><span class="pr-disc">${esc(r.discount)}</span></td>
+                <td class="num"><span class="pr-disc${r.multibuy ? ' pr-mb-badge' : ''}">${esc(r.discount)}</span></td>
                 <td class="pr-nw">${targetLabel(r)}</td>
                 <td class="pr-nw pr-ell">${scopeCell(r)}</td>
                 <td class="pr-nw">${r.price_list ? esc(r.price_list) : '<span class="pr-dim">Any</span>'}</td>
@@ -437,7 +437,7 @@ function renderConflicts() {
         return `<div class="pr-cside">
             <div class="pr-cside-head">
                 <a href="#" class="pr-open" data-name="${esc(name)}">${esc(r.title || name)}</a>
-                <span class="pr-disc">${esc(r.discount)}</span>
+                <span class="pr-disc${r.multibuy ? ' pr-mb-badge' : ''}">${esc(r.discount)}</span>
             </div>
             <div class="pr-cside-meta">${esc(name)} · ${scopeCell(r)} · ${total} ${unit(total)}${r.priority ? ' · priority ' + r.priority : ''}
                 ${r.price_list ? ' · ' + esc(r.price_list) : ''}</div>
@@ -1200,6 +1200,7 @@ body[data-route="pricing-rules-manager"]::before { display: none; }
     --pr-ok: #4ade80; --pr-warn: #fbbf24; --pr-bad: #f87171;
 }
 .pr-i-money { color: var(--pr-ok); }
+.pr-mb-badge { background: color-mix(in srgb, var(--pr-ok) 12%, var(--pr-surface)); color: var(--pr-ok); border-radius: 4px; padding: 0 0.4em; white-space: nowrap; }
 .pr-i-item  { color: var(--pr-brand); }
 .pr-company { display: inline-flex; align-items: center; gap: 0.35rem; margin-left: 0.4rem; color: var(--pr-text-4); font-size: 0.75rem; }
 .pr-company .pr-input { height: 28px; width: auto; max-width: 240px; font-size: 0.78rem; }

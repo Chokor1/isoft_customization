@@ -9,3 +9,4 @@ isoft_customization.patches.bump_pricing_rule_meta
 isoft_customization.patches.bump_stock_entry_meta
 isoft_customization.patches.remove_advance_tools_module
 isoft_customization.patches.item_default_rules_and_filters
+isoft_customization.patches.bump_multi_buy_meta

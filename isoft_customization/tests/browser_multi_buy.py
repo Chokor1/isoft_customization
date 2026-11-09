@@ -98,6 +98,48 @@ def pos(page):
 	page.evaluate("() => {" + FIND + " inv.items.splice(0); }")
 
 
+def desk(page):
+	A, B = "MSE-LOG-M185", "PAP-A4"  # B is the cheaper one
+	setup_rule((A, B))  # the POS part replaces the rule with one on its own items
+	page.goto(h.BASE_URL + "/app/quotation/new", wait_until="networkidle")
+	page.wait_for_function("() => window.cur_frm && cur_frm.doc.doctype === 'Quotation'", timeout=30000)
+	page.wait_for_timeout(1500)
+	page.evaluate("() => { cur_frm.set_value('party_name', 'Abbass'); }")
+	page.wait_for_timeout(2500)
+	page.evaluate("() => { frappe.model.clear_table(cur_frm.doc, 'items'); cur_frm.refresh_field('items'); }")
+	for code in (A, B):
+		page.evaluate("(c) => { const r = cur_frm.add_child('items'); frappe.model.set_value(r.doctype, r.name, 'item_code', c); }", code)
+		page.wait_for_timeout(3000)
+	page.wait_for_timeout(3000)
+	rows = page.evaluate("() => cur_frm.doc.items.map(i => ({code: i.item_code, mb: i.isoft_multibuy_rule || null, pct: +i.discount_percentage || 0}))")
+	b = next((x for x in rows if x["code"] == B), {})
+	a = next((x for x in rows if x["code"] == A), {})
+	check("desk_quotation_live_discount", b.get("mb") and abs(b.get("pct") - 50) < 0.01 and not a.get("pct"), rows)
+	ind = page.evaluate("() => $(cur_frm.page.wrapper).find('.isoft-mb-indicator:visible').text()")
+	check("desk_indicator", "Multi-buy" in ind, ind)
+	page.evaluate("() => { const r = cur_frm.doc.items.find(i => i.item_code === 'PAP-A4'); frappe.model.set_value(r.doctype, r.name, 'qty', 0); }")
+	page.evaluate("() => { const r = cur_frm.doc.items.find(i => i.item_code === 'PAP-A4'); cur_frm.get_field('items').grid.grid_rows_by_docname[r.name].remove(); }")
+	page.wait_for_timeout(4000)
+	rows = page.evaluate("() => cur_frm.doc.items.map(i => ({code: i.item_code, mb: i.isoft_multibuy_rule || null, pct: +i.discount_percentage || 0}))")
+	check("desk_offer_released_when_basket_breaks", rows and not any(r["mb"] for r in rows), rows)
+	check("desk_never_saved", page.evaluate("() => cur_frm.doc.__islocal === 1"))
+
+	page.goto(h.BASE_URL + "/app/pricing-rule/new", wait_until="networkidle")
+	page.wait_for_function("() => window.cur_frm && cur_frm.doc.doctype === 'Pricing Rule'", timeout=30000)
+	page.evaluate("() => { cur_frm.set_value('selling', 1); cur_frm.set_value('isoft_multibuy', 1); }")
+	page.wait_for_timeout(1500)
+	hidden = page.evaluate("() => ['discount_percentage', 'rate_or_discount', 'margin_type', 'free_item', 'mixed_conditions'].map(f => !(cur_frm.fields_dict[f] && $(cur_frm.fields_dict[f].wrapper).is(':visible')))")
+	check("pricing_rule_form_hides_standard_discount", all(hidden), hidden)
+	shown = page.evaluate("() => ['isoft_buy_qty', 'isoft_get_qty', 'isoft_multibuy_discount'].map(f => $(cur_frm.fields_dict[f].wrapper).is(':visible'))")
+	check("pricing_rule_form_shows_multibuy", all(shown), shown)
+
+	page.goto(h.BASE_URL + "/app/pricing-rules-manager", wait_until="networkidle")
+	page.wait_for_timeout(5000)
+	page.evaluate("() => { const i = document.querySelector('#pr-search'); if (i) { i.value = 'MB browser'; i.dispatchEvent(new Event('input', {bubbles: true})); } }")
+	page.wait_for_timeout(2500)
+	check("manager_badge", page.locator(".pr-mb-badge").count() > 0, page.locator(".pr-mb-badge").count())
+
+
 def main():
 	args = set(sys.argv[1:]) or {"--pos", "--desk"}
 	sid = h.mint_session()
@@ -105,8 +147,6 @@ def main():
 	try:
 		from playwright.sync_api import sync_playwright
 
-		if "--desk" in args:
-			setup_rule()
 		with sync_playwright() as pw:
 			b = pw.chromium.launch()
 			ctx = b.new_context(ignore_https_errors=True, viewport={"width": 1440, "height": 900})
