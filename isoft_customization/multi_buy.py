@@ -400,6 +400,8 @@ def preview(doc):
 		frappe.throw(_("Multi-buy preview is for Quotation, Sales Order, Delivery Note and Sales Invoice"))
 	if not frappe.has_permission(data["doctype"], "read"):
 		frappe.throw(_("Not permitted"), frappe.PermissionError)
+	if not frappe.db.exists("Pricing Rule", {"isoft_multibuy": 1, "disable": 0, "selling": 1}):
+		return {"rows": [], "rules": {}, "none": 1}  # nothing to preview: callers can stop asking
 	for k in ("name", "__islocal", "__unsaved", "docstatus", "amended_from"):
 		data.pop(k, None)
 	d = frappe.get_doc(data)
