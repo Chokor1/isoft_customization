@@ -81,6 +81,65 @@ def before_validate(doc, method=None, *args, **kwargs):
 def release(doc, method=None, *args, **kwargs):
 	doc.__dict__.pop("calculate_taxes_and_totals", None)
 	doc.flags.isoft_multibuy_cache = None
+	if cint(doc.get("is_return")) and doc.docstatus < 2:
+		validate_return(doc)
+
+
+# ---------------------------------------------------------------------------- returns
+RETURN_REF = {"Sales Invoice": "sales_invoice_item", "Delivery Note": "dn_detail"}
+
+
+def validate_return(doc):
+	"""A rule without "Allow partial return": what the customer keeps after this return
+	(and the submitted ones before it) may not carry more discount than it earns."""
+	ref_field = RETURN_REF.get(doc.doctype)
+	if not ref_field or not doc.get("return_against"):
+		return
+	rules = {r.isoft_multibuy_rule for r in doc.items if r.get("isoft_multibuy_rule")}
+	item_dt = doc.doctype + " Item"
+	for rule_name in rules:
+		rule = frappe.db.get_value("Pricing Rule", rule_name,
+			["isoft_buy_qty", "isoft_get_qty", "isoft_multibuy_discount", "isoft_multibuy_max_units", "isoft_allow_partial_return"],
+			as_dict=True)
+		if not rule or cint(rule.isoft_allow_partial_return):
+			continue
+		original = frappe.get_all(item_dt,
+			filters={"parent": doc.return_against, "isoft_multibuy_rule": rule_name},
+			fields=["name", "idx", "item_code", "qty", "price_list_rate", "rate", "conversion_factor", "isoft_multibuy_units"])
+		if not original:
+			continue
+		names = [o.name for o in original]
+		returned = {}
+		for name, qty in frappe.db.sql(
+			"""select i.`{ref}`, sum(i.qty) from `tab{dt}` i join `tab{parent}` p on p.name = i.parent
+			where p.docstatus = 1 and p.is_return = 1 and p.return_against = %s and i.`{ref}` in %s and p.name != %s
+			group by i.`{ref}`""".format(ref=ref_field, dt=item_dt, parent=doc.doctype),
+			(doc.return_against, tuple(names), doc.name or ""),
+		):
+			returned[name] = returned.get(name, 0) + abs(flt(qty))
+		for r in doc.items:
+			if r.get(ref_field) in names:
+				returned[r.get(ref_field)] = returned.get(r.get(ref_field), 0) + abs(flt(r.qty))
+
+		remaining = {o.name: max(0.0, flt(o.qty) - returned.get(o.name, 0)) for o in original}
+		if not any(remaining.values()):
+			continue  # everything of this offer came back
+		kept = sum(remaining[o.name] * (flt(o.price_list_rate) - flt(o.rate)) for o in original)
+		units = [(o.name, flt(o.price_list_rate) / (flt(o.conversion_factor) or 1), cint(o.idx),
+			int(math.floor(remaining[o.name] * (flt(o.conversion_factor) or 1) + 1e-9))) for o in original]
+		given = allocate(units, rule.isoft_buy_qty, rule.isoft_get_qty, rule.isoft_multibuy_max_units)
+		price = {u[0]: u[1] for u in units}
+		earned = sum(cnt * price[name] * flt(rule.isoft_multibuy_discount) / 100.0 for name, cnt in given.items())
+		if kept > earned + TOL:
+			keep_discounted = sorted({o.item_code for o in original if flt(o.isoft_multibuy_units) and remaining[o.name] > 0})
+			frappe.throw(
+				_("This return breaks the offer {0}: the items kept would still carry {1} of discount but only earn {2}. "
+					"Return the discounted item(s) too: {3}.").format(
+					frappe.bold(frappe.db.get_value("Pricing Rule", rule_name, "title") or rule_name),
+					frappe.format(kept, {"fieldtype": "Currency"}), frappe.format(earned, {"fieldtype": "Currency"}),
+					", ".join(keep_discounted)),
+				title=_("Partial return not allowed"),
+			)
 
 
 # ---------------------------------------------------------------------------- engine
