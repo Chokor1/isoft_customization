@@ -673,4 +673,6 @@ def preview(doc):
 		},
 		"multibuy_discount": flt(sum((flt(r.price_list_rate) - flt(r.rate)) * flt(r.qty) for r in d.items if r.get("isoft_multibuy_rule")), 2),
 		"net_total": flt(d.net_total), "grand_total": flt(d.grand_total),
+		# may one item sit on two lines? (the POS cart splits only then)
+		"split_lines": cint(frappe.db.get_single_value("Selling Settings", "allow_multiple_items")),
 	}
