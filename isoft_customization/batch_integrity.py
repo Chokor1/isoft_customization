@@ -35,10 +35,10 @@ Three guards, all in this module, no core patched:
    that runs only if the row is about to be written as submitted. Arming at the write
    works whichever order the two apps' before_save hooks run in.
 
-   Why the half-submit persists at all: ERPNext's ``SalesInvoice.on_submit`` calls
-   ``add_mapped_identity()``, which does ``frappe.db.commit()``, before
-   ``update_stock_ledger()`` and ``make_gl_entries()``. Any exception after that point
-   leaves a submitted invoice with no ledger. That is core and is not patched here.
+   ERPNext's ``SalesInvoice.on_submit`` used to commit mid-way (``add_mapped_identity``),
+   so a batch error from the stock ledger left a submitted invoice with no ledger. It
+   no longer commits and such a failure now rolls back whole; the guards still give
+   the clear message before anything is written.
 3. ``find_batch_item_mismatches`` reports batches whose master item disagrees with the
    ledger, for manual runs or a scheduled sweep.
 

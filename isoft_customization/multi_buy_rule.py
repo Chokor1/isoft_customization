@@ -93,10 +93,17 @@ def filter_lookup(rules):
 
 
 def validate_rule(doc):
+	frappe.flags.isoft_multibuy_any = None  # multi_buy._any_multibuy re-reads the rules
 	if not cint(doc.get("isoft_multibuy")):
 		return
 	if doc.apply_on == "Transaction":
 		frappe.throw(_("A Multi-buy rule applies to items, item groups or brands, not to the whole transaction."))
+	if (doc.get("condition") or "").strip():
+		frappe.throw(_("A Multi-buy rule cannot have a Condition: the offer is worked out over the whole document."))
+	if cint(doc.get("coupon_code_based")):
+		frappe.throw(_("A Multi-buy rule cannot be coupon based."))
+	if doc.get("applicable_for") in ("Campaign", "Sales Partner") or doc.get("campaign") or doc.get("sales_partner"):
+		frappe.throw(_("A Multi-buy rule applies to customers, customer groups or territories, not to a Campaign or Sales Partner."))
 	if cint(doc.isoft_buy_qty) < 1 or cint(doc.isoft_get_qty) < 1:
 		frappe.throw(_("Multi-buy: Buy and Get must both be at least 1."))
 	pct = flt(doc.isoft_multibuy_discount)

@@ -158,11 +158,18 @@ doc_events = {
 		"before_submit": "isoft_customization.batch_integrity.validate_batch_belongs_to_item",
 	},
 	"Purchase Invoice": {
-		"before_submit": "isoft_customization.batch_integrity.validate_batch_belongs_to_item",
+		# One supplier invoice number per supplier. See supplier_invoice_duplicates.py.
+		"before_submit": [
+			"isoft_customization.batch_integrity.validate_batch_belongs_to_item",
+			"isoft_customization.supplier_invoice_duplicates.check",
+		],
 		# Keep Purchase Receipt prices, per Buying Settings. See linked_document_prices.py.
 		"set_missing_values": "isoft_customization.linked_document_prices.on_map",
 		"before_validate": "isoft_customization.linked_document_prices.keep_prices",
-		"validate": "isoft_customization.linked_document_prices.release",
+		"validate": [
+			"isoft_customization.linked_document_prices.release",
+			"isoft_customization.supplier_invoice_duplicates.validate",
+		],
 	},
 	"Stock Entry": {
 		# Difference Account from the Stock Entry Type, before ERPNext refuses an empty one.

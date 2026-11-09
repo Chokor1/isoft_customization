@@ -23,7 +23,7 @@ def check(name, cond, detail=""):
 	fails += not cond
 
 
-def setup_rule(codes=("PAP-A4", "MSE-LOG-M185")):
+def setup_rule(codes=("PAP-A4", "MSE-LOG-M185"), buy=1, get=1):
 	"""On mint_session's connection; codes = the two items the rule covers."""
 	frappe.set_user("Administrator")
 	for n in frappe.get_all("Pricing Rule", filters={"title": TITLE}, pluck="name"):
@@ -31,7 +31,7 @@ def setup_rule(codes=("PAP-A4", "MSE-LOG-M185")):
 	d = frappe.get_doc({"doctype": "Pricing Rule", "title": TITLE, "apply_on": "Item Code",
 		"items": [{"item_code": c} for c in codes], "selling": 1, "company": "ITEC LDA", "currency": "AKZ",
 		"applicable_for": "Customer Group", "customer_group": "All Customer Groups", "priority": "20",
-		"isoft_multibuy": 1, "isoft_buy_qty": 1, "isoft_get_qty": 1, "isoft_multibuy_discount": 50})
+		"isoft_multibuy": 1, "isoft_buy_qty": buy, "isoft_get_qty": get, "isoft_multibuy_discount": 50})
 	d.insert(ignore_permissions=True)
 	frappe.db.commit()
 	return d.name
@@ -141,6 +141,17 @@ def pos(page):
 	page.evaluate("(c) => {" + FIND + " inv.remove_item(inv.items.find(i => i.item_code === c)); }", cheap["item"])
 	page.wait_for_timeout(3500)
 	check("pos_single_unit_one_line", lines() == [[dear["item"], 1, 0, 0]], lines())
+	page.evaluate("() => {" + FIND + " inv.items.splice(0); }")
+
+	# review: split lines merge back when the offer stops (buy 2 get 1: 3 units -> 1 @50 + 2; down to 2 units -> one line)
+	setup_rule(codes, buy=2, get=1)
+	page.wait_for_timeout(800)
+	for _ in range(3):
+		add_one(dear["item"])
+	check("pos_buy2get1_split", shape(lines()) == [(1, 50), (2, 0)], lines())
+	page.evaluate("(c) => {" + FIND + " const it = inv.items.find(i => i.item_code === c && !(+i.discount_percentage)); it.qty = 1; inv.calc_sotck_gty(it, 1); }", dear["item"])
+	page.wait_for_timeout(4000)
+	check("pos_offer_stops_lines_merge", shape(lines()) == [(2, 0)], lines())
 	page.evaluate("() => {" + FIND + " inv.items.splice(0); }")
 
 

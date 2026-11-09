@@ -61,6 +61,9 @@ try:
 	check("user_limit_exempts_multibuy", err is None, err)
 	err = raises(lambda: validate_discounts(quote([row("MB-L-A", 30, rule.name, isoft_multibuy_pct=25)])))
 	check("user_limit_blocks_extra_on_multibuy_row", err is not None)
+	# review I2: a client-sent isoft_multibuy_pct above the rule's own discount is not exempt
+	err = raises(lambda: validate_discounts(quote([row("MB-L-A", 90, rule.name, isoft_multibuy_pct=90)])))
+	check("user_limit_exemption_capped_at_rule", err is not None, err)
 	err = raises(lambda: validate_discounts(quote([row("MB-L-A", 25, rule.name), row("MB-L-B", 5, idx=2)])))
 	check("user_limit_still_blocks_manual", err is not None and "MB-L-B" in err, err)
 
@@ -81,6 +84,8 @@ try:
 	check("pos_cashier_limit_still_blocks_manual", err is not None, err)
 	err = raises(lambda: check_discount_limits(pos([row("MB-L-A", 60, rule.name, isoft_multibuy_pct=50)]), {}))
 	check("pos_cashier_limit_blocks_extra_on_multibuy_row", err is not None, err)
+	err = raises(lambda: check_discount_limits(pos([row("MB-L-A", 90, rule.name, isoft_multibuy_pct=90)]), {}))
+	check("pos_exemption_capped_at_rule", err is not None, err)
 except Exception as e:  # noqa: BLE001
 	import traceback
 

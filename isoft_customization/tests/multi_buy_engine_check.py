@@ -293,6 +293,80 @@ try:
 
 		check("serial_rows_not_split", not _splittable(frappe._dict(serial_no="SN1\nSN2", item_code="MB-E-A")) and _splittable(frappe._dict(item_code="MB-E-A")))
 
+	def submit_keeps_offer():  # review C1
+		fx.rule("MB 1+1 p1", G, 1).insert()
+		fx.rule("Normal 15 p0", G, "", multibuy=False, discount_percentage=15).insert()
+		d = quotation([("MB-E-C", 2)])
+		before = lines(d)
+		d.submit()
+		check("submit_keeps_offer", before == [(1, 50), (1, 0)] and lines(d) == before, (before, lines(d)))
+
+	def saved_lines_keep_identity():  # review C2
+		fx.rule("MB 1+1", G, 5).insert()
+		d = quotation([("MB-E-C", 2)])
+		names = [(r.name, flt(r.qty), flt(r.discount_percentage, 2)) for r in d.items]
+		d.save()
+		again = [(r.name, flt(r.qty), flt(r.discount_percentage, 2)) for r in d.items]
+		check("resave_keeps_row_names", names == again, (names, again))
+		import json
+
+		pv = multi_buy.preview(json.dumps(d.as_dict(), default=str))
+		got = [(x["name"], x["qty"], round(x["discount_percentage"], 2)) for x in pv["rows"]]
+		check("preview_of_saved_doc_unchanged", got == names, (got, names))
+
+	def carried_rows_capped():  # review I1
+		rule = fx.rule("MB 1+1", G, 5).insert()
+		q = quotation([("MB-E-C", 2)])  # 1 @50 + 1 @0
+		q.db_set("docstatus", 1)
+		for it in q.items:
+			it.db_set("docstatus", 1)
+		from erpnext.selling.doctype.quotation.quotation import make_sales_order
+
+		so = make_sales_order(q.name)
+		so.delivery_date = nowdate()
+		for it in so.items:
+			it.delivery_date = nowdate()
+		disc_row = [r for r in so.items if flt(r.discount_percentage)][0]
+		disc_row.qty = 10  # raise the discounted line
+		so.append("items", dict(disc_row.as_dict(), name=None, idx=None, qty=1))  # and duplicate it
+		so.insert()
+		total_disc = sum((flt(r.price_list_rate) - flt(r.rate)) * flt(r.qty) for r in so.items)
+		check("carried_rows_capped", abs(total_disc - 1500) < 0.05, (total_disc, rows(so)))
+		from isoft_customization.multi_buy import _carried
+
+		si_row = frappe._dict(prevdoc_docname=q.name, item_code="MB-E-C", isoft_multibuy_rule=rule.name)
+		check("si_from_quotation_carried", _carried(frappe._dict(doctype="Sales Invoice"), si_row))  # review I3
+
+	def dn_from_si_links_kept_apart():  # review I4
+		from isoft_customization.multi_buy import LINE_KEY, SOURCE_LINKS
+
+		check("dn_from_si_links_kept_apart", "si_detail" in LINE_KEY and "against_sales_invoice" in LINE_KEY
+			and ("si_detail", "Sales Invoice Item") in SOURCE_LINKS)
+
+	def early_exit_without_rules():  # review I5
+		from isoft_customization import multi_buy as mb
+
+		calls = []
+		orig_normal, orig_any = mb._normal_effect, mb._any_multibuy
+		mb._normal_effect = lambda *a, **k: calls.append(1) or orig_normal(*a, **k)
+		mb._any_multibuy = lambda doc: False
+		try:
+			d = quotation([("MB-E-C", 2)])
+		finally:
+			mb._normal_effect, mb._any_multibuy = orig_normal, orig_any
+		check("early_exit_without_rules", not calls and not d.items[0].isoft_multibuy_rule, calls)
+
+	def no_split_when_duplicates_disallowed():  # review I8
+		fx.rule("MB 1+1", G, 5).insert()
+		frappe.db.set_value("Selling Settings", None, "allow_multiple_items", 0)
+		frappe.clear_document_cache("Selling Settings", "Selling Settings")
+		try:
+			d = quotation([("MB-E-C", 2)])
+			check("no_split_when_duplicates_disallowed", lines(d) == [(2, 25)], lines(d))
+		finally:
+			frappe.db.set_value("Selling Settings", None, "allow_multiple_items", 1)
+			frappe.clear_document_cache("Selling Settings", "Selling Settings")
+
 	def kept_dn_price_rows_excluded():
 		from isoft_customization.multi_buy import _kept_by_switch
 
@@ -319,7 +393,9 @@ try:
 			same_item_two_rows, higher_normal_rule_keeps_rows, lower_normal_rule_replaced_when_qualifying,
 			fallback_to_normal_when_not_qualifying, fallback_to_next_multibuy, manual_discount_row_out, desk_ignore_pricing_rule_skips,
 			pos_flag_still_applies, requalify_after_qty_change, mapped_rows_keep_result, totals_consistent, item_max_discount_caps,
-			kept_dn_price_rows_excluded, preview_matches_save, b2b_matches_pos_cents, merge_back_and_grow, serial_rows_not_split):
+			kept_dn_price_rows_excluded, preview_matches_save, b2b_matches_pos_cents, merge_back_and_grow, serial_rows_not_split,
+			submit_keeps_offer, saved_lines_keep_identity, carried_rows_capped, dn_from_si_links_kept_apart, early_exit_without_rules,
+			no_split_when_duplicates_disallowed):
 		isolated(case)
 except Exception as e:  # noqa: BLE001
 	import traceback

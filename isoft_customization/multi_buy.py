@@ -33,6 +33,7 @@ SOURCE_LINKS = (
 	("quotation_item", "Quotation Item"),
 	("so_detail", "Sales Order Item"),
 	("dn_detail", "Delivery Note Item"),
+	("si_detail", "Sales Invoice Item"),
 )
 ROW_FIELDS = ("isoft_multibuy_rule", "isoft_multibuy_units", "isoft_multibuy_pct")
 TOL = 0.01
@@ -61,11 +62,30 @@ def allocate(units, buy, get, max_units=0):
 
 
 # ---------------------------------------------------------------------------- hooks
+PRICE_FIELDS = ("rate", "discount_percentage", "discount_amount", "margin_type", "margin_rate_or_amount",
+	"rate_with_margin", "pricing_rules", "isoft_multibuy_rule", "isoft_multibuy_units", "isoft_multibuy_pct")
+
+
 def before_validate(doc, method=None, *args, **kwargs):
-	if doc.doctype not in DOCTYPES or doc.docstatus != 0:
+	if doc.doctype not in DOCTYPES or doc.docstatus == 2:
 		return
 	_ensure_lookup_wrapper()  # before ERPNext prices the rows in validate
 	core = doc.calculate_taxes_and_totals
+	if doc.docstatus == 1 and not doc.is_new():
+		# Submitting a saved draft: ERPNext's set_missing_values re-applies normal pricing rules
+		# to rows without `pricing_rules` (ours) — the saved offer goes back on before the totals.
+		saved = {r.name: {f: r.get(f) for f in PRICE_FIELDS} for r in doc.items if r.get("isoft_multibuy_rule")}
+		if not saved:
+			return
+
+		def restore_then_totals(*a, **kw):
+			for r in doc.items:
+				if r.name in saved:
+					r.update(saved[r.name])
+			return core(*a, **kw)
+
+		doc.calculate_taxes_and_totals = restore_then_totals
+		return
 
 	def calculate_taxes_and_totals(*a, **kw):
 		if not doc.flags.isoft_multibuy_running:
@@ -158,26 +178,33 @@ def apply(doc):
 	result = {"rules": {}, "rows": {}}
 	if doc.doctype not in DOCTYPES or cint(doc.get("is_return")) or not doc.get("items"):
 		return result
+	if not _any_multibuy(doc) and not any(r.get("isoft_multibuy_rule") for r in doc.items):
+		return result  # nothing to do and nothing to undo: no pricing work on every document
 	_ensure_lookup_wrapper()
 	skip_all = cint(doc.get("ignore_pricing_rule")) and not cint(doc.get("is_pos"))
 	cache = doc.flags.isoft_multibuy_cache = doc.flags.isoft_multibuy_cache or {}
 	# Discounted units get their own line, as in the POS (whose cart does it itself), so a
 	# desk document and a POS sale of the same basket total the same to the cent: one
 	# blended line has to round its rate to 2 decimals and drifts with the quantity.
-	split = not cint(doc.get("is_pos"))
+	split = _split_allowed(doc)
 	if split:
 		_merge_split_rows(doc)
 
 	candidates = []  # rows that may join a basket
+	budget = {}  # carried discount per source line, shared by the rows that point at it
 	for row in doc.items:
 		if not row.get("item_code"):
 			continue
 		if _carried(doc, row):
-			_set_row(row, flt(row.isoft_multibuy_pct), row.isoft_multibuy_rule, flt(row.isoft_multibuy_units))
+			_apply_carried(doc, row, budget)
 			continue
 		was_ours = bool(row.get("isoft_multibuy_rule"))
+		stray = not was_ours and _has_multibuy_rule(row.get("pricing_rules"))
+		rules = [] if skip_all else _multibuy_rules(doc, row, cache)
+		if not (rules or was_ours or stray):
+			continue  # no offer can touch this row: leave ERPNext's pricing as it is
 		normal = _normal_effect(doc, row, cache)
-		if not was_ours and _has_multibuy_rule(row.get("pricing_rules")):
+		if stray:
 			# priced by an ERPNext lookup that ran without the wrapper: that 0% is not a
 			# typed discount, the row gets its real normal price
 			_set_normal(row, normal)
@@ -190,7 +217,6 @@ def apply(doc):
 			continue
 		if abs(_effective_rate(row) - normal["rate"]) > TOL and not was_ours:
 			continue  # a discount its normal rule does not explain: typed, POS offer, barcode
-		rules = _multibuy_rules(doc, row, cache)
 		if rules:
 			candidates.append((row, normal, rules))
 
@@ -225,7 +251,7 @@ def _evaluate(doc, rule, basket, split=False):
 		# from qty: ERPNext refreshes stock_qty only later in validate
 		count = int(math.floor(flt(row.qty) * cf + 1e-9))
 		unit_price = flt(row.price_list_rate) / cf
-		units.append((row.name or row.idx, unit_price, cint(row.idx), count))
+		units.append((id(row), unit_price, cint(row.idx), count))
 		amount += flt(row.price_list_rate) * flt(row.qty)
 		n += count
 	if n < cint(rule.isoft_buy_qty) + cint(rule.isoft_get_qty):
@@ -244,7 +270,7 @@ def _evaluate(doc, rule, basket, split=False):
 	d = flt(rule.isoft_multibuy_discount)
 	out = {"units": sum(given.values()), "amount": 0.0, "rows": {}}
 	for row, _normal in basket:
-		key = row.name or row.idx
+		key = id(row)
 		cnt = given.get(key, 0)
 		plr, qty = flt(row.price_list_rate), flt(row.qty)
 		cf = flt(row.conversion_factor) or 1
@@ -268,7 +294,8 @@ def _evaluate(doc, rule, basket, split=False):
 
 # ---------------------------------------------------------------------------- line split
 LINE_KEY = ("item_code", "uom", "conversion_factor", "warehouse", "batch_no", "price_list_rate", "description",
-	"quotation_item", "prevdoc_docname", "so_detail", "dn_detail", "against_sales_order", "sales_order", "delivery_note")
+	"quotation_item", "prevdoc_docname", "so_detail", "dn_detail", "against_sales_order", "sales_order", "delivery_note",
+	"si_detail", "against_sales_invoice")
 LOCATION_FIELD = "custom_location_allocation"
 
 
@@ -286,21 +313,29 @@ def _line_key(row):
 
 
 def _merge_split_rows(doc):
-	"""Lines this engine split are put back together before the offer is worked out again."""
-	keep = {}
+	"""Lines this engine split are put back together before the offer is worked out again.
+	The full-price line is the one kept; the discounted line taken out is set aside and put
+	back by _split_row, so saving or reopening a document keeps the same rows (names) —
+	otherwise every load would swap which row holds the discount and mark the form dirty."""
+	groups = {}
 	for row in list(doc.items):
 		if not row.get("isoft_multibuy_rule") or not row.get("item_code") or not _splittable(row) or _carried(doc, row):
 			continue
-		key = _line_key(row)
-		first = keep.get(key)
-		if first is None:
-			keep[key] = row
+		groups.setdefault(_line_key(row), []).append(row)
+	spare = doc.flags.isoft_multibuy_spare = {}
+	for key, rows in groups.items():
+		if len(rows) < 2:
 			continue
-		first.qty = flt(first.qty) + flt(row.qty)
-		first.stock_qty = flt(first.qty) * (flt(first.conversion_factor) or 1)
-		first.isoft_multibuy_units = flt(first.isoft_multibuy_units) + flt(row.isoft_multibuy_units)
-		_merge_location(first, row)
-		doc.remove(row)
+		base = next((r for r in rows if not flt(r.isoft_multibuy_units)), rows[0])
+		for row in rows:
+			if row is base:
+				continue
+			base.qty = flt(base.qty) + flt(row.qty)
+			base.stock_qty = flt(base.qty) * (flt(base.conversion_factor) or 1)
+			_merge_location(base, row)
+			doc.remove(row)
+			spare.setdefault(key, []).append(row)
+		base.isoft_multibuy_units = 0
 	_reindex(doc)
 
 
@@ -311,8 +346,13 @@ def _split_row(doc, row, part_qty, units, pct, rule_name):
 	cf = flt(row.conversion_factor) or 1
 	data = {k: v for k, v in row.as_dict().items()
 		if k not in ("name", "idx", "creation", "modified", "modified_by", "owner", "docstatus") and not isinstance(v, (list, tuple))}
-	part = doc.append("items", data)
-	doc.items.remove(part)
+	spare = (doc.flags.isoft_multibuy_spare or {}).get(_line_key(row)) or []
+	if spare:
+		part = spare.pop(0)  # the same row as before the merge: same name, no churn
+		part.update(data)
+	else:
+		part = doc.append("items", data)
+		doc.items.remove(part)
 	doc.items.insert(doc.items.index(row), part)
 	part.qty, part.stock_qty = part_qty, units
 	row.qty = flt(row.qty) - part_qty
@@ -415,10 +455,66 @@ def _carried(doc, row):
 		if ref and frappe.db.get_value(source_dt, ref, "isoft_multibuy_rule") == row.isoft_multibuy_rule:
 			return True
 	# Sales Order from a Quotation: v13 links the row only by the quotation's name
-	if doc.doctype == "Sales Order" and row.get("prevdoc_docname"):
+	if doc.doctype in ("Sales Order", "Sales Invoice") and row.get("prevdoc_docname") and frappe.db.exists("Quotation", row.prevdoc_docname):
 		return bool(frappe.db.exists("Quotation Item", {
 			"parent": row.prevdoc_docname, "item_code": row.item_code, "isoft_multibuy_rule": row.isoft_multibuy_rule}))
 	return False
+
+
+def _any_multibuy(doc):
+	"""Is there any enabled selling multi-buy rule this document's company could use?"""
+	if frappe.flags.isoft_multibuy_any is None:
+		frappe.flags.isoft_multibuy_any = {}  # per request / job; cleared when a Pricing Rule is saved
+	cache = frappe.flags.isoft_multibuy_any
+	company = doc.get("company") or ""
+	if company not in cache:
+		cache[company] = bool(frappe.db.sql(
+			"""select name from `tabPricing Rule` where isoft_multibuy = 1 and disable = 0 and selling = 1
+			and ifnull(company, '') in (%s, '') limit 1""", (company,)))
+	return cache[company]
+
+
+def _split_allowed(doc):
+	"""POS carts split themselves; and two lines of one item need Selling Settings to allow it."""
+	return not cint(doc.get("is_pos")) and bool(cint(frappe.db.get_single_value("Selling Settings", "allow_multiple_items")))
+
+
+def _carried_source(doc, row):
+	"""The source lines a carried row stands for: (budget key, [source rows])."""
+	fields = ["name", "qty", "price_list_rate", "rate", "conversion_factor", "isoft_multibuy_units", "isoft_multibuy_rule"]
+	for field, source_dt in SOURCE_LINKS:
+		ref = row.get(field)
+		if ref:
+			src = frappe.db.get_value(source_dt, ref, fields, as_dict=True)
+			if src and src.isoft_multibuy_rule == row.isoft_multibuy_rule:
+				return (source_dt, ref), [src]
+	if row.get("prevdoc_docname"):
+		srcs = frappe.get_all("Quotation Item", filters={"parent": row.prevdoc_docname, "item_code": row.item_code,
+			"isoft_multibuy_rule": row.isoft_multibuy_rule}, fields=fields)
+		return ("Quotation", row.prevdoc_docname, row.item_code, row.isoft_multibuy_rule), srcs
+	return None, []
+
+
+def _apply_carried(doc, row, budget):
+	"""A carried row keeps the source's discount, recomputed from the source (never from the
+	row's own copied fields), and only for as many discounted units as the source had: a
+	raised qty or a duplicated row does not multiply the discount."""
+	key, srcs = _carried_source(doc, row)
+	units = sum(flt(s.isoft_multibuy_units) for s in srcs)
+	value = sum((flt(s.price_list_rate) - flt(s.rate)) * flt(s.qty) for s in srcs)
+	per_unit = value / units if units else 0
+	if key not in budget:
+		budget[key] = units
+	cf = flt(row.conversion_factor) or 1
+	row_units = int(math.floor(flt(row.qty) * cf + 1e-9))
+	covered = max(0, min(row_units, int(budget[key])))
+	budget[key] -= covered
+	plr, qty = flt(row.price_list_rate), flt(row.qty)
+	pct = 100.0 * covered * per_unit / (plr * qty) if plr and qty else 0
+	cap = flt(frappe.get_cached_value("Item", row.item_code, "max_discount"))
+	if cap > 0:
+		pct = min(pct, cap)
+	_set_row(row, pct, row.isoft_multibuy_rule, covered)
 
 
 def _kept_by_switch(doc, row):

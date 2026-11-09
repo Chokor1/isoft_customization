@@ -37,8 +37,8 @@ class CommitAttempted(Exception):
 
 
 def _no_commit(*args, **kwargs):
-	# ERPNext's SalesInvoice.on_submit commits (add_mapped_identity). If a guard
-	# ever lets a bad invoice reach it, fail loudly instead of persisting test data.
+	# Nothing in the save or submit path should commit. If something ever does,
+	# fail loudly instead of persisting test data.
 	raise CommitAttempted("something tried to commit during the check")
 
 

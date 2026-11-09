@@ -91,6 +91,11 @@ try:
 	normal.priority = "3"
 	check("no_conflict_other_priority", not find_conflicts(normal), find_conflicts(normal))
 
+	# review I6: settings the engine does not evaluate are refused, not silently ignored
+	check("no_condition", throws(lambda: rule(condition="doc.grand_total > 100", title="MB cond", priority="8").insert()))
+	check("no_coupon", throws(lambda: rule(coupon_code_based=1, title="MB coupon", priority="9").insert()))
+	check("no_campaign", throws(lambda: rule(applicable_for="Campaign", campaign=None, customer_group=None, title="MB camp", priority="10").insert()))
+	check("no_sales_partner", throws(lambda: rule(applicable_for="Sales Partner", customer_group=None, title="MB sp", priority="11").insert()))
 	hundred = rule(isoft_multibuy_discount=100, title="MB 100", priority="7").insert()
 	check("hundred_flagged", "verify with AGT" in (hundred.rule_description or ""), hundred.rule_description)
 except Exception as e:  # noqa: BLE001
