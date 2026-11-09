@@ -97,6 +97,37 @@ def pos(page):
 	check("pos_manual_row_out_server", s2 and not s2[cheap["item"]]["rule"] and abs(s2[dear["item"]]["disc"] - 5) < 0.01, srv2)
 	page.evaluate("() => {" + FIND + " inv.items.splice(0); }")
 
+	# same item: the discounted units get their own line (user request 2026-11-09: "1 normal and 1 with 50%")
+	def lines():
+		return page.evaluate("() => {" + FIND + " return inv.items.map(i => [i.item_code, +i.qty, Math.round((+i.discount_percentage || 0) * 100) / 100, +i.isoft_multibuy_units || 0]); }")
+
+	def add_one(code):
+		page.evaluate("(c) => {" + FIND + " sel.add_item(sel.items.find(i => i.item_code === c)); }", code)
+		page.wait_for_timeout(3500)
+
+	def shape(rows):
+		return sorted((q, d) for _c, q, d, _u in rows)
+
+	page.wait_for_timeout(800)
+	add_one(dear["item"])
+	add_one(dear["item"])
+	check("pos_same_item_2_split", shape(lines()) == [(1, 0), (1, 50)], lines())
+	add_one(dear["item"])
+	check("pos_same_item_3", shape(lines()) == [(1, 50), (2, 0)], lines())
+	add_one(dear["item"])
+	check("pos_same_item_4", shape(lines()) == [(2, 0), (2, 50)], lines())
+	srv3 = page.evaluate("() => {" + FIND + " return inv.update_invoice(inv.get_invoice_doc()).then(d => d && d.items.map(i => [i.item_code, +i.qty, Math.round(i.discount_percentage * 100) / 100])); }")
+	check("pos_split_server_matches", srv3 and sorted((q, d) for _c, q, d in srv3) == [(2, 0), (2, 50)], srv3)
+	# down to one unit: the lines merge back, no discount
+	page.evaluate("(c) => {" + FIND + " inv.items.filter(i => i.item_code === c).forEach(i => inv.remove_item(i)); }", dear["item"])
+	page.wait_for_timeout(1500)
+	add_one(dear["item"])
+	add_one(cheap["item"])
+	page.evaluate("(c) => {" + FIND + " inv.remove_item(inv.items.find(i => i.item_code === c)); }", cheap["item"])
+	page.wait_for_timeout(3500)
+	check("pos_single_unit_one_line", lines() == [[dear["item"], 1, 0, 0]], lines())
+	page.evaluate("() => {" + FIND + " inv.items.splice(0); }")
+
 
 def desk(page):
 	A, B = "MSE-LOG-M185", "PAP-A4"  # B is the cheaper one
