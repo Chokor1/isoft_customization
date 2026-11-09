@@ -8,11 +8,14 @@ from __future__ import unicode_literals
 
 from erpnext.accounts.doctype.pricing_rule.pricing_rule import PricingRule
 
+from isoft_customization import multi_buy_rule
 from isoft_customization.item_group_and_brand import ITEM_GROUP_AND_BRAND, validate_rule
 
 
 class IsoftPricingRule(PricingRule):
 	def validate_mandatory(self):
+		# Multi-buy first: it zeroes the standard discount fields ERPNext validates next.
+		multi_buy_rule.validate_rule(self)
 		super(IsoftPricingRule, self).validate_mandatory()
 		validate_rule(self)
 

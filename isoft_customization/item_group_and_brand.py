@@ -57,7 +57,11 @@ def _get_pricing_rules(apply_on, args, values):
 		rules = [r for r in rules if r.get("apply_on") != ITEM_GROUP_AND_BRAND or _brand_matches(r, args)]
 	elif apply_on == "Brand":
 		rules = [r for r in rules if r.get("apply_on") != ITEM_GROUP_AND_BRAND]
-	return _one_row_per_rule(rules, apply_on)
+	# Multi-buy rules are priced over the whole basket by multi_buy.py, never per row:
+	# hidden from ERPNext, and the only rules returned when the engine asks.
+	from isoft_customization.multi_buy_rule import filter_lookup
+
+	return _one_row_per_rule(filter_lookup(rules), apply_on)
 
 
 def _one_row_per_rule(rules, apply_on):

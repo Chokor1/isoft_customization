@@ -250,4 +250,6 @@ after_migrate = [
 	"isoft_customization.page_modules.sync_page_modules",
 	# Pricing Rule Apply On "Item Group and Brand". See item_group_and_brand.py.
 	"isoft_customization.item_group_and_brand.setup_property_setters",
+	# Pricing Rule "Multi-buy (Buy X get Y)" + its row fields. See multi_buy_rule.py.
+	"isoft_customization.multi_buy_rule.setup_custom_fields",
 ]
