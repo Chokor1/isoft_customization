@@ -253,3 +253,22 @@ after_migrate = [
 	# Pricing Rule "Multi-buy (Buy X get Y)" + its row fields. See multi_buy_rule.py.
 	"isoft_customization.multi_buy_rule.setup_custom_fields",
 ]
+
+
+# Pricing Rule "Multi-buy (Buy X get Y)": the engine wraps calculate_taxes_and_totals in
+# before_validate (after keep_prices, so it sits on top) and lets go in validate. Appended
+# to whatever the doctypes already have. See multi_buy.py.
+def _append_doc_event(doctype, event, method):
+	events = doc_events.setdefault(doctype, {})
+	current = events.get(event)
+	if not current:
+		events[event] = [method]
+	elif isinstance(current, str):
+		events[event] = [current, method]
+	elif method not in current:
+		current.append(method)
+
+
+for _doctype in ("Quotation", "Sales Order", "Delivery Note", "Sales Invoice"):
+	_append_doc_event(_doctype, "before_validate", "isoft_customization.multi_buy.before_validate")
+	_append_doc_event(_doctype, "validate", "isoft_customization.multi_buy.release")

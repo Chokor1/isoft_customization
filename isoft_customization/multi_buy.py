@@ -1,0 +1,369 @@
+"""Multi-buy (Buy X get Y at d%) document engine.
+
+Runs right before every calculate_taxes_and_totals during validate (the wrapper is put on
+in before_validate, as linked_document_prices does), on Quotation / Sales Order /
+Delivery Note / Sales Invoice, desk and POS. It:
+
+1. works out each row's normal pricing rule itself (POS never sends `pricing_rules`);
+2. leaves out rows whose discount the normal rule does not explain (typed discounts,
+   POS offers, barcode discounts), free items, rows kept by the keep-prices switches and
+   rows carried with a multi-buy result from their source document;
+3. per multi-buy rule, highest priority first, pools the eligible units of the rows it
+   matches (a normal rule of higher or equal priority keeps its row); a basket that does
+   not qualify frees its rows for the next rule, and they keep their normal discount;
+4. gives the cheapest floor(N / (Buy+Get)) x Get units the rule's discount, written as a
+   blended row discount plus the row fields isoft_multibuy_rule / _units / _pct.
+
+Rules come from ERPNext's own lookup (multi_buy_rule.multibuy_lookup), so Apply On,
+customer / group / territory, store, price list, currency and dates match exactly as for
+any pricing rule. Spec: docs/superpowers/specs/2026-11-09-multi-buy-pricing-rule-design.md
+"""
+import json
+import math
+
+import frappe
+from frappe import _
+from frappe.utils import cint, flt, getdate, nowdate
+
+from isoft_customization.multi_buy_rule import multibuy_lookup
+
+DOCTYPES = ("Quotation", "Sales Order", "Delivery Note", "Sales Invoice")
+SOURCE_LINKS = (
+	# (row field, source item doctype)
+	("quotation_item", "Quotation Item"),
+	("so_detail", "Sales Order Item"),
+	("dn_detail", "Delivery Note Item"),
+)
+ROW_FIELDS = ("isoft_multibuy_rule", "isoft_multibuy_units", "isoft_multibuy_pct")
+TOL = 0.01
+
+
+# ---------------------------------------------------------------------------- allocation
+def allocate(units, buy, get, max_units=0):
+	"""units: [(row_key, unit_price, idx, count)]. The cheapest floor(N/(buy+get))*get units
+	(ties by idx) are discounted. Returns {row_key: discounted_count}."""
+	n = sum(max(0, int(c)) for _k, _p, _i, c in units)
+	group = cint(buy) + cint(get)
+	if group <= 0:
+		return {}
+	d = (n // group) * cint(get)
+	if cint(max_units) > 0:
+		d = min(d, cint(max_units))
+	out = {}
+	for key, _price, _idx, count in sorted(units, key=lambda u: (flt(u[1]), u[2])):
+		if d <= 0:
+			break
+		take = min(int(count), d)
+		if take > 0:
+			out[key] = out.get(key, 0) + take
+			d -= take
+	return out
+
+
+# ---------------------------------------------------------------------------- hooks
+def before_validate(doc, method=None, *args, **kwargs):
+	if doc.doctype not in DOCTYPES or doc.docstatus != 0:
+		return
+	core = doc.calculate_taxes_and_totals
+
+	def calculate_taxes_and_totals(*a, **kw):
+		if not doc.flags.isoft_multibuy_running:
+			doc.flags.isoft_multibuy_running = True
+			try:
+				apply(doc)
+			finally:
+				doc.flags.isoft_multibuy_running = False
+		return core(*a, **kw)
+
+	doc.calculate_taxes_and_totals = calculate_taxes_and_totals
+
+
+def release(doc, method=None, *args, **kwargs):
+	doc.__dict__.pop("calculate_taxes_and_totals", None)
+	doc.flags.isoft_multibuy_cache = None
+
+
+# ---------------------------------------------------------------------------- engine
+def apply(doc):
+	result = {"rules": {}, "rows": {}}
+	if doc.doctype not in DOCTYPES or cint(doc.get("is_return")) or not doc.get("items"):
+		return result
+	skip_all = cint(doc.get("ignore_pricing_rule")) and not cint(doc.get("is_pos"))
+	cache = doc.flags.isoft_multibuy_cache = doc.flags.isoft_multibuy_cache or {}
+
+	candidates = []  # rows that may join a basket
+	for row in doc.items:
+		if not row.get("item_code"):
+			continue
+		if _carried(doc, row):
+			_set_row(row, flt(row.isoft_multibuy_pct), row.isoft_multibuy_rule, flt(row.isoft_multibuy_units))
+			continue
+		was_ours = bool(row.get("isoft_multibuy_rule"))
+		normal = _normal_effect(doc, row, cache)
+		if was_ours:
+			_set_normal(row, normal)  # start from the row's normal price
+		if skip_all:
+			continue
+		if cint(row.get("is_free_item")) or flt(row.qty) <= 0 or _kept_by_switch(doc, row):
+			continue
+		if abs(_effective_rate(row) - normal["rate"]) > TOL and not was_ours:
+			continue  # a discount its normal rule does not explain: typed, POS offer, barcode
+		rules = _multibuy_rules(doc, row, cache)
+		if rules:
+			candidates.append((row, normal, rules))
+
+	free = {id(r): (r, normal, rules) for r, normal, rules in candidates}
+	all_rules = {}
+	for _r, _n, rules in candidates:
+		for rule in rules:
+			all_rules[rule.name] = rule
+	for rule in sorted(all_rules.values(), key=lambda x: (-cint(x.priority), x.name)):
+		basket = [
+			(r, normal) for r, normal, rules in free.values()
+			if any(x.name == rule.name for x in rules) and (normal["priority"] is None or cint(rule.priority) > normal["priority"])
+		]
+		claimed = _evaluate(doc, rule, basket)
+		if claimed is None:
+			continue
+		for r, _normal in basket:
+			free.pop(id(r), None)
+		result["rules"][rule.name] = claimed
+		for r, info in claimed["rows"].items():
+			result["rows"][r] = info
+	return result
+
+
+def _evaluate(doc, rule, basket):
+	"""Price the rule's basket; None when it does not qualify (rows stay free)."""
+	if not basket:
+		return None
+	units, amount, n = [], 0.0, 0
+	for row, _normal in basket:
+		cf = flt(row.conversion_factor) or 1
+		# from qty: ERPNext refreshes stock_qty only later in validate
+		count = int(math.floor(flt(row.qty) * cf + 1e-9))
+		unit_price = flt(row.price_list_rate) / cf
+		units.append((row.name or row.idx, unit_price, cint(row.idx), count))
+		amount += flt(row.price_list_rate) * flt(row.qty)
+		n += count
+	if n < cint(rule.isoft_buy_qty) + cint(rule.isoft_get_qty):
+		return None
+	if flt(rule.min_qty) and n < flt(rule.min_qty):
+		return None
+	if flt(rule.max_qty) and n > flt(rule.max_qty):
+		return None
+	if flt(rule.min_amt) and amount < flt(rule.min_amt):
+		return None
+	if flt(rule.max_amt) and amount > flt(rule.max_amt):
+		return None
+	given = allocate(units, rule.isoft_buy_qty, rule.isoft_get_qty, rule.isoft_multibuy_max_units)
+	if not given:
+		return None
+	d = flt(rule.isoft_multibuy_discount)
+	out = {"units": sum(given.values()), "amount": 0.0, "rows": {}}
+	for row, _normal in basket:
+		key = row.name or row.idx
+		cnt = given.get(key, 0)
+		plr, qty = flt(row.price_list_rate), flt(row.qty)
+		cf = flt(row.conversion_factor) or 1
+		value = cnt * (plr / cf) * d / 100.0
+		pct = 100.0 * value / (plr * qty) if plr and qty else 0
+		cap = flt(frappe.get_cached_value("Item", row.item_code, "max_discount"))
+		if cap > 0:
+			pct = min(pct, cap)
+		_set_row(row, pct, rule.name, cnt)
+		out["amount"] += (plr - flt(row.rate)) * qty
+		out["rows"][key] = {"rule": rule.name, "units": cnt, "pct": flt(row.discount_percentage)}
+	return out
+
+
+def _effective_rate(row):
+	"""The row's rate, or what ERPNext will make of its discount when the rate is still empty."""
+	if flt(row.rate):
+		return flt(row.rate)
+	plr = flt(row.price_list_rate)
+	if flt(row.discount_percentage):
+		return flt(plr * (1 - flt(row.discount_percentage) / 100.0), row.precision("rate"))
+	return flt(plr - flt(row.discount_amount), row.precision("rate"))
+
+
+def _set_row(row, pct, rule_name, units):
+	plr = flt(row.price_list_rate)
+	row.rate = flt(plr * (1 - flt(pct) / 100.0), row.precision("rate")) if plr else flt(row.rate)
+	row.discount_percentage = flt(100.0 * (plr - row.rate) / plr, row.precision("discount_percentage")) if plr else 0
+	row.discount_amount = flt(plr - row.rate, row.precision("discount_amount")) if plr else 0
+	row.margin_type, row.margin_rate_or_amount, row.rate_with_margin = "", 0, 0
+	row.pricing_rules = ""
+	row.isoft_multibuy_rule = rule_name or None
+	row.isoft_multibuy_units = flt(units)
+	row.isoft_multibuy_pct = flt(pct)
+
+
+def _set_normal(row, normal):
+	row.isoft_multibuy_rule, row.isoft_multibuy_units, row.isoft_multibuy_pct = None, 0, 0
+	row.rate = normal["rate"]
+	plr = flt(row.price_list_rate)
+	row.discount_percentage = flt(100.0 * (plr - row.rate) / plr, row.precision("discount_percentage")) if plr else 0
+	row.discount_amount = flt(plr - row.rate, row.precision("discount_amount")) if plr else 0
+	row.pricing_rules = normal["pricing_rules"] or ""
+
+
+def _carried(doc, row):
+	"""A row made from a source document that had a multi-buy result keeps it."""
+	if doc.doctype == "Quotation" or not row.get("isoft_multibuy_rule"):
+		return False
+	for field, source_dt in SOURCE_LINKS:
+		ref = row.get(field)
+		if ref and frappe.db.get_value(source_dt, ref, "isoft_multibuy_rule") == row.isoft_multibuy_rule:
+			return True
+	# Sales Order from a Quotation: v13 links the row only by the quotation's name
+	if doc.doctype == "Sales Order" and row.get("prevdoc_docname"):
+		return bool(frappe.db.exists("Quotation Item", {
+			"parent": row.prevdoc_docname, "item_code": row.item_code, "isoft_multibuy_rule": row.isoft_multibuy_rule}))
+	return False
+
+
+def _kept_by_switch(doc, row):
+	if doc.doctype != "Sales Invoice" or not row.get("dn_detail"):
+		return False
+	from isoft_customization.linked_document_prices import LINKS, is_enabled
+
+	link = LINKS["Sales Invoice"]
+	return bool(is_enabled(link, link.keep) or is_enabled(link, link.no_rules))
+
+
+def _context(doc):
+	customer = doc.get("customer") or (doc.get("party_name") if doc.get("quotation_to") == "Customer" else None)
+	group = doc.get("customer_group") or (frappe.get_cached_value("Customer", customer, "customer_group") if customer else None)
+	territory = doc.get("territory") or (frappe.get_cached_value("Customer", customer, "territory") if customer else None)
+	return frappe._dict(
+		customer=customer,
+		customer_group=group or _root("Customer Group"),
+		territory=territory or _root("Territory"),
+		date=doc.get("posting_date") or doc.get("transaction_date") or nowdate(),
+	)
+
+
+def _root(doctype):
+	field = "parent_" + frappe.scrub(doctype)
+	r = frappe.db.sql("select name from `tab{0}` where is_group=1 and ifnull(`{1}`,'')='' order by lft limit 1".format(doctype, field))
+	return r[0][0] if r else None
+
+
+def _normal_effect(doc, row, cache):
+	"""The row's price under its normal pricing rule (multi-buy rules are invisible here)."""
+	from erpnext.stock.get_item_details import get_item_details
+
+	ctx = _context(doc)
+	key = ("normal", row.item_code, flt(row.qty), row.uom, flt(row.conversion_factor), flt(row.price_list_rate),
+		row.get("warehouse"), ctx.customer, ctx.customer_group, str(ctx.date), doc.get("selling_price_list"), doc.get("currency"))
+	if key in cache:
+		return cache[key]
+	parent = {k: v for k, v in doc.as_dict().items() if not isinstance(v, (list, tuple))}
+	args = frappe._dict(parent)
+	args.update({k: v for k, v in row.as_dict().items() if not isinstance(v, (list, tuple))})
+	args.update({
+		"doctype": doc.doctype, "name": doc.name, "child_docname": row.name, "parenttype": doc.doctype,
+		"ignore_pricing_rule": 0, "is_pos": 0, "customer": ctx.customer, "customer_group": ctx.customer_group,
+		"territory": ctx.territory, "transaction_date": ctx.date, "posting_date": ctx.date,
+		"price_list": doc.get("selling_price_list"), "selling_price_list": doc.get("selling_price_list"),
+		# the row's current discount must not be echoed back as if a rule gave it
+		"pricing_rules": None, "rate": None, "discount_percentage": 0, "discount_amount": 0,
+		"margin_type": None, "margin_rate_or_amount": 0, "rate_with_margin": 0,
+	})
+	log_len = len(frappe.local.message_log or [])
+	try:
+		out = frappe._dict(get_item_details(args, None, for_validate=True, overwrite_warehouse=False) or {})
+	except Exception:  # noqa: BLE001 - a row ERPNext can't price has no normal rule
+		del frappe.local.message_log[log_len:]
+		out = frappe._dict()
+	plr = flt(row.price_list_rate)
+	rules = _rule_names(out.get("pricing_rules"))
+	pct, amt = flt(out.get("discount_percentage")), flt(out.get("discount_amount"))
+	if rules and frappe.db.get_value("Pricing Rule", rules[0], "rate_or_discount") == "Rate" and flt(out.get("price_list_rate")):
+		rate = flt(out.price_list_rate)
+	else:
+		rate = plr * (1 - pct / 100.0) - (amt if not pct else 0)
+	priority = max([cint(frappe.db.get_value("Pricing Rule", n, "priority")) for n in rules] or [0]) if rules else None
+	res = {"rate": flt(rate, row.precision("rate")), "priority": priority,
+		"pricing_rules": out.get("pricing_rules") if rules else ""}
+	cache[key] = res
+	return res
+
+
+def _rule_names(value):
+	if not value:
+		return []
+	if isinstance(value, (list, tuple)):
+		return [v for v in value if v]
+	try:
+		names = json.loads(value)
+	except ValueError:
+		names = [x.strip() for x in str(value).split(",")]
+	return [n for n in (names if isinstance(names, list) else [names]) if n]
+
+
+def _multibuy_rules(doc, row, cache):
+	from erpnext.accounts.doctype.pricing_rule import utils as prutils
+
+	ctx = _context(doc)
+	item = frappe.get_cached_value("Item", row.item_code, ["item_group", "brand", "variant_of"], as_dict=True) or {}
+	warehouse = row.get("warehouse") or doc.get("set_warehouse")
+	key = ("mb", row.item_code, warehouse, ctx.customer, ctx.customer_group, ctx.territory, str(ctx.date),
+		doc.get("selling_price_list"), doc.get("currency"), doc.company)
+	if key in cache:
+		return cache[key]
+	args = frappe._dict(
+		item_code=row.item_code, item_group=item.get("item_group"), brand=item.get("brand"), variant_of=item.get("variant_of"),
+		company=doc.company, transaction_type="selling", customer=ctx.customer, customer_group=ctx.customer_group,
+		territory=ctx.territory, currency=doc.get("currency"), price_list=doc.get("selling_price_list"),
+		transaction_date=ctx.date, warehouse=warehouse, uom=row.uom, stock_uom=row.stock_uom,
+		conversion_factor=row.conversion_factor, qty=row.qty, stock_qty=row.stock_qty,
+	)
+	found = {}
+	with multibuy_lookup():
+		for apply_on in ("Item Code", "Item Group", "Brand"):
+			for r in prutils._get_pricing_rules(apply_on, args, {}) or []:
+				found.setdefault(r.name, frappe._dict(r))
+	date = getdate(ctx.date)
+	rules = [r for r in found.values()
+		if (not r.valid_from or getdate(r.valid_from) <= date) and (not r.valid_upto or getdate(r.valid_upto) >= date)]
+	cache[key] = rules
+	return rules
+
+
+@frappe.whitelist()
+def preview(doc):
+	"""What the engine would do to an unsaved document: per-row results and totals."""
+	data = frappe.parse_json(doc) if isinstance(doc, str) else doc
+	data = dict(data or {})
+	if data.get("doctype") not in DOCTYPES:
+		frappe.throw(_("Multi-buy preview is for Quotation, Sales Order, Delivery Note and Sales Invoice"))
+	if not frappe.has_permission(data["doctype"], "read"):
+		frappe.throw(_("Not permitted"), frappe.PermissionError)
+	for k in ("name", "__islocal", "__unsaved", "docstatus", "amended_from"):
+		data.pop(k, None)
+	d = frappe.get_doc(data)
+	log_len = len(frappe.local.message_log or [])
+	try:
+		d.set_missing_values()
+	except Exception:  # noqa: BLE001 - a preview never raises over incomplete header data
+		del frappe.local.message_log[log_len:]
+	before_validate(d)
+	d.calculate_taxes_and_totals()
+	release(d)
+	return {
+		"rows": [
+			{"idx": r.idx, "item_code": r.item_code, "isoft_multibuy_rule": r.get("isoft_multibuy_rule"),
+				"isoft_multibuy_units": flt(r.get("isoft_multibuy_units")), "isoft_multibuy_pct": flt(r.get("isoft_multibuy_pct")),
+				"discount_percentage": flt(r.discount_percentage), "discount_amount": flt(r.discount_amount),
+				"rate": flt(r.rate), "price_list_rate": flt(r.price_list_rate), "pricing_rules": r.get("pricing_rules")}
+			for r in d.items
+		],
+		"rules": {
+			n: frappe.db.get_value("Pricing Rule", n, ["title", "isoft_buy_qty", "isoft_get_qty", "isoft_multibuy_discount"], as_dict=True)
+			for n in {r.get("isoft_multibuy_rule") for r in d.items if r.get("isoft_multibuy_rule")}
+		},
+		"multibuy_discount": flt(sum((flt(r.price_list_rate) - flt(r.rate)) * flt(r.qty) for r in d.items if r.get("isoft_multibuy_rule")), 2),
+		"net_total": flt(d.net_total), "grand_total": flt(d.grand_total),
+	}

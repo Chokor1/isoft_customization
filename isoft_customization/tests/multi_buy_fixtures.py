@@ -39,3 +39,6 @@ def rule(title, group, priority, multibuy=True, **kw):
 	d = frappe.get_doc(base)
 	d.flags.ignore_permissions = True
 	return d
+
+
+IVA_ROW = {"charge_type": "On Net Total", "account_head": "34531 - IVA Liquidado MN - ITEC", "description": "IVA 14%", "rate": 14}
