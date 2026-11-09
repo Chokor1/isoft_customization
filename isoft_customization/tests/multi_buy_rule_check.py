@@ -57,6 +57,11 @@ try:
 
 	from erpnext.stock.get_item_details import get_item_details
 
+	# as every desk / POS request does (a raw process right after a cache clear has no wrapper
+	# until then; multi_buy_cold_cache_check covers the engine in that state)
+	for method in frappe.get_hooks("before_request"):
+		frappe.get_attr(method)()
+
 	out = get_item_details({"doctype": "Sales Invoice", "item_code": "MB-T-A", "company": COMPANY, "selling_price_list": PL,
 		"price_list_currency": "AKZ", "currency": "AKZ", "conversion_rate": 1, "plc_conversion_rate": 1, "qty": 3,
 		"customer_group": "All Customer Groups", "territory": "All Territories", "transaction_date": frappe.utils.nowdate()})

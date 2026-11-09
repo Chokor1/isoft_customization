@@ -31,7 +31,6 @@ frappe.provide("isoft.multi_buy");
 		const sig = ns.signature(frm);
 		if (sig === frm.__isoft_mb_sig) return;
 		const seq = (frm.__isoft_mb_seq = (frm.__isoft_mb_seq || 0) + 1);
-		const codes = (frm.doc.items || []).map((i) => i.item_code);
 		frappe.call({
 			method: "isoft_customization.multi_buy.preview",
 			args: { doc: JSON.stringify(frm.doc) },
@@ -39,32 +38,60 @@ frappe.provide("isoft.multi_buy");
 				const m = r && r.message;
 				if (!m || seq !== frm.__isoft_mb_seq) return;
 				if (m.none) { ns.none = true; return; }
-				ns.apply(frm, m, codes);
+				if (ns.signature(frm) !== sig) { ns.schedule(frm); return; } // edited meanwhile
+				ns.apply(frm, m);
 				frm.__isoft_mb_sig = ns.signature(frm);
 			},
 		});
 	};
 
-	ns.apply = function (frm, m, codes) {
+	// The server's answer is the line structure too: discounted units sit on their own line
+	// (split off just above the line they came from) and lines that no longer need to be
+	// apart are merged back. Values go straight onto the rows: set_value would run ERPNext's
+	// rate/discount triggers, which turn a rate change into a margin (rejected by the AGT).
+	const VALUE_FIELDS = ["qty", "stock_qty", "isoft_multibuy_rule", "isoft_multibuy_units", "isoft_multibuy_pct",
+		"discount_percentage", "discount_amount", "rate", "pricing_rules", "custom_location_allocation", "custom_from_location"];
+	const SKIP = ["name", "idx", "parent", "parenttype", "parentfield", "doctype", "docstatus", "creation", "modified",
+		"modified_by", "owner", "__islocal", "__unsaved"];
+
+	ns.apply = function (frm, m) {
+		const cdt = frm.fields_dict.items.grid.doctype;
+		const current = (frm.doc.items || []).slice();
+		const by_name = {};
+		current.forEach((r) => { by_name[r.name] = r; });
+		const order = [];
 		let changed = false;
-		(m.rows || []).forEach((row, i) => {
-			const item = (frm.doc.items || [])[i];
-			if (!item || item.item_code !== codes[i]) return;
-			if (!row.isoft_multibuy_rule && !item.isoft_multibuy_rule) return;
-			if (item.isoft_multibuy_rule === (row.isoft_multibuy_rule || null) && flt(item.rate) === flt(row.rate)
-				&& flt(item.discount_percentage) === flt(row.discount_percentage)) return;
-			// straight onto the row: set_value would run ERPNext's rate/discount triggers, which
-			// turn a rate change into a margin (rejected by the AGT)
-			Object.assign(item, {
-				isoft_multibuy_rule: row.isoft_multibuy_rule || null, isoft_multibuy_units: row.isoft_multibuy_units || 0,
-				isoft_multibuy_pct: row.isoft_multibuy_pct || 0, discount_percentage: flt(row.discount_percentage),
-				discount_amount: flt(row.discount_amount), rate: flt(row.rate), margin_type: "", margin_rate_or_amount: 0,
-				rate_with_margin: 0, pricing_rules: row.pricing_rules || "",
-			});
-			changed = true;
+		(m.rows || []).forEach((pr) => {
+			let row = pr.name && by_name[pr.name];
+			if (!row) {
+				if (!pr.doc || !pr.isoft_multibuy_rule) return;
+				row = frappe.model.add_child(frm.doc, cdt, "items");
+				Object.keys(pr.doc).forEach((k) => { if (!SKIP.includes(k)) row[k] = pr.doc[k]; });
+				changed = true;
+			} else if (pr.isoft_multibuy_rule || row.isoft_multibuy_rule) {
+				VALUE_FIELDS.forEach((f) => {
+					if (!(f in pr) || (f.startsWith("custom_") && !(f in row))) return;
+					const v = pr[f] === undefined ? null : pr[f];
+					const same = typeof v === "number" ? flt(row[f]) === flt(v) : (row[f] || null) === (v || null);
+					if (!same) { row[f] = v; changed = true; }
+				});
+				if (row.isoft_multibuy_rule && (flt(row.margin_rate_or_amount) || row.margin_type)) {
+					Object.assign(row, { margin_type: "", margin_rate_or_amount: 0, rate_with_margin: 0 });
+				}
+			}
+			order.push(row);
 		});
-		ns.discount = flt(m.multibuy_discount);
+		// merged away on the server
+		current.forEach((row) => {
+			if (!order.includes(row) && row.isoft_multibuy_rule && row.item_code) {
+				frappe.model.clear_doc(cdt, row.name);
+				changed = true;
+			}
+		});
 		if (changed) {
+			const rest = (frm.doc.items || []).filter((row) => !order.includes(row));
+			frm.doc.items = order.filter((row) => locals[cdt] && locals[cdt][row.name]).concat(rest);
+			frm.doc.items.forEach((row, i) => { row.idx = i + 1; });
 			frm.dirty();
 			frm.cscript && frm.cscript.calculate_taxes_and_totals && frm.cscript.calculate_taxes_and_totals();
 			frm.refresh_field("items");

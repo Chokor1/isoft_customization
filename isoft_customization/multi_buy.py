@@ -64,6 +64,7 @@ def allocate(units, buy, get, max_units=0):
 def before_validate(doc, method=None, *args, **kwargs):
 	if doc.doctype not in DOCTYPES or doc.docstatus != 0:
 		return
+	_ensure_lookup_wrapper()  # before ERPNext prices the rows in validate
 	core = doc.calculate_taxes_and_totals
 
 	def calculate_taxes_and_totals(*a, **kw):
@@ -143,12 +144,29 @@ def validate_return(doc):
 
 
 # ---------------------------------------------------------------------------- engine
+def _ensure_lookup_wrapper():
+	"""ERPNext's rule lookup must hide multi-buy rules (and show only them inside
+	multibuy_lookup). The wrapper is installed per request / job and by the package import,
+	but a process that loaded this app while frappe was still reading hooks (right after a
+	cache clear: consoles, patches, scripts) has none: install it here, idempotent and cheap."""
+	from isoft_customization.item_group_and_brand import apply as install
+
+	install()
+
+
 def apply(doc):
 	result = {"rules": {}, "rows": {}}
 	if doc.doctype not in DOCTYPES or cint(doc.get("is_return")) or not doc.get("items"):
 		return result
+	_ensure_lookup_wrapper()
 	skip_all = cint(doc.get("ignore_pricing_rule")) and not cint(doc.get("is_pos"))
 	cache = doc.flags.isoft_multibuy_cache = doc.flags.isoft_multibuy_cache or {}
+	# Discounted units get their own line, as in the POS (whose cart does it itself), so a
+	# desk document and a POS sale of the same basket total the same to the cent: one
+	# blended line has to round its rate to 2 decimals and drifts with the quantity.
+	split = not cint(doc.get("is_pos"))
+	if split:
+		_merge_split_rows(doc)
 
 	candidates = []  # rows that may join a basket
 	for row in doc.items:
@@ -159,6 +177,11 @@ def apply(doc):
 			continue
 		was_ours = bool(row.get("isoft_multibuy_rule"))
 		normal = _normal_effect(doc, row, cache)
+		if not was_ours and _has_multibuy_rule(row.get("pricing_rules")):
+			# priced by an ERPNext lookup that ran without the wrapper: that 0% is not a
+			# typed discount, the row gets its real normal price
+			_set_normal(row, normal)
+			was_ours = True
 		if was_ours:
 			_set_normal(row, normal)  # start from the row's normal price
 		if skip_all:
@@ -181,7 +204,7 @@ def apply(doc):
 			(r, normal) for r, normal, rules in free.values()
 			if any(x.name == rule.name for x in rules) and (normal["priority"] is None or cint(rule.priority) > normal["priority"])
 		]
-		claimed = _evaluate(doc, rule, basket)
+		claimed = _evaluate(doc, rule, basket, split)
 		if claimed is None:
 			continue
 		for r, _normal in basket:
@@ -192,7 +215,7 @@ def apply(doc):
 	return result
 
 
-def _evaluate(doc, rule, basket):
+def _evaluate(doc, rule, basket, split=False):
 	"""Price the rule's basket; None when it does not qualify (rows stay free)."""
 	if not basket:
 		return None
@@ -230,10 +253,126 @@ def _evaluate(doc, rule, basket):
 		cap = flt(frappe.get_cached_value("Item", row.item_code, "max_discount"))
 		if cap > 0:
 			pct = min(pct, cap)
+		part_qty = cnt / cf
+		if split and 0 < cnt and part_qty < qty - 1e-9 and abs(part_qty - round(part_qty)) < 1e-9 and _splittable(row):
+			full = min(d, cap) if cap > 0 else d
+			_split_row(doc, row, part_qty, cnt, full, rule.name)
+			out["amount"] += (plr - flt(row.rate)) * flt(row.qty)
+			out["rows"][key] = {"rule": rule.name, "units": 0, "pct": 0}
+			continue
 		_set_row(row, pct, rule.name, cnt)
 		out["amount"] += (plr - flt(row.rate)) * qty
 		out["rows"][key] = {"rule": rule.name, "units": cnt, "pct": flt(row.discount_percentage)}
 	return out
+
+
+# ---------------------------------------------------------------------------- line split
+LINE_KEY = ("item_code", "uom", "conversion_factor", "warehouse", "batch_no", "price_list_rate", "description",
+	"quotation_item", "prevdoc_docname", "so_detail", "dn_detail", "against_sales_order", "sales_order", "delivery_note")
+LOCATION_FIELD = "custom_location_allocation"
+
+
+def _splittable(row):
+	"""Lines that can be cut in two without breaking what hangs off them."""
+	if row.get("serial_no") or cint(row.get("is_free_item")):
+		return False
+	if row.get("item_code") and frappe.db.exists("Product Bundle", {"new_item_code": row.item_code}):
+		return False  # packed items hang off the line by its name
+	return True
+
+
+def _line_key(row):
+	return tuple(flt(row.get(f)) if f in ("conversion_factor", "price_list_rate") else (row.get(f) or "") for f in LINE_KEY)
+
+
+def _merge_split_rows(doc):
+	"""Lines this engine split are put back together before the offer is worked out again."""
+	keep = {}
+	for row in list(doc.items):
+		if not row.get("isoft_multibuy_rule") or not row.get("item_code") or not _splittable(row) or _carried(doc, row):
+			continue
+		key = _line_key(row)
+		first = keep.get(key)
+		if first is None:
+			keep[key] = row
+			continue
+		first.qty = flt(first.qty) + flt(row.qty)
+		first.stock_qty = flt(first.qty) * (flt(first.conversion_factor) or 1)
+		first.isoft_multibuy_units = flt(first.isoft_multibuy_units) + flt(row.isoft_multibuy_units)
+		_merge_location(first, row)
+		doc.remove(row)
+	_reindex(doc)
+
+
+def _split_row(doc, row, part_qty, units, pct, rule_name):
+	"""`units` discounted stock units of `row` move to a new line just above it, at the full
+	discount; the row keeps the rest at full price. The earlier line wins ties, so the next
+	run (merge, then split again) lands on the same two lines."""
+	cf = flt(row.conversion_factor) or 1
+	data = {k: v for k, v in row.as_dict().items()
+		if k not in ("name", "idx", "creation", "modified", "modified_by", "owner", "docstatus") and not isinstance(v, (list, tuple))}
+	part = doc.append("items", data)
+	doc.items.remove(part)
+	doc.items.insert(doc.items.index(row), part)
+	part.qty, part.stock_qty = part_qty, units
+	row.qty = flt(row.qty) - part_qty
+	row.stock_qty = flt(row.qty) * cf
+	_split_location(row, part, units)
+	_set_row(part, pct, rule_name, units)
+	_set_row(row, 0, rule_name, 0)
+	_reindex(doc)
+
+
+def _reindex(doc):
+	for i, r in enumerate(doc.items, 1):
+		r.idx = i
+
+
+def _plan(row):
+	try:
+		return json.loads(row.get(LOCATION_FIELD) or "[]") or []
+	except ValueError:
+		return []
+
+
+def _set_plan(row, plan):
+	plan = [x for x in plan if flt(x.get("qty")) > 0]
+	row.set(LOCATION_FIELD, json.dumps(plan) if plan else "")
+	if plan and row.meta.has_field("custom_from_location"):
+		row.custom_from_location = sorted(plan, key=lambda x: -flt(x.get("qty")))[0].get("location")
+
+
+def _split_location(row, part, units):
+	"""Isoft Location Manager: each line's pick plan must add up to that line."""
+	if not row.meta.has_field(LOCATION_FIELD):
+		return
+	plan = _plan(row)
+	if not plan:
+		return
+	need, mine, rest = flt(units), [], []
+	for x in plan:
+		take = min(flt(x.get("qty")), need)
+		if take > 0:
+			mine.append(dict(x, qty=take))
+		if flt(x.get("qty")) - take > 0:
+			rest.append(dict(x, qty=flt(x.get("qty")) - take))
+		need -= take
+	_set_plan(part, mine)
+	_set_plan(row, rest)
+
+
+def _merge_location(into, other):
+	if not into.meta.has_field(LOCATION_FIELD):
+		return
+	a, b = _plan(into), _plan(other)
+	if not a or not b:
+		into.set(LOCATION_FIELD, "")  # the Location Manager plans the line again
+		return
+	by = {}
+	for x in a + b:
+		cur = by.setdefault(x.get("location"), dict(x, qty=0))
+		cur["qty"] = flt(cur["qty"]) + flt(x.get("qty"))
+	_set_plan(into, list(by.values()))
 
 
 def _effective_rate(row):
@@ -337,7 +476,7 @@ def _normal_effect(doc, row, cache):
 		del frappe.local.message_log[log_len:]
 		out = frappe._dict()
 	plr = flt(row.price_list_rate)
-	rules = _rule_names(out.get("pricing_rules"))
+	rules = [n for n in _rule_names(out.get("pricing_rules")) if not cint(frappe.db.get_value("Pricing Rule", n, "isoft_multibuy"))]
 	pct, amt = flt(out.get("discount_percentage")), flt(out.get("discount_amount"))
 	if rules and frappe.db.get_value("Pricing Rule", rules[0], "rate_or_discount") == "Rate" and flt(out.get("price_list_rate")):
 		rate = flt(out.price_list_rate)
@@ -348,6 +487,11 @@ def _normal_effect(doc, row, cache):
 		"pricing_rules": out.get("pricing_rules") if rules else ""}
 	cache[key] = res
 	return res
+
+
+def _has_multibuy_rule(value):
+	names = _rule_names(value)
+	return bool(names) and bool(frappe.get_all("Pricing Rule", filters={"name": ["in", names], "isoft_multibuy": 1}, limit=1))
 
 
 def _rule_names(value):
@@ -383,7 +527,8 @@ def _multibuy_rules(doc, row, cache):
 	with multibuy_lookup():
 		for apply_on in ("Item Code", "Item Group", "Brand"):
 			for r in prutils._get_pricing_rules(apply_on, args, {}) or []:
-				found.setdefault(r.name, frappe._dict(r))
+				if cint(r.get("isoft_multibuy")):  # explicit, whatever the lookup returned
+					found.setdefault(r.name, frappe._dict(r))
 	date = getdate(ctx.date)
 	rules = [r for r in found.values()
 		if (not r.valid_from or getdate(r.valid_from) <= date) and (not r.valid_upto or getdate(r.valid_upto) >= date)]
@@ -404,6 +549,7 @@ def preview(doc):
 		return {"rows": [], "rules": {}, "none": 1}  # nothing to preview: callers can stop asking
 	for k in ("name", "__islocal", "__unsaved", "docstatus", "amended_from"):
 		data.pop(k, None)
+	_ensure_lookup_wrapper()
 	d = frappe.get_doc(data)
 	log_len = len(frappe.local.message_log or [])
 	try:
@@ -415,7 +561,11 @@ def preview(doc):
 	release(d)
 	return {
 		"rows": [
-			{"idx": r.idx, "item_code": r.item_code, "isoft_multibuy_rule": r.get("isoft_multibuy_rule"),
+			{"idx": r.idx, "name": r.name, "item_code": r.item_code, "qty": flt(r.qty), "stock_qty": flt(r.stock_qty),
+				"isoft_multibuy_rule": r.get("isoft_multibuy_rule"),
+				# a line the engine split off has no name yet: the form copies it whole
+				"doc": None if r.name else {k: v for k, v in r.as_dict(convert_dates_to_str=True).items() if not isinstance(v, (list, tuple))},
+				"custom_location_allocation": r.get("custom_location_allocation"), "custom_from_location": r.get("custom_from_location"),
 				"isoft_multibuy_units": flt(r.get("isoft_multibuy_units")), "isoft_multibuy_pct": flt(r.get("isoft_multibuy_pct")),
 				"discount_percentage": flt(r.discount_percentage), "discount_amount": flt(r.discount_amount),
 				"rate": flt(r.rate), "price_list_rate": flt(r.price_list_rate), "pricing_rules": r.get("pricing_rules")}

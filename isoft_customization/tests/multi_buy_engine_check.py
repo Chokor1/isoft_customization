@@ -31,6 +31,11 @@ def rows(doc):
 		for r in doc.items}
 
 
+def lines(doc):
+	"""[(qty, discount %)] in row order."""
+	return [(flt(r.qty), flt(r.discount_percentage, 2)) for r in doc.items]
+
+
 def by_code(doc, code):
 	return [r for r in doc.items if r.item_code == code]
 
@@ -100,8 +105,9 @@ try:
 	def same_item_buy1get1_50():
 		fx.rule("MB 1+1", G, 5).insert()
 		d = quotation([("MB-E-A", 2)])
-		r = d.items[0]
-		check("same_item_buy1get1_50", flt(r.discount_percentage, 2) == 25 and r.isoft_multibuy_units == 1 and flt(r.rate) == 7500, rows(d))
+		# split like the POS (user 2026-11-09): one line at the offer's discount, one at full price
+		check("same_item_buy1get1_50", lines(d) == [(1, 50), (1, 0)] and d.items[0].isoft_multibuy_units == 1
+			and flt(d.items[0].rate) == 5000 and flt(d.items[1].rate) == 10000, rows(d))
 
 	def across_items_cheapest():
 		fx.rule("MB 1+1", G, 5).insert()
@@ -116,12 +122,12 @@ try:
 	def five_units_one_group():
 		fx.rule("MB 2+1", G, 5, isoft_buy_qty=2, isoft_get_qty=1, isoft_multibuy_discount=30).insert()
 		d = quotation([("MB-E-C", 5)])
-		check("five_units_one_group", d.items[0].isoft_multibuy_units == 1 and flt(d.items[0].discount_percentage, 2) == 6, rows(d))
+		check("five_units_one_group", lines(d) == [(1, 30), (4, 0)], rows(d))
 
 	def max_cap():
 		fx.rule("MB 1+1 max1", G, 5, isoft_multibuy_max_units=1).insert()
 		d = quotation([("MB-E-C", 4)])
-		check("max_cap", d.items[0].isoft_multibuy_units == 1, rows(d))
+		check("max_cap", lines(d) == [(1, 50), (3, 0)], rows(d))
 
 	def min_qty_not_met():
 		fx.rule("MB 1+1 min5", G, 5, min_qty=5).insert()
@@ -163,7 +169,7 @@ try:
 	def fractional_units():
 		fx.rule("MB 1+1", G, 5).insert()
 		d = quotation([("MB-E-KG", 2.5)])
-		check("fractional_units", d.items[0].isoft_multibuy_units == 1, rows(d))
+		check("fractional_units", lines(d) == [(1, 50), (1.5, 0)], rows(d))
 
 	def same_item_two_rows():
 		fx.rule("MB 1+1", G, 5).insert()
@@ -181,7 +187,8 @@ try:
 		fx.rule("Normal 10", G, 3, multibuy=False, discount_percentage=10).insert()
 		d = quotation([("MB-E-C", 2)])
 		r = d.items[0]
-		check("lower_normal_rule_replaced_when_qualifying", r.isoft_multibuy_rule and flt(r.discount_percentage, 2) == 25 and not (r.pricing_rules or "").strip("[]\" \n"), rows(d))
+		check("lower_normal_rule_replaced_when_qualifying", r.isoft_multibuy_rule and lines(d) == [(1, 50), (1, 0)]
+			and not any((x.pricing_rules or "").strip("[]\" \n") for x in d.items), rows(d))
 
 	def fallback_to_normal_when_not_qualifying():
 		fx.rule("MB 1+1", G, 5).insert()
@@ -221,8 +228,8 @@ try:
 
 	def requalify_after_qty_change():
 		fx.rule("MB 1+1", G, 5).insert()
-		d = quotation([("MB-E-C", 2)])
-		d.items[0].qty = 1
+		d = quotation([("MB-E-C", 2)])  # -> 1 @50% + 1 @0%
+		d.remove(d.items[1])
 		d.save()
 		check("requalify_after_qty_change", not d.items[0].isoft_multibuy_rule and flt(d.items[0].discount_percentage) == 0 and flt(d.items[0].rate) == 3000, rows(d))
 
@@ -237,11 +244,12 @@ try:
 
 		so = make_sales_order(q.name)
 		so.delivery_date = nowdate()
-		so.items[0].qty = 2  # partial
-		so.items[0].delivery_date = nowdate()
+		check("mapped_quotation_split", lines(q) == [(1, 30), (2, 0)], rows(q))
+		so.items[1].qty = 1  # partial: only part of the full-price units
+		for it in so.items:
+			it.delivery_date = nowdate()
 		so.insert()
-		r = so.items[0]
-		check("mapped_rows_keep_result", r.isoft_multibuy_rule == rule.name and flt(r.discount_percentage, 2) == 10, rows(so))
+		check("mapped_rows_keep_result", [x.isoft_multibuy_rule for x in so.items] == [rule.name, rule.name] and lines(so) == [(1, 30), (1, 0)], rows(so))
 
 	def totals_consistent():
 		fx.rule("MB 1+1", G, 5).insert()
@@ -257,7 +265,33 @@ try:
 	def item_max_discount_caps():
 		fx.rule("MB 1+1", G, 5, isoft_multibuy_discount=100).insert()
 		d = quotation([("MB-E-MAX", 2)])
-		check("item_max_discount_caps", flt(d.items[0].discount_percentage, 2) <= 20 and d.items[0].isoft_multibuy_rule, rows(d))
+		check("item_max_discount_caps", lines(d) == [(1, 20), (1, 0)] and d.items[0].isoft_multibuy_rule, rows(d))
+
+	def b2b_matches_pos_cents():
+		# the user's case (FT FT3726S2554N/1394 vs FR FR3726S1246N/124): 6 x 4117.66, buy 2 get 1 at 5%
+		fx.item("MB-E-CENT", G, 4117.66)
+		fx.rule("MB 2+1 5", G, 5, isoft_buy_qty=2, isoft_get_qty=1, isoft_multibuy_discount=5).insert()
+		d = quotation([("MB-E-CENT", 6)])
+		check("b2b_matches_pos_cents", lines(d) == [(2, 5), (4, 0)] and flt(d.net_total, 2) == 24294.20, (lines(d), d.net_total))
+		si = invoice([("MB-E-CENT", 6)])
+		check("b2b_invoice_matches_pos_cents", lines(si) == [(2, 5), (4, 0)] and flt(si.net_total, 2) == 24294.20, (lines(si), si.net_total))
+
+	def merge_back_and_grow():
+		fx.rule("MB 1+1", G, 5).insert()
+		d = quotation([("MB-E-C", 2)])  # 1 @50 + 1 @0
+		d.items[1].qty = 3  # 4 units now -> 2 @50 + 2 @0
+		d.save()
+		check("split_grows", lines(d) == [(2, 50), (2, 0)], rows(d))
+		d.items[1].qty = 0.0001
+		d.remove(d.items[1])
+		d.items[0].qty = 1  # one unit left -> one line, no offer
+		d.save()
+		check("split_merges_back", lines(d) == [(1, 0)] and not d.items[0].isoft_multibuy_rule, rows(d))
+
+	def serial_rows_not_split():
+		from isoft_customization.multi_buy import _splittable
+
+		check("serial_rows_not_split", not _splittable(frappe._dict(serial_no="SN1\nSN2", item_code="MB-E-A")) and _splittable(frappe._dict(item_code="MB-E-A")))
 
 	def kept_dn_price_rows_excluded():
 		from isoft_customization.multi_buy import _kept_by_switch
@@ -285,7 +319,7 @@ try:
 			same_item_two_rows, higher_normal_rule_keeps_rows, lower_normal_rule_replaced_when_qualifying,
 			fallback_to_normal_when_not_qualifying, fallback_to_next_multibuy, manual_discount_row_out, desk_ignore_pricing_rule_skips,
 			pos_flag_still_applies, requalify_after_qty_change, mapped_rows_keep_result, totals_consistent, item_max_discount_caps,
-			kept_dn_price_rows_excluded, preview_matches_save):
+			kept_dn_price_rows_excluded, preview_matches_save, b2b_matches_pos_cents, merge_back_and_grow, serial_rows_not_split):
 		isolated(case)
 except Exception as e:  # noqa: BLE001
 	import traceback
