@@ -148,6 +148,9 @@ def validate_discounts(doc, method=None, *args, **kwargs):
 		limit = max_stock if is_stock else max_service
 		if pct <= limit + TOL:
 			continue
+		# a Multi-buy pricing rule discount (written by multi_buy.py during this validate)
+		if item.get("isoft_multibuy_rule") and pct <= flt(item.get("isoft_multibuy_pct")) + TOL:
+			continue
 		if allow_rules and item.get("pricing_rules") and pct <= pricing_rule_discount(item) + TOL:
 			continue
 		if pct <= source_line_discount(item) + TOL:
