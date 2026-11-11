@@ -136,8 +136,9 @@ def validate_purchase_invoice(doc, method=None):
 # ---------------------------------------------------------------- the invoice part of Bin figures
 # Pending per line, in stock UOM, never below 0. Recomputed from documents every time.
 
-_SI_HEADER = """si.docstatus = 1 and si.isoft_reserve_stock = 1 and si.isoft_reservation_stopped = 0
+_SI_BASE = """si.docstatus = 1 and si.isoft_reserve_stock = 1
 	and si.update_stock = 0 and si.is_return = 0 and si.is_pos = 0"""
+_SI_HEADER = _SI_BASE + " and si.isoft_reservation_stopped = 0"
 _SI_LINE = """ifnull(sii.so_detail, '') = '' and ifnull(sii.dn_detail, '') = ''
 	and ifnull(sii.delivered_by_supplier, 0) = 0"""
 # Every credit note against the line counts: core refuses an Update Stock credit note against an
@@ -147,8 +148,9 @@ _SI_PENDING = """greatest(sii.stock_qty - ifnull(sii.delivered_qty, 0) * sii.con
 		join `tabSales Invoice` r on r.name = ri.parent
 		where ri.sales_invoice_item = sii.name and r.docstatus = 1 and r.is_return = 1), 0), 0)"""
 
-_PI_HEADER = """pi.docstatus = 1 and pi.isoft_order_stock = 1 and pi.isoft_ordering_stopped = 0
+_PI_BASE = """pi.docstatus = 1 and pi.isoft_order_stock = 1
 	and pi.update_stock = 0 and pi.is_return = 0"""
+_PI_HEADER = _PI_BASE + " and pi.isoft_ordering_stopped = 0"
 _PI_LINE = """ifnull(pii.po_detail, '') = '' and ifnull(pii.pr_detail, '') = ''"""
 # Received = non-return receipts made from the line (PR returns carry no link back, by design).
 # A debit note WITH Update Stock sends received goods back and cancels out, so only debit notes
@@ -229,3 +231,112 @@ def apply(*args, **kwargs):
 		return
 	_wrap(stock_balance, "get_reserved_qty", invoice_reserved_qty, [sales_order])
 	_wrap(stock_balance, "get_ordered_qty", invoice_ordered_qty, [purchase_order])
+
+
+# ---------------------------------------------------------------- keeping Bins current
+
+
+def invoice_pairs(doctype, name):
+	"""(item_code, warehouse) of the invoice's lines and bundle components."""
+	child = "Sales Invoice Item" if doctype == SI else "Purchase Invoice Item"
+	pairs = set(frappe.db.sql(
+		"select item_code, warehouse from `tab{0}` where parent = %s and ifnull(warehouse, '') != ''".format(child),
+		name))
+	if doctype == SI:
+		pairs |= set(frappe.db.sql(
+			"""select item_code, warehouse from `tabPacked Item`
+			where parenttype = 'Sales Invoice' and parent = %s and ifnull(warehouse, '') != ''""", name))
+	return pairs
+
+
+def refresh_invoice(doctype, name):
+	"""Recompute Reserved (Sales Invoice) or Ordered (Purchase Invoice) for every Bin the invoice touches."""
+	if not name or not cint(frappe.db.get_value(doctype, name, "isoft_reserve_stock" if doctype == SI else "isoft_order_stock")):
+		return
+	apply()
+	from erpnext.stock import stock_balance
+
+	for item_code, warehouse in invoice_pairs(doctype, name):
+		if doctype == SI:
+			qty = {"reserved_qty": stock_balance.get_reserved_qty(item_code, warehouse)}
+		else:
+			qty = {"ordered_qty": stock_balance.get_ordered_qty(item_code, warehouse)}
+		stock_balance.update_bin_qty(item_code, warehouse, qty)
+
+
+def on_sales_invoice_event(doc, method=None):
+	"""on_submit / on_cancel: the invoice itself, or the one a credit note is against."""
+	refresh_invoice(SI, doc.return_against if cint(doc.is_return) else doc.name)
+
+
+def on_purchase_invoice_event(doc, method=None):
+	refresh_invoice(PI, doc.return_against if cint(doc.is_return) else doc.name)
+
+
+def on_delivery_note_event(doc, method=None):
+	"""on_submit / on_cancel, after core has updated the invoice lines' delivered_qty (DN returns too)."""
+	for name in {row.against_sales_invoice for row in doc.items if row.get("si_detail") and row.get("against_sales_invoice")}:
+		refresh_invoice(SI, name)
+
+
+def on_purchase_receipt_event(doc, method=None):
+	for name in {row.purchase_invoice for row in doc.items if row.get("purchase_invoice_item") and row.get("purchase_invoice")}:
+		refresh_invoice(PI, name)
+
+
+# ---------------------------------------------------------------- Stop / Resume and the form indicator
+
+
+def _check_invoice_doctype(doctype):
+	if doctype not in (SI, PI):
+		frappe.throw(_("Only Sales Invoices and Purchase Invoices reserve or order stock."))
+
+
+@frappe.whitelist()
+def pending_summary(doctype, name):
+	"""What the invoice still reserves / expects, in stock units, whether or not it is stopped."""
+	_check_invoice_doctype(doctype)
+	if not frappe.has_permission(doctype, "read", name):
+		frappe.throw(_("Not permitted"), frappe.PermissionError)
+	box = "isoft_reserve_stock" if doctype == SI else "isoft_order_stock"
+	values = frappe.db.get_value(doctype, name, [box, _stopped_field(doctype)], as_dict=True) or {}
+	if doctype == SI:
+		qty = frappe.db.sql(
+			"""select
+				ifnull((select sum({pending}) from `tabSales Invoice Item` sii
+					join `tabSales Invoice` si on si.name = sii.parent
+					join `tabItem` i on i.name = sii.item_code and i.is_stock_item = 1
+					where si.name = %(name)s and {base} and {line}), 0)
+				+ ifnull((select sum(pk.qty * {pending} / sii.stock_qty) from `tabPacked Item` pk
+					join `tabSales Invoice Item` sii on sii.name = pk.parent_detail_docname
+					join `tabSales Invoice` si on si.name = pk.parent
+					where pk.parenttype = 'Sales Invoice' and si.name = %(name)s and sii.stock_qty > 0
+					and {base} and {line}), 0)""".format(pending=_SI_PENDING, base=_SI_BASE, line=_SI_LINE),
+			{"name": name})
+	else:
+		qty = frappe.db.sql(
+			"""select sum({pending}) from `tabPurchase Invoice Item` pii
+				join `tabPurchase Invoice` pi on pi.name = pii.parent
+				join `tabItem` i on i.name = pii.item_code and i.is_stock_item = 1
+				where pi.name = %(name)s and {base} and {line}""".format(pending=_PI_PENDING, base=_PI_BASE, line=_PI_LINE),
+			{"name": name})
+	return {
+		"enabled": cint(values.get(box)),
+		"stopped": cint(values.get(_stopped_field(doctype))),
+		"pending_qty": float(qty[0][0] or 0),
+	}
+
+
+@frappe.whitelist()
+def set_stopped(doctype, name, stopped):
+	"""Stop / Resume: a stopped invoice keeps its lines but no longer reserves / orders anything."""
+	_check_invoice_doctype(doctype)
+	doc = frappe.get_doc(doctype, name)
+	box = "isoft_reserve_stock" if doctype == SI else "isoft_order_stock"
+	if doc.docstatus != 1 or not cint(doc.get(box)):
+		frappe.throw(_("{0} {1} is not a submitted invoice that reserves or orders stock.").format(_(doctype), name))
+	if not frappe.has_permission(doctype, "submit", doc):
+		frappe.throw(_("Not permitted"), frappe.PermissionError)
+	doc.db_set(_stopped_field(doctype), 1 if cint(stopped) else 0)
+	refresh_invoice(doctype, name)
+	return pending_summary(doctype, name)

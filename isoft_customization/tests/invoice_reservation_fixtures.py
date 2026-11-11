@@ -48,11 +48,13 @@ def draft_si(lines, reserve=1, **kw):
 	d = frappe.get_doc(dict({
 		"doctype": "Sales Invoice", "company": COMPANY, "customer": CUSTOMER, "posting_date": nowdate(),
 		"due_date": nowdate(), "currency": "AKZ", "conversion_rate": 1, "selling_price_list": "Standard Selling",
-		"isoft_reserve_stock": reserve,
+		"isoft_reserve_stock": reserve, "taxes_and_charges": "IVA 14% - NDA",
 		"items": [dict({"item_code": ln[0], "qty": ln[1], "rate": 1000, "warehouse": WH},
 			**(ln[2] if len(ln) > 2 else {})) for ln in lines],
 	}, **kw))
 	d.set_missing_values()
+	if not d.get("taxes"):
+		d.append_taxes_from_master()
 	return d
 
 

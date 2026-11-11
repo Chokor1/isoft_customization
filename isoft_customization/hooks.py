@@ -285,6 +285,17 @@ def _append_doc_event(doctype, event, method):
 		current.append(method)
 
 
+# Invoice stock reservation: recompute the Bins of the invoice(s) a document settles, after core
+# has updated delivered / received quantities. See invoice_reservation.py.
+for _doctype, _method in (
+	("Sales Invoice", "on_sales_invoice_event"),
+	("Purchase Invoice", "on_purchase_invoice_event"),
+	("Delivery Note", "on_delivery_note_event"),
+	("Purchase Receipt", "on_purchase_receipt_event"),
+):
+	for _event in ("on_submit", "on_cancel"):
+		_append_doc_event(_doctype, _event, "isoft_customization.invoice_reservation." + _method)
+
 for _doctype in ("Quotation", "Sales Order", "Delivery Note", "Sales Invoice"):
 	_append_doc_event(_doctype, "before_validate", "isoft_customization.multi_buy.before_validate")
 	_append_doc_event(_doctype, "validate", "isoft_customization.multi_buy.release")
