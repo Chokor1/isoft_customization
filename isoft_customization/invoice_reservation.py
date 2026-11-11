@@ -340,3 +340,48 @@ def set_stopped(doctype, name, stopped):
 	doc.db_set(_stopped_field(doctype), 1 if cint(stopped) else 0)
 	refresh_invoice(doctype, name)
 	return pending_summary(doctype, name)
+
+
+# ---------------------------------------------------------------- lines, for other screens (POS Customer Orders)
+
+
+def reserving_invoice_lines(company, warehouse, item_code=None, invoice=None, open_only=True, from_date=None, to_date=None):
+	"""Lines (and bundle components) of reserving Sales Invoices for one warehouse, in stock units.
+
+	open_only: only invoices that still reserve (not stopped) and lines with something pending; the
+	rows then add up to exactly what invoice_reserved_qty counts for that warehouse.
+	"""
+	cond = ["si.company = %(company)s", _SI_HEADER if open_only else _SI_BASE, _SI_LINE]
+	args = {"company": company, "wh": warehouse, "item": item_code, "invoice": invoice,
+		"from_date": from_date, "to_date": to_date}
+	if invoice:
+		cond.append("si.name = %(invoice)s")
+	if from_date:
+		cond.append("si.posting_date >= %(from_date)s")
+	if to_date:
+		cond.append("si.posting_date <= %(to_date)s")
+	where = " and ".join(cond)
+	head = """si.name as invoice, si.customer, si.customer_name, si.posting_date, si.grand_total, si.currency"""
+	rows = frappe.db.sql(
+		"""select {head}, sii.idx, 0 as sub, sii.item_code, sii.item_name, sii.stock_uom as uom, sii.stock_qty as qty,
+				ifnull(sii.delivered_qty, 0) * sii.conversion_factor as delivered_qty, {pending} as pending,
+				sii.rate / sii.conversion_factor as rate, sii.amount
+			from `tabSales Invoice Item` sii
+			join `tabSales Invoice` si on si.name = sii.parent
+			join `tabItem` i on i.name = sii.item_code and i.is_stock_item = 1
+			where sii.warehouse = %(wh)s {item} and {where}
+		union all
+		select {head}, sii.idx, pk.idx as sub, pk.item_code, pk.item_name, pk.uom, pk.qty,
+				pk.qty * (1 - {pending} / sii.stock_qty) as delivered_qty, pk.qty * {pending} / sii.stock_qty as pending,
+				0 as rate, 0 as amount
+			from `tabPacked Item` pk
+			join `tabSales Invoice Item` sii on sii.name = pk.parent_detail_docname
+			join `tabSales Invoice` si on si.name = pk.parent
+			where pk.parenttype = 'Sales Invoice' and pk.warehouse = %(wh)s and sii.stock_qty > 0
+				{pk_item} and {where}
+		order by posting_date, invoice, idx, sub""".format(
+			head=head, pending=_SI_PENDING, where=where,
+			item="and sii.item_code = %(item)s" if item_code else "",
+			pk_item="and pk.item_code = %(item)s" if item_code else ""),
+		args, as_dict=True)
+	return [r for r in rows if r.pending > 0] if open_only else rows
