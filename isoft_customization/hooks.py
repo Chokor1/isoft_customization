@@ -11,6 +11,8 @@ app_license = "MIT"
 
 # adds the "Excel" button to every child table grid in the desk
 app_include_js = [
+	# Search box on long form child tables (find, edit or delete rows across pages). See grid_search.js.
+	"/assets/isoft_customization/js/grid_search.js",
 	"/assets/isoft_customization/js/grid_excel.js",
 	# Adds the "Include Barcode" filter to five ERPNext stock reports. Must load
 	# before any report script, which app_include_js does.
@@ -50,6 +52,7 @@ override_whitelisted_methods = {
 }
 
 app_include_css = [
+	"/assets/isoft_customization/css/grid_search.css",
 	"/assets/isoft_customization/css/notification_attention.css",
 	"/assets/isoft_customization/css/target_total_assistant.css",
 ]
