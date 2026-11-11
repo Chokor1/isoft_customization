@@ -70,6 +70,18 @@ def run(page, log):
 			}""")
 			log.check(vis[0] == "Write" and vis[1] == "None" and not vis[2], "draft_box_visible", vis)
 
+		# "Source Warehouse" (set_warehouse) shows with the box, as it does with Update Stock
+		wh = page.evaluate("""(box) => {
+			const f = cur_frm.get_field('set_warehouse');
+			cur_frm.doc[box] = 0; cur_frm.doc.update_stock = 0; cur_frm.refresh_fields();
+			const off = f.disp_status;
+			cur_frm.doc[box] = 1; cur_frm.refresh_fields();
+			const on = f.disp_status;
+			cur_frm.doc[box] = 0; cur_frm.refresh_fields();
+			return [off, on];
+		}""", c["box"])
+		log.check(wh == ["None", "Write"], "source_warehouse_with_box " + doctype, wh)
+
 		page.evaluate(STATE_JS, [{"enabled": 1, "stopped": 0, "pending_qty": 5}, c["box"]])
 		page.wait_for_timeout(300)
 		s = page.evaluate(READ_JS, c)

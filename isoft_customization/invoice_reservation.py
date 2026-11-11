@@ -71,10 +71,32 @@ def setup_custom_fields(*args, **kwargs):
 	create_custom_fields(fields, update=True)
 	for dt, col in INDEXES:
 		frappe.db.add_index(dt, [col])
+	changed = set(missing) | _show_source_warehouse()
 	# Browsers cache form meta keyed on DocType.modified, which a new Custom Field does not touch.
-	for dt in missing:
+	for dt in changed:
 		frappe.db.set_value("DocType", dt, "modified", now(), update_modified=False)
 		frappe.clear_cache(doctype=dt)
+
+
+# "Source Warehouse" (set_warehouse) only shows with Update Stock in core; a reserving / ordering
+# invoice needs it just as much, since every line's warehouse is what gets reserved / ordered.
+SOURCE_WAREHOUSE_DEPENDS_ON = {
+	SI: "eval:doc.update_stock || doc.isoft_reserve_stock",
+	PI: "eval:doc.update_stock || doc.isoft_order_stock",
+}
+
+
+def _show_source_warehouse():
+	"""Idempotent; returns the doctypes whose Property Setter was created or changed."""
+	changed = set()
+	for dt, value in SOURCE_WAREHOUSE_DEPENDS_ON.items():
+		name = frappe.db.get_value("Property Setter", {"doc_type": dt, "field_name": "set_warehouse", "property": "depends_on"})
+		if name and frappe.db.get_value("Property Setter", name, "value") == value:
+			continue
+		frappe.make_property_setter({"doctype": dt, "fieldname": "set_warehouse", "property": "depends_on",
+			"value": value, "property_type": "Code"}, validate_fields_for_doctype=False)
+		changed.add(dt)
+	return changed
 
 
 # ---------------------------------------------------------------- validation
