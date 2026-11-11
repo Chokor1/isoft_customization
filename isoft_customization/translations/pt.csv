@@ -784,3 +784,5 @@ Stop ordering the unreceived quantities of this invoice? They will no longer cou
 Count the unreceived quantities of this invoice as Ordered again?,Voltar a contar as quantidades por receber desta factura como Encomendadas?
 Only Sales Invoices and Purchase Invoices reserve or order stock.,Só as Facturas de Venda e as Facturas de Compra reservam ou encomendam stock.
 {0} {1} is not a submitted invoice that reserves or orders stock.,{0} {1} não é uma factura submetida que reserve ou encomende stock.
+Reserving {0} unit until delivered,A reservar {0} unidade até à entrega
+Ordering {0} unit until received,A encomendar {0} unidade até à receção

@@ -13,9 +13,9 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import browser_target_total as h  # noqa: E402
 
 CASES = {
-	"Sales Invoice": {"route": "sales-invoice", "box": "isoft_reserve_stock", "pending": "Reserving {0} units until delivered",
+	"Sales Invoice": {"route": "sales-invoice", "box": "isoft_reserve_stock", "pending": "Reserving {0} units until delivered", "one": "Reserving {0} unit until delivered",
 		"stopped": "Reservation stopped", "stop": "Stop reserving", "resume": "Resume reserving"},
-	"Purchase Invoice": {"route": "purchase-invoice", "box": "isoft_order_stock", "pending": "Ordering {0} units until received",
+	"Purchase Invoice": {"route": "purchase-invoice", "box": "isoft_order_stock", "pending": "Ordering {0} units until received", "one": "Ordering {0} unit until received",
 		"stopped": "Ordering stopped", "stop": "Stop ordering", "resume": "Resume ordering"},
 }
 
@@ -48,6 +48,7 @@ READ_JS = """(labels) => {
 		resume: cur_frm.page.inner_toolbar.find('a[data-label="' + encodeURIComponent(__(labels.resume)) + '"]').length > 0,
 		calls: (window.__ir_calls || []).length,
 		pending_text: __(labels.pending, ['5']),
+		one_text: __(labels.one, ['1']),
 		stopped_text: __(labels.stopped),
 	};
 }"""
@@ -87,6 +88,11 @@ def run(page, log):
 		s = page.evaluate(READ_JS, c)
 		log.check(s["calls"] >= 1 and s["headline"] == s["pending_text"] and s["stop"] and not s["resume"],
 			"submitted_indicator pending " + doctype, s)
+
+		page.evaluate(STATE_JS, [{"enabled": 1, "stopped": 0, "pending_qty": 1}, c["box"]])
+		page.wait_for_timeout(300)
+		s = page.evaluate(READ_JS, c)
+		log.check(s["headline"] == s["one_text"], "submitted_indicator one unit " + doctype, s)
 
 		page.evaluate(STATE_JS, [{"enabled": 1, "stopped": 1, "pending_qty": 5}, c["box"]])
 		page.wait_for_timeout(300)

@@ -10,6 +10,7 @@ frappe.provide("isoft.invoice_reservation");
 			? {
 					box: "isoft_reserve_stock",
 					pending: "Reserving {0} units until delivered",
+					one: "Reserving {0} unit until delivered",
 					stopped: __("Reservation stopped"),
 					group: __("Reservation"),
 					stop: __("Stop reserving"),
@@ -20,6 +21,7 @@ frappe.provide("isoft.invoice_reservation");
 			: {
 					box: "isoft_order_stock",
 					pending: "Ordering {0} units until received",
+					one: "Ordering {0} unit until received",
 					stopped: __("Ordering stopped"),
 					group: __("Ordering"),
 					stop: __("Stop ordering"),
@@ -48,7 +50,8 @@ frappe.provide("isoft.invoice_reservation");
 			frm.add_custom_button(t.resume, () => set_stopped(frm, false, t.confirm_resume), t.group);
 		} else if (flt(summary.pending_qty) > 0) {
 			const qty = flt(summary.pending_qty, 3);
-			frm.dashboard.set_headline_alert(__(t.pending, [format_number(qty, null, qty % 1 ? 3 : 0)]), "blue");
+			const text = qty === 1 ? t.one : t.pending;
+			frm.dashboard.set_headline_alert(__(text, [format_number(qty, null, qty % 1 ? 3 : 0)]), "blue");
 			frm.add_custom_button(t.stop, () => set_stopped(frm, true, t.confirm_stop), t.group);
 		}
 	};
