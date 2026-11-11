@@ -1,7 +1,7 @@
 /* Child-table search box (public/js/grid_search.js) */
 .isoft-grid-search { display: flex; align-items: center; gap: 8px; margin: 0 0 6px; }
 .isoft-grid-search-field { position: relative; flex: 0 1 280px; }
-.isoft-grid-search-field .icon { position: absolute; left: 8px; top: 50%; transform: translateY(-50%); opacity: .55; pointer-events: none; }
+.isoft-grid-search-field .icon { position: absolute; z-index: 2; left: 8px; top: 50%; transform: translateY(-50%); opacity: .55; pointer-events: none; }
 .isoft-grid-search-field input { padding-left: 28px; height: 28px; }
 .isoft-grid-search-count { white-space: nowrap; }
 /* re-ordering renumbers from what is on screen: off while only some rows are shown */
