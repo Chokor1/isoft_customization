@@ -4,8 +4,9 @@
 .isoft-grid-search-field .icon { position: absolute; z-index: 2; left: 8px; top: 50%; transform: translateY(-50%); opacity: .55; pointer-events: none; }
 .isoft-grid-search-field input { padding-left: 28px; height: 28px; }
 .isoft-grid-search-count { white-space: nowrap; }
-/* re-ordering renumbers from what is on screen: off while only some rows are shown */
-.isoft-grid-filtered .sortable-handle { visibility: hidden; pointer-events: none; }
+/* re-ordering is switched off in grid_search.js while searching (the handle cell also holds
+   the row checkbox, so it must stay visible) */
+.isoft-grid-filtered .isoft-sortable-off { cursor: default; }
 /* short tables: just a button until it is clicked */
 .isoft-grid-search-open { display: none; }
 .isoft-grid-search.is-compact .isoft-grid-search-open { display: inline-flex; align-items: center; gap: 4px; }

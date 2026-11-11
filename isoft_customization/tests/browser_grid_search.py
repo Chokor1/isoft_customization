@@ -62,6 +62,13 @@ try:
 		s = grid_state(page)
 		check("matches_item_name_case_insensitive", s["shown"] == 12 and all(c.endswith("7") for c in s["codes"]), s)
 
+		# the row checkboxes stay visible while searching (they live inside the drag-handle cell)
+		vis = page.evaluate("""() => { const $c = $(cur_frm.fields_dict.items.grid.wrapper).first().parent();
+			return $c.find('.grid-body .grid-row-check').toArray().map(el => getComputedStyle(el).visibility === 'visible' && el.getBoundingClientRect().width > 0); }""")
+		check("row_checkboxes_visible_while_searching", vis and all(vis), vis)
+		drag = page.evaluate("() => $(cur_frm.fields_dict.items.grid.wrapper).first().parent().find('.grid-body .sortable-handle').length")
+		check("drag_off_while_searching", drag == 0, drag)
+
 		# select all matches and delete with the table's own button
 		page.evaluate("() => { const g = cur_frm.fields_dict.items.grid; $(g.wrapper).find('.grid-heading-row .grid-row-check').prop('checked', true).trigger('click').prop('checked', true); g.grid_rows.forEach(r => { r.doc.__checked = 1; $(r.row).find('.grid-row-check').prop('checked', true); }); g.refresh_remove_rows_button(); }")
 		page.wait_for_timeout(300)
@@ -71,6 +78,8 @@ try:
 		check("delete_removes_only_matches", s["total"] == 108, s)
 
 		search(page, "")
+		drag = page.evaluate("() => $(cur_frm.fields_dict.items.grid.wrapper).first().parent().find('.grid-body .sortable-handle').length")
+		check("drag_back_after_clear", drag == 50, drag)
 		s = grid_state(page)
 		check("clear_restores_all", s["shown"] == 50 and s["total"] == 108 and "GS-007" not in s["codes"] and "GS-001" in s["codes"], s)
 

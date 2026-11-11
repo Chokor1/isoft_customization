@@ -138,6 +138,14 @@ frappe.provide("isoft.grid_search");
 		if (!$input.is(":focus") && $input.val() !== q) $input.val(q);
 		$w.toggleClass("isoft-grid-filtered", !!q);
 		$box.toggleClass("is-compact", compact);
+		// Drag re-ordering renumbers rows from what is on screen: with only some rows shown it
+		// would scramble the order. Sortable only drags by '.sortable-handle', and that cell
+		// also holds the row checkbox — so the class comes off, the cell stays.
+		if (q) {
+			$grid.find(".grid-body .sortable-handle").removeClass("sortable-handle").addClass("isoft-sortable-off");
+		} else {
+			$grid.find(".grid-body .isoft-sortable-off").removeClass("isoft-sortable-off").addClass("sortable-handle");
+		}
 		const shown = q ? (grid.data || []).length : total;
 		$box.find(".isoft-grid-search-count").text(q ? __("{0} of {1} rows", [shown, total]) : __("{0} rows", [total]));
 	};
