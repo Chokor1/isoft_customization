@@ -21,13 +21,12 @@ frappe.query_reports["POS Customer Contacts"] = {
 		{ fieldname: "net_of_returns", label: __("Net of returns"), fieldtype: "Check", default: 1 },
 	],
 	formatter(value, row, column, data, default_formatter) {
-		// a POS Profile the customer never bought at stays blank, not "0,00"
-		if (column.fieldname && column.fieldname.startsWith("pos_") && data && (data[column.fieldname] === undefined || data[column.fieldname] === null)) {
-			return "";
-		}
 		value = default_formatter(value, row, column, data);
 		if (column.fieldname && column.fieldname.startsWith("pos_") && data && data[column.fieldname] === __("Yes")) {
 			return `<span style="color: var(--green-600, #15803d); font-weight: 600">${value}</span>`;
+		}
+		if (column.fieldname && column.fieldname.startsWith("pos_") && data && data[column.fieldname] === __("No")) {
+			return `<span style="color: var(--text-muted, #94a3b8)">${value}</span>`;
 		}
 		if (column.fieldname === "phone" && data && data.phone) {
 			return `<a href="tel:${encodeURIComponent(data.phone)}">${value}</a>`;

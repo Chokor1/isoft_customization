@@ -49,7 +49,11 @@ try:
 	check("qty_mode_float", all(c["fieldtype"] == "Float" for c in cols_q if c["fieldname"].startswith("pos_")))
 	cols_y, data_y = execute(frappe._dict(base, show="Yes/No"))[:2]
 	vals = {r.get(c["fieldname"]) for r in data_y for c in cols_y if c["fieldname"].startswith("pos_")}
-	check("yes_no_mode", vals <= {"Yes", "No", "", None} and "Yes" in vals, vals)
+	check("yes_no_mode", vals == {"Yes", "No"}, vals)  # never bought there -> "No"
+	amt_vals = [r.get(c["fieldname"]) for r in data for c in cols if c["fieldname"].startswith("pos_")]
+	check("amount_mode_zero_not_null", None not in amt_vals and 0 in amt_vals, set(map(type, amt_vals)))
+	qty_vals = [r.get(c["fieldname"]) for r in data_q for c in cols_q if c["fieldname"].startswith("pos_")]
+	check("qty_mode_zero_not_null", None not in qty_vals and 0 in qty_vals)
 
 	one = profiles[0]
 	cols_1, data_1 = execute(frappe._dict(base, show="Amount", pos_profiles=[one], include_desk=0))[:2]

@@ -40,17 +40,24 @@ def execute(filters=None):
 			"tax_id": s["tax_id"], "phone": phone, "email": email, "contact": c.get("contact"),
 			"total_amount": flt(s["amount"], 2), "total_qty": flt(s["qty"], 3), "invoices": s["invoices"],
 			"last_purchase": s["last"],
+			"_bought": set(s["by"]),  # for the chart only
 		}
-		for key, v in s["by"].items():
+		keys = [_key(p) for p in profiles] + ([DESK] if include_desk else [])
+		for key in keys:
+			v = s["by"].get(key)
+			# never bought there: 0 / No, per the Show option
 			if show == "Amount":
-				row[key] = flt(v["amount"], 2)
+				row[key] = flt(v["amount"], 2) if v else 0.0
 			elif show == "Qty":
-				row[key] = flt(v["qty"], 3)
+				row[key] = flt(v["qty"], 3) if v else 0.0
 			else:
-				row[key] = _("Yes") if v["invoices"] else ""
+				row[key] = _("Yes") if v else _("No")
 		data.append(row)
 	data.sort(key=lambda r: -flt(r["total_amount"]))
-	return _columns(profiles, include_desk, show), data, None, _chart(data, profiles, include_desk, show)
+	chart = _chart(data, profiles, include_desk, show)
+	for r in data:
+		r.pop("_bought", None)
+	return _columns(profiles, include_desk, show), data, None, chart
 
 
 def _profiles(filters):
@@ -178,7 +185,7 @@ def _columns(profiles, include_desk, show):
 def _chart(data, profiles, include_desk, show):
 	"""Customers reached per POS Profile (how many of the listed customers bought there)."""
 	keys = [(_key(p), p) for p in profiles] + ([(DESK, _("Desk / B2B"))] if include_desk else [])
-	counts = [sum(1 for r in data if (r.get(k) and r.get(k) != "")) for k, _l in keys]
+	counts = [sum(1 for r in data if k in r["_bought"]) for k, _l in keys]
 	if not any(counts):
 		return None
 	return {"data": {"labels": [l for _k, l in keys], "datasets": [{"name": _("Customers"), "values": counts}]},
