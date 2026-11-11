@@ -91,6 +91,9 @@ doc_events = {
 			"isoft_customization.discount_limits.validate_discounts",
 			# Income account by item condition. See item_default_rules.py.
 			"isoft_customization.item_default_rules.apply_on_transaction",
+			# Reserve Stock: forced off where it cannot apply, warehouse required, bundle
+			# components kept. See invoice_reservation.py.
+			"isoft_customization.invoice_reservation.validate_sales_invoice",
 		],
 		"on_submit": "isoft_customization.isoft_customization.doctype.invoice_payment_notification.invoice_payment_notification.trigger_notification_on_sales_invoice_submit",
 		# Mandatory reasons, per Selling Settings. See document_reasons.py.
@@ -169,6 +172,8 @@ doc_events = {
 		"validate": [
 			"isoft_customization.linked_document_prices.release",
 			"isoft_customization.supplier_invoice_duplicates.validate",
+			# Order Stock. See invoice_reservation.py.
+			"isoft_customization.invoice_reservation.validate_purchase_invoice",
 		],
 	},
 	"Stock Entry": {
@@ -259,6 +264,8 @@ after_migrate = [
 	"isoft_customization.item_group_and_brand.setup_property_setters",
 	# Pricing Rule "Multi-buy (Buy X get Y)" + its row fields. See multi_buy_rule.py.
 	"isoft_customization.multi_buy_rule.setup_custom_fields",
+	# Sales Invoice "Reserve Stock" / Purchase Invoice "Order Stock" + indexes. See invoice_reservation.py.
+	"isoft_customization.invoice_reservation.setup_custom_fields",
 ]
 
 
