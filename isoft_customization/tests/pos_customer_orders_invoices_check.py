@@ -58,9 +58,26 @@ try:
 	check("pos_not_listed_when_stopped", not any(r.get("name") == s["name"] for r in rows))
 	check("pos_count_stopped", co.count_open_customer_orders(PROFILE) == before)
 
+	rows = co.search_customer_orders(PROFILE, status="all")
+	mine = [r for r in rows if r.get("name") == s["name"]]
+	check("pos_all_shows_stopped", len(mine) == 1 and mine[0].status == "Stopped", mine)
+
+	# one line fully delivered (4/4), one with 1 of 4 delivered -> 5 of 8 delivered overall = 62.5%
+	s2 = fx.si([fx.line(item, 4, delivered_qty=4), fx.line(other, 4, delivered_qty=1)])
+	frappe.db.set_value("Sales Invoice", s2["name"], {"posting_date": frappe.utils.nowdate(), "grand_total": 1,
+		"currency": "AKZ", "customer_name": fx.CUSTOMER}, update_modified=False)
+	rows = co.search_customer_orders(PROFILE, status="open")
+	mine = [r for r in rows if r.get("name") == s2["name"]]
+	check("pos_per_delivered_all_lines", len(mine) == 1 and abs(mine[0].per_delivered - 62.5) < 1e-6, mine)
+
+	# the badge query must not scan every Sales Invoice
+	plan = frappe.db.sql("""explain select si.name from `tabSales Invoice` si
+		where si.company = %s and si.isoft_reserve_stock = 1 and si.docstatus = 1""", fx.COMPANY, as_dict=True)
+	check("pos_badge_uses_index", plan and plan[0].get("type") != "ALL", plan)
+
 	so_rows = co.search_customer_orders(PROFILE, status="open")
 	check("pos_sales_orders_still_listed", all(r.get("doctype") == "Sales Order" for r in so_rows
-		if r.get("name") != s["name"]))
+		if r.get("name") not in (s["name"], s2["name"])))
 except Exception as e:  # noqa: BLE001
 	import traceback
 

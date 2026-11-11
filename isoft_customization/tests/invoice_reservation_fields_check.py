@@ -25,6 +25,8 @@ FIELDS = {
 	("Purchase Invoice", "isoft_ordering_stopped"): "Ordering Stopped",
 }
 INDEXES = [
+	("Sales Invoice", "isoft_reserve_stock"),
+	("Purchase Invoice", "isoft_order_stock"),
 	("Sales Invoice Item", "sales_invoice_item"),
 	("Purchase Invoice Item", "purchase_invoice_item"),
 	("Purchase Receipt Item", "purchase_invoice_item"),
@@ -109,6 +111,29 @@ try:
 	check("line_counts bundle parent", ir.line_counts(d, d.items[0]) is True)
 	d = fx.validate(fx.draft_si([(bun, 2)], reserve=0))
 	check("unticked_no_packed_items", not d.get("packed_items"), d.get("packed_items"))
+
+	# F1: a duplicated invoice arrives with its source's delivered_qty; a draft has delivered nothing
+	d = fx.draft_si([(a, 10, {"delivered_qty": 10})])
+	ir.validate_sales_invoice(d)
+	check("draft_delivered_qty_cleared", d.items[0].delivered_qty == 0, d.items[0].delivered_qty)
+
+	# F2: amended bundle invoice: core leaves component warehouses empty on amendments
+	d = fx.draft_si([(bun, 2)], amended_from="IR-NO-SUCH-INVOICE")
+	ir.validate_sales_invoice(d)
+	check("amended_bundle_components_have_warehouse",
+		[p.warehouse for p in d.packed_items] == [fx.WH, fx.WH], [(p.item_code, p.warehouse) for p in d.packed_items])
+
+	# F5: rebuilding components must not reprice the bundle line (Selling Settings editable_bundle_item_rates)
+	for code in (a, b):  # priced components, so ERPNext would compute a bundle rate of its own
+		frappe.get_doc({"doctype": "Item Price", "item_code": code, "price_list": "Standard Selling",
+			"price_list_rate": 100, "uom": "Nos"}).insert(ignore_permissions=True)
+	frappe.db.set_value("Selling Settings", None, "editable_bundle_item_rates", 1)
+	frappe.clear_cache()
+	d = fx.draft_si([(bun, 2)])
+	d.items[0].rate, d.items[0].amount = 1234, 2468
+	ir.validate_sales_invoice(d)
+	check("bundle_rate_untouched", (d.items[0].rate, d.items[0].amount) == (1234, 2468), (d.items[0].rate, d.items[0].amount))
+	frappe.db.set_value("Selling Settings", None, "editable_bundle_item_rates", 0)
 
 	d = fx.draft_pi([(a, 1)], is_return=1)
 	ir.validate_purchase_invoice(d)

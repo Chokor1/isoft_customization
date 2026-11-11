@@ -150,6 +150,20 @@ try:
 	check("e2e_bundle_dn", (bin_qty(ca, "reserved_qty") - A, bin_qty(cb, "reserved_qty") - Bq) == (2, 3),
 		(bin_qty(ca, "reserved_qty") - A, bin_qty(cb, "reserved_qty") - Bq))
 
+	# ---- F1: duplicate of a fully delivered invoice reserves its full quantity
+	R0 = bin_qty(plain, "reserved_qty")
+	src = submit(fx.draft_si([(plain, 4)]))
+	submit(make_delivery_note(src.name))
+	dup = frappe.copy_doc(frappe.get_doc("Sales Invoice", src.name))
+	check("dup_copies_delivered_qty_precondition", dup.items[0].delivered_qty == 4, dup.items[0].delivered_qty)
+	submit(dup)
+	check("e2e_duplicate_reserves_full", bin_qty(plain, "reserved_qty") == R0 + 4, bin_qty(plain, "reserved_qty") - R0)
+
+	# ---- F4: a service line with a warehouse gets no Bin
+	svc = fx.stock_item("IR-T3-SVC", stock=False)
+	submit(fx.draft_si([(item, 1), (svc, 1, {"warehouse": WH})]))
+	check("e2e_no_bin_for_service_line", not frappe.db.exists("Bin", {"item_code": svc, "warehouse": WH}))
+
 	# ---- an unticked invoice changes nothing
 	U = bin_qty(plain, "reserved_qty")
 	submit(fx.draft_si([(plain, 3)], reserve=0))

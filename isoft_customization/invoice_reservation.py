@@ -16,13 +16,16 @@ from frappe.utils import cint, now
 
 SI, PI = "Sales Invoice", "Purchase Invoice"
 
-# (doctype, column) that the pending-quantity queries join on.
+# (doctype, columns) that the pending-quantity queries join or filter on. The first two find the few
+# reserving invoices without scanning every invoice (POS Customer Orders badge, after every sale).
 INDEXES = (
-	("Sales Invoice Item", "sales_invoice_item"),
-	("Purchase Invoice Item", "purchase_invoice_item"),
-	("Purchase Receipt Item", "purchase_invoice_item"),
-	("Delivery Note Item", "si_detail"),
-	("Packed Item", "parent_detail_docname"),
+	("Sales Invoice", ["isoft_reserve_stock", "docstatus", "company"]),
+	("Purchase Invoice", ["isoft_order_stock", "docstatus", "company"]),
+	("Sales Invoice Item", ["sales_invoice_item"]),
+	("Purchase Invoice Item", ["purchase_invoice_item"]),
+	("Purchase Receipt Item", ["purchase_invoice_item"]),
+	("Delivery Note Item", ["si_detail"]),
+	("Packed Item", ["parent_detail_docname"]),
 )
 
 
@@ -69,8 +72,8 @@ def setup_custom_fields(*args, **kwargs):
 		if not frappe.db.exists("Custom Field", {"dt": dt, "fieldname": row["fieldname"]})
 	}
 	create_custom_fields(fields, update=True)
-	for dt, col in INDEXES:
-		frappe.db.add_index(dt, [col])
+	for dt, cols in INDEXES:
+		frappe.db.add_index(dt, cols)
 	changed = set(missing) | _show_source_warehouse()
 	# Browsers cache form meta keyed on DocType.modified, which a new Custom Field does not touch.
 	for dt in changed:
@@ -137,8 +140,14 @@ def _validate(doc, message):
 	if not cint(doc.get(box)):
 		return False
 	for row in doc.items:
-		if line_counts(doc, row) and not row.warehouse:
+		if not line_counts(doc, row):
+			continue
+		if not row.warehouse:
 			frappe.throw(_(message).format(row.idx, frappe.bold(row.item_code)))
+		if doc.doctype == SI and doc.docstatus == 0:
+			# A draft has delivered nothing; Duplicate copies the source's delivered_qty (not no_copy),
+			# which would otherwise make the copy reserve less, or nothing.
+			row.delivered_qty = 0
 	return True
 
 
@@ -148,7 +157,23 @@ def validate_sales_invoice(doc, method=None):
 		# validate); a reserving invoice keeps its bundle components so they can be reserved.
 		from erpnext.stock.doctype.packed_item.packed_item import make_packing_list
 
+		# Core already priced and totalled the invoice; with Selling Settings "editable bundle item
+		# rates" make_packing_list would reprice the bundle lines afterwards. Keep them as they were.
+		prices = {row.name: (row.rate, row.amount) for row in doc.items}
 		make_packing_list(doc)
+		for row in doc.items:
+			if row.name in prices:
+				row.rate, row.amount = prices[row.name]
+		# On amendments core leaves the components' warehouse empty (packed_item.py
+		# update_packed_item_stock_data); the bundle line's warehouse is the one to reserve in.
+		lines = {row.name: row for row in doc.items}
+		for pk in doc.get("packed_items"):
+			parent = lines.get(pk.parent_detail_docname)
+			if not pk.warehouse and parent:
+				pk.warehouse = parent.warehouse
+			if not pk.warehouse:
+				frappe.throw(_("Row {0}: Warehouse is required to reserve stock for {1}.").format(
+					parent.idx if parent else pk.idx, frappe.bold(pk.item_code)))
 
 
 def validate_purchase_invoice(doc, method=None):
@@ -261,13 +286,16 @@ def apply(*args, **kwargs):
 def invoice_pairs(doctype, name):
 	"""(item_code, warehouse) of the invoice's lines and bundle components."""
 	child = "Sales Invoice Item" if doctype == SI else "Purchase Invoice Item"
+	# stock items only: refreshing a service line would create an empty Bin for it
 	pairs = set(frappe.db.sql(
-		"select item_code, warehouse from `tab{0}` where parent = %s and ifnull(warehouse, '') != ''".format(child),
+		"""select c.item_code, c.warehouse from `tab{0}` c join `tabItem` i on i.name = c.item_code
+		where c.parent = %s and ifnull(c.warehouse, '') != '' and i.is_stock_item = 1""".format(child),
 		name))
 	if doctype == SI:
 		pairs |= set(frappe.db.sql(
-			"""select item_code, warehouse from `tabPacked Item`
-			where parenttype = 'Sales Invoice' and parent = %s and ifnull(warehouse, '') != ''""", name))
+			"""select pk.item_code, pk.warehouse from `tabPacked Item` pk join `tabItem` i on i.name = pk.item_code
+			where pk.parenttype = 'Sales Invoice' and pk.parent = %s and ifnull(pk.warehouse, '') != ''
+			and i.is_stock_item = 1""", name))
 	return pairs
 
 
@@ -370,8 +398,9 @@ def set_stopped(doctype, name, stopped):
 def reserving_invoice_lines(company, warehouse, item_code=None, invoice=None, open_only=True, from_date=None, to_date=None):
 	"""Lines (and bundle components) of reserving Sales Invoices for one warehouse, in stock units.
 
-	open_only: only invoices that still reserve (not stopped) and lines with something pending; the
-	rows then add up to exactly what invoice_reserved_qty counts for that warehouse.
+	open_only: only invoices that still reserve here (not stopped, something pending), with all their
+	lines in this warehouse, delivered ones included; the pending column then adds up to exactly what
+	invoice_reserved_qty counts for that warehouse.
 	"""
 	cond = ["si.company = %(company)s", _SI_HEADER if open_only else _SI_BASE, _SI_LINE]
 	args = {"company": company, "wh": warehouse, "item": item_code, "invoice": invoice,
@@ -383,7 +412,8 @@ def reserving_invoice_lines(company, warehouse, item_code=None, invoice=None, op
 	if to_date:
 		cond.append("si.posting_date <= %(to_date)s")
 	where = " and ".join(cond)
-	head = """si.name as invoice, si.customer, si.customer_name, si.posting_date, si.grand_total, si.currency"""
+	head = """si.name as invoice, si.customer, si.customer_name, si.posting_date, si.grand_total, si.currency,
+		si.isoft_reservation_stopped as stopped"""
 	rows = frappe.db.sql(
 		"""select {head}, sii.idx, 0 as sub, sii.item_code, sii.item_name, sii.stock_uom as uom, sii.stock_qty as qty,
 				ifnull(sii.delivered_qty, 0) * sii.conversion_factor as delivered_qty, {pending} as pending,
@@ -406,4 +436,7 @@ def reserving_invoice_lines(company, warehouse, item_code=None, invoice=None, op
 			item="and sii.item_code = %(item)s" if item_code else "",
 			pk_item="and pk.item_code = %(item)s" if item_code else ""),
 		args, as_dict=True)
-	return [r for r in rows if r.pending > 0] if open_only else rows
+	if open_only:
+		open_invoices = {r.invoice for r in rows if r.pending > 0}
+		rows = [r for r in rows if r.invoice in open_invoices]
+	return rows
