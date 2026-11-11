@@ -748,3 +748,15 @@ Multi-buy: the maximum discounted units cannot be negative.,Multi-compra: o máx
 Partial return not allowed,Devolução parcial não permitida
 This return breaks the offer {0}: the items kept would still carry {1} of discount but only earn {2}. Return the discounted item(s) too: {3}.,Esta devolução quebra a oferta {0}: os artigos que ficam teriam ainda {1} de desconto mas só ganham {2}. Devolva também o(s) artigo(s) com desconto: {3}.
 "Multi-buy preview is for Quotation, Sales Order, Delivery Note and Sales Invoice","A pré-visualização Multi-compra é para Cotação, Encomenda de Venda, Guia de Remessa e Fatura de Venda"
+POS Customer Contacts,Contactos de Clientes por POS
+Show per POS Profile,Mostrar por Perfil POS
+Phone or Email,Telefone ou Email
+Any,Qualquer
+Include desk / B2B invoices,Incluir faturas do balcão / B2B
+Net of returns,Deduzir devoluções
+Desk / B2B,Balcão / B2B
+POS Profiles,Perfis POS
+Total Amount,Valor Total
+Total Qty,Qtd. Total
+Last Purchase,Última Compra
+Yes/No,Sim/Não
