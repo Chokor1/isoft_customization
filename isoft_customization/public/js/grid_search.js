@@ -14,7 +14,8 @@ frappe.provide("isoft.grid_search");
 
 (function () {
 	const ns = isoft.grid_search;
-	const MIN_ROWS = 11; // the box shows on tables longer than this, or while a search is on
+	const MIN_ROWS = 11; // the box is open on tables this long, or while a search is on
+	const MIN_BUTTON = 2; // shorter tables (from 2 rows) get a small search button that opens it
 	const EXTRA_FIELDS = ["item_code", "item_name", "description", "item_group", "brand", "uom"];
 
 	ns.patched = false;
@@ -93,14 +94,17 @@ frappe.provide("isoft.grid_search");
 		if (!$grid.length) return;
 		const $w = $grid.parent();
 		let $box = $grid.prevAll(".isoft-grid-search").first();
-		if (total < MIN_ROWS && !q) {
+		if (total < MIN_BUTTON && !q) {
 			$box.remove();
 			$w.removeClass("isoft-grid-filtered");
 			return;
 		}
+		const compact = total < MIN_ROWS && !q && !grid.__isoft_open;
 		$box.slice(1).remove();
 		if (!$box.length) {
 			$box = $(`<div class="isoft-grid-search">
+				<button type="button" class="btn btn-default btn-xs isoft-grid-search-open" title="${__("Search rows")}">
+					${frappe.utils.icon("search", "sm")} ${__("Search")}</button>
 				<span class="isoft-grid-search-field">
 					${frappe.utils.icon("search", "sm")}
 					<input type="search" class="form-control input-xs" autocomplete="off"
@@ -108,6 +112,11 @@ frappe.provide("isoft.grid_search");
 				</span>
 				<span class="isoft-grid-search-count text-muted small"></span>
 			</div>`).insertBefore($grid);
+			$box.find(".isoft-grid-search-open").on("click", function () {
+				grid.__isoft_open = true;
+				ns.render_box(grid);
+				$box.find("input").trigger("focus");
+			});
 			let timer = null;
 			$box.find("input")
 				.on("input", function () {
@@ -128,6 +137,7 @@ frappe.provide("isoft.grid_search");
 		const $input = $box.find("input");
 		if (!$input.is(":focus") && $input.val() !== q) $input.val(q);
 		$w.toggleClass("isoft-grid-filtered", !!q);
+		$box.toggleClass("is-compact", compact);
 		const shown = q ? (grid.data || []).length : total;
 		$box.find(".isoft-grid-search-count").text(q ? __("{0} of {1} rows", [shown, total]) : __("{0} rows", [total]));
 	};

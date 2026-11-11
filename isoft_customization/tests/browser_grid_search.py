@@ -82,6 +82,22 @@ try:
 		check("add_row_clears_search", val == "" and s["total"] == 109, (val, s))
 		check("never_saved", page.evaluate("() => cur_frm.doc.__islocal === 1"))
 
+		# short table (a Pricing Rule's few items): a small search button that opens the box
+		page.evaluate("""() => { frappe.model.clear_table(cur_frm.doc, 'items');
+			for (let i = 1; i <= 5; i++) { const r = frappe.model.add_child(cur_frm.doc, 'Quotation Item', 'items');
+				r.item_code = 'SH-' + i; r.item_name = 'Short ' + i; r.qty = 1; }
+			cur_frm.refresh_field('items'); }""")
+		page.wait_for_timeout(800)
+		small = page.evaluate("""() => { const $c = $(cur_frm.fields_dict.items.grid.wrapper).first().parent();
+			return {button: $c.find('.isoft-grid-search-open:visible').length, input_visible: $c.find('.isoft-grid-search input:visible').length}; }""")
+		check("short_table_has_search_button", small["button"] == 1 and small["input_visible"] == 0, small)
+		page.evaluate("() => $(cur_frm.fields_dict.items.grid.wrapper).first().parent().find('.isoft-grid-search-open').click()")
+		page.wait_for_timeout(400)
+		search(page, "SH-4")
+		s = grid_state(page)
+		check("short_table_search_works", s["codes"] == ["SH-4"], s)
+		search(page, "")
+
 		# submitted document: search to read and check, no delete
 		page.goto(h.BASE_URL + "/app/sales-invoice/" + SUBMITTED.replace("/", "%2F"), wait_until="networkidle")
 		page.wait_for_function("() => window.cur_frm && cur_frm.doc.docstatus === 1", timeout=30000)

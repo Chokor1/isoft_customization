@@ -6,3 +6,8 @@
 .isoft-grid-search-count { white-space: nowrap; }
 /* re-ordering renumbers from what is on screen: off while only some rows are shown */
 .isoft-grid-filtered .sortable-handle { visibility: hidden; pointer-events: none; }
+/* short tables: just a button until it is clicked */
+.isoft-grid-search-open { display: none; }
+.isoft-grid-search.is-compact .isoft-grid-search-open { display: inline-flex; align-items: center; gap: 4px; }
+.isoft-grid-search.is-compact .isoft-grid-search-field,
+.isoft-grid-search.is-compact .isoft-grid-search-count { display: none; }
