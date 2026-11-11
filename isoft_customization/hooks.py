@@ -300,6 +300,17 @@ for _doctype in ("Quotation", "Sales Order", "Delivery Note", "Sales Invoice"):
 	_append_doc_event(_doctype, "before_validate", "isoft_customization.multi_buy.before_validate")
 	_append_doc_event(_doctype, "validate", "isoft_customization.multi_buy.release")
 
+# Submitted invoices that reserve / order stock: indicator + Stop / Resume. See invoice_reservation.py.
+for _doctype in ("Sales Invoice", "Purchase Invoice"):
+	_current = doctype_js.get(_doctype)
+	_js = "public/js/invoice_reservation.js"
+	if not _current:
+		doctype_js[_doctype] = _js
+	elif isinstance(_current, str):
+		doctype_js[_doctype] = [_current, _js]
+	elif _js not in _current:
+		_current.append(_js)
+
 # Desk forms show the multi-buy result while editing (see public/js/multi_buy.js).
 for _doctype in ("Quotation", "Sales Order", "Delivery Note", "Sales Invoice"):
 	_current = doctype_js.get(_doctype)

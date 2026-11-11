@@ -760,3 +760,27 @@ Total Amount,Valor Total
 Total Qty,Qtd. Total
 Last Purchase,Última Compra
 Yes/No,Sim/Não
+Reserve Stock,Reservar Stock
+Order Stock,Encomendar Stock
+Reservation Stopped,Reserva Parada
+Ordering Stopped,Encomenda Parada
+Reserving {0} units until delivered,A reservar {0} unidades até à entrega
+Ordering {0} units until received,A encomendar {0} unidades até à receção
+Reservation stopped,Reserva parada
+Ordering stopped,Encomenda parada
+Reservation,Reserva
+Ordering,Encomenda
+Stop reserving,Parar reserva
+Resume reserving,Retomar reserva
+Stop ordering,Parar encomenda
+Resume ordering,Retomar encomenda
+Row {0}: Warehouse is required to reserve stock for {1}.,Linha {0}: o Armazém é obrigatório para reservar stock de {1}.
+Row {0}: Warehouse is required to order stock for {1}.,Linha {0}: o Armazém é obrigatório para encomendar stock de {1}.
+Count undelivered quantities as Reserved until Delivery Notes made from this invoice deliver them.,Contar as quantidades por entregar como Reservadas até que as Guias de Remessa criadas a partir desta factura as entreguem.
+Count unreceived quantities as Ordered until Purchase Receipts made from this invoice receive them.,Contar as quantidades por receber como Encomendadas até que as Recepções de Compra criadas a partir desta factura as recebam.
+Stop reserving the undelivered quantities of this invoice? They will no longer count as Reserved.,Parar a reserva das quantidades por entregar desta factura? Deixarão de contar como Reservadas.
+Count the undelivered quantities of this invoice as Reserved again?,Voltar a contar as quantidades por entregar desta factura como Reservadas?
+Stop ordering the unreceived quantities of this invoice? They will no longer count as Ordered.,Parar a encomenda das quantidades por receber desta factura? Deixarão de contar como Encomendadas.
+Count the unreceived quantities of this invoice as Ordered again?,Voltar a contar as quantidades por receber desta factura como Encomendadas?
+Only Sales Invoices and Purchase Invoices reserve or order stock.,Só as Facturas de Venda e as Facturas de Compra reservam ou encomendam stock.
+{0} {1} is not a submitted invoice that reserves or orders stock.,{0} {1} não é uma factura submetida que reserve ou encomende stock.

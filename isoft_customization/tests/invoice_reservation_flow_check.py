@@ -1,7 +1,8 @@
 """Invoice stock reservation, end to end with REAL documents (submit / cancel / make_* mappers).
 
 One transaction, rolled back at the end. frappe.db.commit is replaced first so any hook that tries
-to commit fails the check instead of leaving data on the site.
+to commit fails the check instead of leaving data on the site. That guard is also what keeps FE
+Angola / AGT out of it: registration is queued with enqueue_after_commit, which never fires here.
 
 Run from sites/: ../env/bin/python ../apps/isoft_customization/isoft_customization/tests/invoice_reservation_flow_check.py dev.isoft.ao
 """
