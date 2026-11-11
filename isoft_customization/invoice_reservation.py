@@ -131,3 +131,101 @@ def validate_sales_invoice(doc, method=None):
 
 def validate_purchase_invoice(doc, method=None):
 	_validate(doc, "Row {0}: Warehouse is required to order stock for {1}.")
+
+
+# ---------------------------------------------------------------- the invoice part of Bin figures
+# Pending per line, in stock UOM, never below 0. Recomputed from documents every time.
+
+_SI_HEADER = """si.docstatus = 1 and si.isoft_reserve_stock = 1 and si.isoft_reservation_stopped = 0
+	and si.update_stock = 0 and si.is_return = 0 and si.is_pos = 0"""
+_SI_LINE = """ifnull(sii.so_detail, '') = '' and ifnull(sii.dn_detail, '') = ''
+	and ifnull(sii.delivered_by_supplier, 0) = 0"""
+# Every credit note against the line counts: core refuses an Update Stock credit note against an
+# invoice without Update Stock, so the goods never come back through one.
+_SI_PENDING = """greatest(sii.stock_qty - ifnull(sii.delivered_qty, 0) * sii.conversion_factor
+	- ifnull((select sum(-ri.stock_qty) from `tabSales Invoice Item` ri
+		join `tabSales Invoice` r on r.name = ri.parent
+		where ri.sales_invoice_item = sii.name and r.docstatus = 1 and r.is_return = 1), 0), 0)"""
+
+_PI_HEADER = """pi.docstatus = 1 and pi.isoft_order_stock = 1 and pi.isoft_ordering_stopped = 0
+	and pi.update_stock = 0 and pi.is_return = 0"""
+_PI_LINE = """ifnull(pii.po_detail, '') = '' and ifnull(pii.pr_detail, '') = ''"""
+# Received = non-return receipts made from the line (PR returns carry no link back, by design).
+# A debit note WITH Update Stock sends received goods back and cancels out, so only debit notes
+# without Update Stock reduce what is still owed.
+_PI_PENDING = """greatest(pii.stock_qty
+	- ifnull((select sum(pri.received_stock_qty) from `tabPurchase Receipt Item` pri
+		join `tabPurchase Receipt` pr on pr.name = pri.parent
+		where pri.purchase_invoice_item = pii.name and pr.docstatus = 1 and pr.is_return = 0), 0)
+	- ifnull((select sum(-ri.stock_qty) from `tabPurchase Invoice Item` ri
+		join `tabPurchase Invoice` r on r.name = ri.parent
+		where ri.purchase_invoice_item = pii.name and r.docstatus = 1 and r.is_return = 1
+		and r.update_stock = 0), 0), 0)"""
+
+
+def invoice_reserved_qty(item_code, warehouse):
+	"""Stock-UOM quantity that reserving Sales Invoices still owe for this item and warehouse."""
+	row = frappe.db.sql(
+		"""select
+			ifnull((select sum({pending})
+				from `tabSales Invoice Item` sii
+				join `tabSales Invoice` si on si.name = sii.parent
+				join `tabItem` i on i.name = sii.item_code and i.is_stock_item = 1
+				where sii.item_code = %(item)s and sii.warehouse = %(wh)s and {header} and {line}), 0)
+			+ ifnull((select sum(pk.qty * {pending} / sii.stock_qty)
+				from `tabPacked Item` pk
+				join `tabSales Invoice Item` sii on sii.name = pk.parent_detail_docname
+				join `tabSales Invoice` si on si.name = pk.parent
+				where pk.parenttype = 'Sales Invoice' and pk.item_code = %(item)s and pk.warehouse = %(wh)s
+				and sii.stock_qty > 0 and {header} and {line}), 0)""".format(
+			pending=_SI_PENDING, header=_SI_HEADER, line=_SI_LINE),
+		{"item": item_code, "wh": warehouse},
+	)
+	return float(row[0][0] or 0)
+
+
+def invoice_ordered_qty(item_code, warehouse):
+	"""Stock-UOM quantity that ordering Purchase Invoices still expect for this item and warehouse."""
+	row = frappe.db.sql(
+		"""select sum({pending})
+			from `tabPurchase Invoice Item` pii
+			join `tabPurchase Invoice` pi on pi.name = pii.parent
+			join `tabItem` i on i.name = pii.item_code and i.is_stock_item = 1
+			where pii.item_code = %(item)s and pii.warehouse = %(wh)s and {header} and {line}""".format(
+			pending=_PI_PENDING, header=_PI_HEADER, line=_PI_LINE),
+		{"item": item_code, "wh": warehouse},
+	)
+	return float(row[0][0] or 0)
+
+
+def _wrap(module, name, extra, also):
+	current = getattr(module, name)
+	if not getattr(current, "_isoft_original", None):
+		original = current
+
+		def wrapper(item_code, warehouse):
+			return original(item_code, warehouse) + extra(item_code, warehouse)
+
+		wrapper._isoft_original = original
+		wrapper.__name__ = name
+		setattr(module, name, wrapper)
+		current = wrapper
+	for other in also:
+		setattr(other, name, current)
+
+
+def apply(*args, **kwargs):
+	"""Make ERPNext's Reserved / Ordered calculation include invoices.
+
+	stock_balance.get_reserved_qty / get_ordered_qty feed every Bin refresh and repost; the Sales
+	Order and Purchase Order modules import them by name, so those bindings are replaced too.
+	Idempotent; runs at import (isoft_customization/__init__.py) and per request / job (hooks.py).
+	"""
+	try:
+		from erpnext.buying.doctype.purchase_order import purchase_order
+		from erpnext.selling.doctype.sales_order import sales_order
+		from erpnext.stock import stock_balance
+	except Exception:
+		return
+	_wrap(stock_balance, "get_reserved_qty", invoice_reserved_qty, [sales_order])
+	_wrap(stock_balance, "get_ordered_qty", invoice_ordered_qty, [purchase_order])

@@ -32,5 +32,14 @@ def _install_runtime_patches():
 	except Exception:
 		pass
 
+	# Sales / Purchase Invoices that reserve / order stock count in Bin figures; hooks.py also
+	# applies it per request / job. See invoice_reservation.py.
+	try:
+		from isoft_customization.invoice_reservation import apply
+
+		apply()
+	except Exception:
+		pass
+
 
 _install_runtime_patches()

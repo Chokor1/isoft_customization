@@ -72,3 +72,77 @@ def validate(doc):
 	doc._action = "save"
 	doc.run_method("validate")
 	return doc
+
+
+# ---- submitted-document fixtures written straight to the DB (no hooks, no GL, no Bin update)
+_seq = [0]
+
+
+def _name(prefix):
+	_seq[0] += 1
+	return "%s-%d-%s" % (prefix, _seq[0], frappe.generate_hash(length=4))
+
+
+def insert(doctype, fields, tables):
+	"""tables: {parentfield: (child_doctype, [row dicts])}. Returns {"name", parentfield: [row names]}."""
+	name = _name("IRX")
+	parent = frappe.get_doc(dict({"doctype": doctype, "name": name, "docstatus": 1, "company": COMPANY}, **fields))
+	parent.db_insert()
+	out = {"name": name}
+	for parentfield, (child_dt, rows) in tables.items():
+		out[parentfield] = []
+		for idx, row in enumerate(rows, 1):
+			r = frappe.get_doc(dict({"doctype": child_dt, "name": "%s-%s-%d" % (name, parentfield[:2], idx),
+				"parent": name, "parenttype": doctype, "parentfield": parentfield, "idx": idx,
+				"docstatus": fields.get("docstatus", 1)}, **row))
+			r.db_insert()
+			out[parentfield].append(r.name)
+	return out
+
+
+def line(item_code, qty, cf=1, uom="Nos", **kw):
+	return dict({"item_code": item_code, "qty": qty, "conversion_factor": cf, "stock_qty": qty * cf, "uom": uom,
+		"stock_uom": "Nos", "warehouse": WH}, **kw)
+
+
+def si(lines, packed=None, **fields):
+	f = dict({"customer": CUSTOMER, "isoft_reserve_stock": 1, "update_stock": 0, "is_pos": 0, "is_return": 0}, **fields)
+	t = {"items": ("Sales Invoice Item", lines)}
+	if packed:
+		t["packed_items"] = ("Packed Item", packed)
+	return insert("Sales Invoice", f, t)
+
+
+def credit_note(orig, rows, **fields):
+	"""rows: [(original line name, item_code, qty>0 returned)]"""
+	f = dict({"customer": CUSTOMER, "is_return": 1, "return_against": orig["name"], "update_stock": 0}, **fields)
+	return insert("Sales Invoice", f, {"items": ("Sales Invoice Item",
+		[line(code, -q, sales_invoice_item=ln) for ln, code, q in rows])})
+
+
+def pi(lines, **fields):
+	f = dict({"supplier": SUPPLIER, "isoft_order_stock": 1, "update_stock": 0, "is_return": 0}, **fields)
+	return insert("Purchase Invoice", f, {"items": ("Purchase Invoice Item", lines)})
+
+
+def debit_note(orig, rows, update_stock=0):
+	f = {"supplier": SUPPLIER, "is_return": 1, "return_against": orig["name"], "update_stock": update_stock}
+	return insert("Purchase Invoice", f, {"items": ("Purchase Invoice Item",
+		[line(code, -q, purchase_invoice_item=ln) for ln, code, q in rows])})
+
+
+def receipt(rows, is_return=0, docstatus=1):
+	"""rows: [(pi line name or None, item_code, received stock qty)]"""
+	return insert("Purchase Receipt", {"supplier": SUPPLIER, "is_return": is_return, "docstatus": docstatus},
+		{"items": ("Purchase Receipt Item", [line(code, q, received_qty=q, received_stock_qty=q,
+			purchase_invoice_item=ln) for ln, code, q in rows])})
+
+
+def set_line(name, doctype="Sales Invoice Item", **values):
+	for k, v in values.items():
+		frappe.db.set_value(doctype, name, k, v, update_modified=False)
+
+
+def set_doc(name, doctype="Sales Invoice", **values):
+	for k, v in values.items():
+		frappe.db.set_value(doctype, name, k, v, update_modified=False)

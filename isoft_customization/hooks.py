@@ -228,10 +228,12 @@ override_doctype_class = {
 before_request = [
 	"isoft_customization.overrides.stock_analytics.apply",
 	"isoft_customization.item_group_and_brand.apply",
+	"isoft_customization.invoice_reservation.apply",
 ]
 before_job = [
 	"isoft_customization.overrides.stock_analytics.apply",
 	"isoft_customization.item_group_and_brand.apply",
+	"isoft_customization.invoice_reservation.apply",
 ]
 
 
