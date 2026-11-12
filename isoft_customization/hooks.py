@@ -324,3 +324,8 @@ for _doctype in ("Quotation", "Sales Order", "Delivery Note", "Sales Invoice"):
 		doctype_js[_doctype] = [_current, _js]
 	elif _js not in _current:
 		_current.append(_js)
+
+# Quotation note -> "Additional Notes" on the Sales Invoice / Sales Order made from it.
+# See quotation_notes.py.
+for _doctype in ("Sales Invoice", "Sales Order"):
+	_append_doc_event(_doctype, "set_missing_values", "isoft_customization.quotation_notes.copy_quotation_note")
