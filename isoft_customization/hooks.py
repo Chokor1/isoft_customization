@@ -220,6 +220,8 @@ override_doctype_class = {
 	"Purchase Invoice": "isoft_customization.overrides.purchase_invoice.IsoftPurchaseInvoice",
 	# Apply On "Item Group and Brand": keeps both tables on save. See item_group_and_brand.py.
 	"Pricing Rule": "isoft_customization.overrides.pricing_rule.IsoftPricingRule",
+	# CC field on Auto Email Report. See auto_email_report_cc.py.
+	"Auto Email Report": "isoft_customization.overrides.auto_email_report.IsoftAutoEmailReport",
 }
 
 # Stock Analytics opening-balance backport (erpnext 008f2a6b6). v13 cannot override a
@@ -271,6 +273,8 @@ after_migrate = [
 	"isoft_customization.multi_buy_rule.setup_custom_fields",
 	# Sales Invoice "Reserve Stock" / Purchase Invoice "Order Stock" + indexes. See invoice_reservation.py.
 	"isoft_customization.invoice_reservation.setup_custom_fields",
+	# CC field on Auto Email Report. See auto_email_report_cc.py.
+	"isoft_customization.auto_email_report_cc.setup_custom_fields",
 ]
 
 
