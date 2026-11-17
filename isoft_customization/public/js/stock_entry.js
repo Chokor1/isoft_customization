@@ -45,9 +45,12 @@ frappe.provide('isoft.stock_entry_type_accounts');
 	});
 	frappe.ui.form.on('Stock Entry Detail', {
 		expense_account: function (frm, cdt, cdn) {
-			const row = locals[cdt][cdn];
+			// rows pasted from Excel arrive fast: one may not be in locals yet, or be gone by
+			// the time the defaults come back; a throw here stopped the paste after 2 rows
+			if (!(locals[cdt] && locals[cdt][cdn])) return;
 			load(frm, function (cfg) {
-				if (should_swap(cfg, row.expense_account)) frappe.model.set_value(cdt, cdn, 'expense_account', cfg.account);
+				const row = locals[cdt] && locals[cdt][cdn];
+				if (row && should_swap(cfg, row.expense_account)) frappe.model.set_value(cdt, cdn, 'expense_account', cfg.account);
 			});
 		}
 	});
