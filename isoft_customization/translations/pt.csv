@@ -786,3 +786,12 @@ Only Sales Invoices and Purchase Invoices reserve or order stock.,Só as Factura
 {0} {1} is not a submitted invoice that reserves or orders stock.,{0} {1} não é uma factura submetida que reserve ou encomende stock.
 Reserving {0} unit until delivered,A reservar {0} unidade até à entrega
 Ordering {0} unit until received,A encomendar {0} unidade até à receção
+Allow editing submitted Material Requests,Permitir editar Pedidos de Material submetidos
+A {0} Material Request cannot be changed. Re-open it first.,Um Pedido de Material {0} não pode ser alterado. Reabra-o primeiro.
+A Material Request needs at least one item.,Um Pedido de Material precisa de pelo menos um artigo.
+Row #{0} ({1}) is already ordered or transferred and cannot be removed.,Linha #{0} ({1}) já foi encomendada ou transferida e não pode ser removida.
+Row #{0} ({1}) is already ordered or transferred: its {2} cannot change.,Linha #{0} ({1}) já foi encomendada ou transferida: o campo {2} não pode mudar.
+Row #{0} ({1}): {2} is below the {3} already ordered or received.,Linha #{0} ({1}): {2} é inferior aos {3} já encomendados ou recebidos.
+Row #{0} ({1}): the quantity must be greater than zero.,Linha #{0} ({1}): a quantidade tem de ser maior que zero.
+Row #{0} ({1}): set a warehouse.,Linha #{0} ({1}): indique um armazém.
+Items updated after submit: {0},Artigos alterados após submissão: {0}

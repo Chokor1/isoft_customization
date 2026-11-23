@@ -280,6 +280,8 @@ after_migrate = [
 	"isoft_customization.auto_email_report_cc.setup_custom_fields",
 	# Stock Settings "Leave automatic Material Requests as Draft". See reorder_draft.py.
 	"isoft_customization.reorder_draft.setup_custom_fields",
+	# Stock Settings "Allow editing submitted Material Requests". See material_request_items.py.
+	"isoft_customization.material_request_items.setup_custom_fields",
 ]
 
 
@@ -338,3 +340,9 @@ for _doctype in ("Quotation", "Sales Order", "Delivery Note", "Sales Invoice"):
 # See quotation_notes.py.
 for _doctype in ("Sales Invoice", "Sales Order"):
 	_append_doc_event(_doctype, "set_missing_values", "isoft_customization.quotation_notes.copy_quotation_note")
+
+# Stock Settings "Allow editing submitted Material Requests": the switch adds / removes
+# Allow on Submit; the guard and the recalculation run on Update. See material_request_items.py.
+_append_doc_event("Stock Settings", "on_update", "isoft_customization.material_request_items.apply_switch")
+_append_doc_event("Material Request", "before_update_after_submit", "isoft_customization.material_request_items.before_update_after_submit")
+_append_doc_event("Material Request", "on_update_after_submit", "isoft_customization.material_request_items.on_update_after_submit")
