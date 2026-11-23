@@ -232,11 +232,14 @@ override_doctype_class = {
 # same reason: v13 has no hook into how rules are looked up. See item_group_and_brand.py.
 before_request = [
 	"isoft_customization.overrides.stock_analytics.apply",
+	# Stock Settings "Leave automatic Material Requests as Draft". See reorder_draft.py.
+	"isoft_customization.reorder_draft.apply",
 	"isoft_customization.item_group_and_brand.apply",
 	"isoft_customization.invoice_reservation.apply",
 ]
 before_job = [
 	"isoft_customization.overrides.stock_analytics.apply",
+	"isoft_customization.reorder_draft.apply",
 	"isoft_customization.item_group_and_brand.apply",
 	"isoft_customization.invoice_reservation.apply",
 ]
@@ -275,6 +278,8 @@ after_migrate = [
 	"isoft_customization.invoice_reservation.setup_custom_fields",
 	# CC field on Auto Email Report. See auto_email_report_cc.py.
 	"isoft_customization.auto_email_report_cc.setup_custom_fields",
+	# Stock Settings "Leave automatic Material Requests as Draft". See reorder_draft.py.
+	"isoft_customization.reorder_draft.setup_custom_fields",
 ]
 
 
