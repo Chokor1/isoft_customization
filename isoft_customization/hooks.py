@@ -238,12 +238,15 @@ before_request = [
 	"isoft_customization.reorder_draft.apply",
 	"isoft_customization.item_group_and_brand.apply",
 	"isoft_customization.invoice_reservation.apply",
+	# Stock repost backport: later transfers into an already-reposted warehouse. See overrides/stock_repost.py.
+	"isoft_customization.overrides.stock_repost.apply",
 ]
 before_job = [
 	"isoft_customization.overrides.stock_analytics.apply",
 	"isoft_customization.reorder_draft.apply",
 	"isoft_customization.item_group_and_brand.apply",
 	"isoft_customization.invoice_reservation.apply",
+	"isoft_customization.overrides.stock_repost.apply",
 ]
 
 

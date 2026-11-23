@@ -87,8 +87,9 @@ garantia = [s for s in sles if s.warehouse == WAREHOUSES[0]]
 check("garantia_value_only_entry", len(garantia) == 1 and not garantia[0].serial_no and flt(garantia[0].actual_qty) == 0, garantia)
 g_qty = rows[0]["qty"]
 check("garantia_difference", abs(flt(garantia[0].stock_value_difference) - g_qty * (NEW_RATE - rows[0]["current_valuation_rate"])) < 1, garantia)
+# no later movement in Benguela: value-only as well (standard out/in entries lose the change on a repost)
 benguela = [s for s in sles if s.warehouse == WAREHOUSES[1]]
-check("benguela_standard_serial_path", benguela and all(s.serial_no for s in benguela), benguela)
+check("benguela_value_only_too", len(benguela) == 1 and not benguela[0].serial_no, benguela)
 diff = sum(r["qty"] * (NEW_RATE - r["current_valuation_rate"]) for r in rows)
 gl = gl_balance("Stock Reconciliation", reco.name)
 check("gl_balanced", abs(sum(flt(b) for _a, b in gl)) < 0.01, gl)
@@ -96,9 +97,7 @@ adjust = frappe.db.get_value("Stock Reconciliation", reco.name, "expense_account
 check("gl_stock_change", abs(sum(flt(b) for a, b in gl if a == adjust) + diff) < 1, (diff, gl))
 
 after = serial_state(all_serials)
-# the Garantia row was posted value-only: its serial nos keep their history (Benguela took the standard path)
-moved = [s for s in all_serials if s in get_serial_nos(rows[0]["serial_no"]) and
-	{f: after[s][f] for f in SERIAL_FIELDS} != {f: before_serials[s][f] for f in SERIAL_FIELDS}]
+moved = [s for s in all_serials if {f: after[s][f] for f in SERIAL_FIELDS} != {f: before_serials[s][f] for f in SERIAL_FIELDS}]
 check("serial_history_untouched", not moved, [(s, before_serials[s], after[s]) for s in moved][:3])
 check("serial_cost_updated", all(flt(after[s].purchase_rate) == NEW_RATE for s in all_serials), {s: after[s].purchase_rate for s in all_serials})
 

@@ -5,6 +5,9 @@ See isoft_customization.serial_cost_reconciliation.
 from erpnext.stock.doctype.stock_reconciliation.stock_reconciliation import StockReconciliation
 
 from isoft_customization import serial_cost_reconciliation as scr
+from isoft_customization.overrides import stock_repost
+
+stock_repost.apply()  # reposts run in the same process when called from scripts
 
 
 class IsoftStockReconciliation(StockReconciliation):

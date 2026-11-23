@@ -6,7 +6,7 @@ been used in the future transactions, cancel them first"). That blocks a year-en
 write-down of serialized items that were transferred or sold since.
 
 A row that keeps the same quantity and the same serial nos is a cost-only change, so
-when its serial nos have later movements it is posted here as a value-only entry,
+it is posted here as a value-only entry,
 exactly as ERPNext posts a non-serialized row: one ledger entry with no serial nos that
 sets the warehouse value at that date. Nothing moves, so the serial nos' own history,
 warehouse and status stay as they are. Each serial no's cost (Serial No.purchase_rate,
@@ -14,7 +14,10 @@ which v13 uses as the value of every later issue of that serial no) becomes the 
 rate, the same as the standard path does; the stock repost then re-costs the later
 transfers and sales. Cancel posts the reverse and puts the serial nos' cost back.
 
-Rows that change qty or serial nos, and cost-only rows with no later movements, keep
+All cost-only serialized rows go this way, not only blocked ones: the standard out/in
+entries are re-read at the serial nos' new cost whenever a stock repost passes over them,
+so their difference vanishes (out and in both at the new cost), while a value-only entry
+states the warehouse value and keeps it. Rows that change qty or serial nos keep
 ERPNext's standard path.
 """
 import frappe
@@ -37,24 +40,6 @@ def _serial_items(doc):
 		"Item", filters={"name": ("in", codes)}, fields=["name", "has_serial_no", "has_batch_no"]
 	)
 	return {r.name: r for r in rows if r.has_serial_no and not r.has_batch_no}
-
-
-def _moved_later(doc, item_code, serial_nos):
-	"""Serial nos of this list with a ledger entry after the reconciliation's date."""
-	wanted = set(serial_nos)
-	moved = set()
-	for sle in frappe.db.sql(
-		"""select serial_no from `tabStock Ledger Entry`
-		where item_code = %s and is_cancelled = 0 and voucher_no != %s
-			and ifnull(serial_no, '') != ''
-			and timestamp(posting_date, posting_time) > timestamp(%s, %s)""",
-		(item_code, doc.name, doc.posting_date, doc.posting_time or "00:00:00"),
-		as_dict=True,
-	):
-		moved.update(wanted.intersection(get_serial_nos(sle.serial_no)))
-		if moved == wanted:
-			break
-	return moved
 
 
 def value_only_rows(doc):
@@ -86,8 +71,6 @@ def value_only_rows(doc):
 			ledger_serials = "\n".join(ledger_serials)
 		if flt(ledger_qty) != qty or set(get_serial_nos(ledger_serials or "")) != set(serial_nos):
 			continue
-		if not _moved_later(doc, row.item_code, serial_nos):
-			continue  # nothing blocks the standard path
 		out.append(row)
 	return out
 
@@ -106,7 +89,7 @@ def post_value_only(doc, rows):
 		doc.update_valuation_rate_for_serial_nos(row, get_serial_nos(row.serial_no))
 		frappe.msgprint(
 			_(
-				"Row #{0}: only the cost of {1} changed and its serial nos moved after this date, so the new cost was posted without moving them. Later movements are re-costed by the stock repost."
+				"Row #{0}: only the cost of {1} changed, so the new cost was posted without moving its serial nos. Later movements are re-costed by the stock repost."
 			).format(row.idx, frappe.bold(row.item_code)),
 			alert=True,
 			indicator="blue",

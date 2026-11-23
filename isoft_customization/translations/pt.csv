@@ -795,4 +795,4 @@ Row #{0} ({1}): {2} is below the {3} already ordered or received.,Linha #{0} ({1
 Row #{0} ({1}): the quantity must be greater than zero.,Linha #{0} ({1}): a quantidade tem de ser maior que zero.
 Row #{0} ({1}): set a warehouse.,Linha #{0} ({1}): indique um armazém.
 Items updated after submit: {0},Artigos alterados após submissão: {0}
-"Row #{0}: only the cost of {1} changed and its serial nos moved after this date, so the new cost was posted without moving them. Later movements are re-costed by the stock repost.","Linha #{0}: só o custo de {1} mudou e os números de série movimentaram-se depois desta data, por isso o novo custo foi lançado sem os movimentar. Os movimentos posteriores são recalculados pela reavaliação de stock."
+"Row #{0}: only the cost of {1} changed, so the new cost was posted without moving its serial nos. Later movements are re-costed by the stock repost.","Linha #{0}: só o custo de {1} mudou, por isso o novo custo foi lançado sem movimentar os números de série. Os movimentos posteriores são recalculados pela reavaliação de stock."
