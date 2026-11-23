@@ -222,6 +222,8 @@ override_doctype_class = {
 	"Pricing Rule": "isoft_customization.overrides.pricing_rule.IsoftPricingRule",
 	# CC field on Auto Email Report. See auto_email_report_cc.py.
 	"Auto Email Report": "isoft_customization.overrides.auto_email_report.IsoftAutoEmailReport",
+	# Cost-only change of serialized stock, even back-dated. See serial_cost_reconciliation.py.
+	"Stock Reconciliation": "isoft_customization.overrides.stock_reconciliation.IsoftStockReconciliation",
 }
 
 # Stock Analytics opening-balance backport (erpnext 008f2a6b6). v13 cannot override a
