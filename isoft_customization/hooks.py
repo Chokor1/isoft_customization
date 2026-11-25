@@ -211,6 +211,8 @@ doctype_js = {
 	"Stock Entry Type": "public/js/stock_entry_type.js",
 	"Purchase Invoice": "public/js/purchase_invoice.js",
 	"Pricing Rule": "public/js/pricing_rule.js",
+	# Fetch Items from Warehouse with Brand and Item Group filters. See stock_reco_fetch.py.
+	"Stock Reconciliation": "public/js/stock_reconciliation.js",
 }
 
 # Large documents submit / cancel from the long queue instead of inside the HTTP

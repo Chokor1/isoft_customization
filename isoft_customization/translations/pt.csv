@@ -796,3 +796,4 @@ Row #{0} ({1}): the quantity must be greater than zero.,Linha #{0} ({1}): a quan
 Row #{0} ({1}): set a warehouse.,Linha #{0} ({1}): indique um armazém.
 Items updated after submit: {0},Artigos alterados após submissão: {0}
 "Row #{0}: only the cost of {1} changed, so the new cost was posted without moving its serial nos. Later movements are re-costed by the stock repost.","Linha #{0}: só o custo de {1} mudou, por isso o novo custo foi lançado sem movimentar os números de série. Os movimentos posteriores são recalculados pela reavaliação de stock."
+Includes its sub-groups,Inclui os subgrupos
