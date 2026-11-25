@@ -42,6 +42,8 @@ app_include_js = [
 	"/assets/isoft_customization/js/discount_limits.js",
 	# Scan Barcode on selling documents applies the barcode's UOM. See barcode_uom.py.
 	"/assets/isoft_customization/js/barcode_uom_scan.js",
+	# An item load never leaves rate 0 on a priced selling line (random 100% discount). See the file.
+	"/assets/isoft_customization/js/item_details_rate.js",
 	# Recorder for lines that reach 100% discount by themselves (diagnostics only). See discount_trace.py.
 	"/assets/isoft_customization/js/discount_trace.js",
 ]
