@@ -41,12 +41,29 @@ frappe.provide('isoft.barcode_uom');
 		});
 	}
 
+	// ERPNext's scan sets the row's item code (which loads the item) and then its barcode,
+	// whose own handler loads the item a second time. ERPNext's queued "rate" handler waits
+	// for the server to go quiet, so it then runs on the second reply's rate of 0 and turns
+	// the line into a 100% discount that every later recalculation keeps. The barcode is put
+	// on the row before the item code is set (ERPNext's item load already sends it along),
+	// so the item is loaded once. Every doctype that scans, with or without a barcode UOM.
+	function scan_once(original_set) {
+		return function (row, data, scan_barcode_field) {
+			if (data && data.barcode && row && frappe.meta.has_field(row.doctype, 'barcode')) {
+				row.barcode = data.barcode;
+				data = Object.assign({}, data);
+				delete data.barcode;
+			}
+			return original_set.call(this, row, data, scan_barcode_field);
+		};
+	}
+
 	ns.patch = function () {
 		const C = window.erpnext && erpnext.TransactionController;
 		if (!C || C.prototype.__isoft_barcode_uom) return;
 		const proto = C.prototype;
 		const original_row = proto.get_row_to_modify_on_scan;
-		const original_set = proto.set_scanned_values;
+		const original_set = scan_once(proto.set_scanned_values);
 
 		proto.get_row_to_modify_on_scan = function (row_to_modify, data) {
 			if (!applies(this, data)) return original_row.apply(this, arguments);
